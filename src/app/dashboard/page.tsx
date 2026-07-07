@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { logout } from "@/lib/actions/auth.actions";
@@ -22,6 +23,11 @@ export default async function DashboardPage() {
           </>
         ) : null}
       </p>
+      {session.role === "super-admin" ? (
+        <Link href="/institutes" className="mt-4 block underline">
+          Manage institutes
+        </Link>
+      ) : null}
       <form action={logout} className="mt-6">
         <Button type="submit" variant="outline">
           Log out
