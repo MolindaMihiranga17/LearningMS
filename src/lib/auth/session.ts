@@ -15,6 +15,7 @@ export type SessionPayload = {
   userId: string;
   role: Role;
   instituteId: string | null;
+  mustChangePassword: boolean;
 };
 
 export function signSession(payload: SessionPayload, ttlSeconds = DEFAULT_TTL_SECONDS): string {

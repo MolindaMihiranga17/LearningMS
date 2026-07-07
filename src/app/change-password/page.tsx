@@ -1,12 +1,17 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChangePasswordForm } from "./change-password-form";
+
 export default function ChangePasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="text-center">
-        <h1 className="text-xl font-semibold">Change password</h1>
-        <p className="mt-2 text-muted-foreground">
-          Placeholder — the forced first-login password change flow lands here (Week 1 follow-up).
-        </p>
-      </div>
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Set a new password</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChangePasswordForm />
+        </CardContent>
+      </Card>
     </main>
   );
 }
