@@ -1,0 +1,15 @@
+import "server-only";
+import { connectToDatabase } from "@/lib/db/connect";
+import ClassModel from "@/models/Class";
+import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
+
+export async function listClasses() {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  await connectToDatabase();
+  return ClassModel.find(withTenantScope({}, session))
+    .populate("classTeacherId", "name")
+    .sort({ createdAt: -1 })
+    .lean();
+}
