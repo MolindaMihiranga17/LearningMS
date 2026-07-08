@@ -28,6 +28,22 @@ export default async function DashboardPage() {
           Manage institutes
         </Link>
       ) : null}
+      {session.role === "institute-admin" ? (
+        <div className="mt-4 flex flex-col gap-2">
+          <Link href="/teachers" className="underline">
+            Manage teachers
+          </Link>
+          <Link href="/students" className="underline">
+            Manage students
+          </Link>
+          <Link href="/classes" className="underline">
+            Manage classes
+          </Link>
+          <Link href="/subjects" className="underline">
+            Manage subjects
+          </Link>
+        </div>
+      ) : null}
       <form action={logout} className="mt-6">
         <Button type="submit" variant="outline">
           Log out
