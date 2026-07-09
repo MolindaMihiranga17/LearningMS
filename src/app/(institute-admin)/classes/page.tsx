@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listClasses } from "@/lib/data/class.data";
-import { buttonVariants } from "@/components/ui/button";
+import { deleteClass } from "@/lib/actions/class.actions";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -31,12 +32,13 @@ export default async function ClassesPage() {
               <TableHead>Academic year</TableHead>
               <TableHead>Class teacher</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {classes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No classes yet.
                 </TableCell>
               </TableRow>
@@ -50,6 +52,22 @@ export default async function ClassesPage() {
                     {(klass.classTeacherId as unknown as { name?: string } | null)?.name || "-"}
                   </TableCell>
                   <TableCell className="capitalize">{klass.status}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/classes/${klass._id}/edit`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        Edit
+                      </Link>
+                      <form action={deleteClass}>
+                        <input type="hidden" name="id" value={String(klass._id)} />
+                        <Button type="submit" variant="destructive" size="sm">
+                          Delete
+                        </Button>
+                      </form>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}

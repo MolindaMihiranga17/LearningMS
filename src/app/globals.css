@@ -49,6 +49,10 @@
 }
 
 :root {
+  --shell-sidebar: #17181B;
+  --shell-accent: #22C55E;
+  --shell-accent-strong: #16A34A;
+  --shell-page-bg: #FAFAF9;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

@@ -20,3 +20,7 @@ export const createSubjectSchema = z.object({
 });
 
 export type CreateSubjectInput = z.infer<typeof createSubjectSchema>;
+
+export const updateSubjectSchema = createSubjectSchema;
+
+export type UpdateSubjectInput = z.infer<typeof updateSubjectSchema>;

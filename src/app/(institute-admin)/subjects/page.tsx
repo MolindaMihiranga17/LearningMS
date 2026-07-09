@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listSubjects } from "@/lib/data/subject.data";
-import { buttonVariants } from "@/components/ui/button";
+import { deleteSubject } from "@/lib/actions/subject.actions";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -30,12 +31,13 @@ export default async function SubjectsPage() {
               <TableHead>Code</TableHead>
               <TableHead>Teacher</TableHead>
               <TableHead>Classes</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {subjects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   No subjects yet.
                 </TableCell>
               </TableRow>
@@ -56,6 +58,22 @@ export default async function SubjectsPage() {
                             .map((klass) => `${klass.name}${klass.section ? ` ${klass.section}` : ""}`)
                             .join(", ")
                         : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/subjects/${subject._id}/edit`}
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                        >
+                          Edit
+                        </Link>
+                        <form action={deleteSubject}>
+                          <input type="hidden" name="id" value={String(subject._id)} />
+                          <Button type="submit" variant="destructive" size="sm">
+                            Delete
+                          </Button>
+                        </form>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
