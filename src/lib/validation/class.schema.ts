@@ -18,3 +18,9 @@ export const createClassSchema = z.object({
 });
 
 export type CreateClassInput = z.infer<typeof createClassSchema>;
+
+export const updateClassSchema = createClassSchema.extend({
+  status: z.enum(["active", "archived"]),
+});
+
+export type UpdateClassInput = z.infer<typeof updateClassSchema>;
