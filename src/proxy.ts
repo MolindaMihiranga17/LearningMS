@@ -6,6 +6,12 @@ const SESSION_COOKIE = "lms_session";
 const PUBLIC_ROUTES = ["/login"];
 const CHANGE_PASSWORD_ROUTE = "/change-password";
 const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
+const INSTITUTE_ADMIN_ONLY_PREFIXES = ["/teachers", "/students", "/classes", "/subjects"];
+const SUPER_ADMIN_ONLY_PREFIXES = ["/institutes"];
+
+function matchesAnyPrefix(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,6 +36,17 @@ export function proxy(request: NextRequest) {
   }
 
   if (!session.mustChangePassword && isChangePasswordRoute) {
+    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
+  }
+
+  if (
+    session.role !== "institute-admin" &&
+    matchesAnyPrefix(pathname, INSTITUTE_ADMIN_ONLY_PREFIXES)
+  ) {
+    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
+  }
+
+  if (session.role !== "super-admin" && matchesAnyPrefix(pathname, SUPER_ADMIN_ONLY_PREFIXES)) {
     return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
   }
 
