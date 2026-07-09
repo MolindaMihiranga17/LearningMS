@@ -14,3 +14,11 @@ export async function listSubjects() {
     .sort({ createdAt: -1 })
     .lean();
 }
+
+export async function getSubject(id: string) {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  await connectToDatabase();
+  return SubjectModel.findOne(withTenantScope({ _id: id }, session)).lean();
+}
