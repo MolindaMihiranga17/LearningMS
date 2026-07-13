@@ -3,7 +3,7 @@ import { TeacherForm } from "./teacher-form";
 
 export default function NewTeacherPage() {
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>New teacher</CardTitle>
@@ -12,6 +12,6 @@ export default function NewTeacherPage() {
           <TeacherForm />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
