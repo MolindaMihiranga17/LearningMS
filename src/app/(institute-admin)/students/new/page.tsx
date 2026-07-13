@@ -3,7 +3,7 @@ import { StudentForm } from "./student-form";
 
 export default function NewStudentPage() {
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>New student</CardTitle>
@@ -12,6 +12,6 @@ export default function NewStudentPage() {
           <StudentForm />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

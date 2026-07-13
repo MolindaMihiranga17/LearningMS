@@ -15,7 +15,7 @@ export default async function StudentsPage() {
   const students = await listStudents();
 
   return (
-    <main className="p-8">
+    <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Students</h1>
         <Link href="/students/new" className={cn(buttonVariants())}>
@@ -58,6 +58,6 @@ export default async function StudentsPage() {
           </TableBody>
         </Table>
       </div>
-    </main>
+    </div>
   );
 }
