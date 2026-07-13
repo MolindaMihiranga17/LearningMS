@@ -7,7 +7,7 @@ export default async function NewSubjectPage() {
   const [teachers, classes] = await Promise.all([listTeachers(), listClasses()]);
 
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>New subject</CardTitle>
@@ -25,6 +25,6 @@ export default async function NewSubjectPage() {
           />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
