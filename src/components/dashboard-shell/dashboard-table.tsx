@@ -22,7 +22,7 @@ export function DashboardTable({
   rows: DashboardTableRow[];
   emptyLabel?: string;
 }) {
-  const gridCols = `2fr repeat(${Math.max(columns.length - 2, 0)}, 1fr) 0.6fr`;
+  const gridCols = `2fr repeat(${Math.max(columns.length - 1, 0)}, 1fr) 0.6fr`;
 
   return (
     <Panel title={title} sub={sub} className="px-6 pb-2">
