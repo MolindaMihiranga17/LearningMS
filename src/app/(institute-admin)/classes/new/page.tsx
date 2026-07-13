@@ -6,7 +6,7 @@ export default async function NewClassPage() {
   const teachers = await listTeachers();
 
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>New class</CardTitle>
@@ -20,6 +20,6 @@ export default async function NewClassPage() {
           />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
