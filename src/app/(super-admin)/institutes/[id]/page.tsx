@@ -15,7 +15,7 @@ export default async function InstituteDetailPage({
   }
 
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>{institute.name}</CardTitle>
@@ -41,6 +41,6 @@ export default async function InstituteDetailPage({
           </dl>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

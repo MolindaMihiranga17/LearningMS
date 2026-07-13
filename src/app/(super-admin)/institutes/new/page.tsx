@@ -3,7 +3,7 @@ import { InstituteForm } from "./institute-form";
 
 export default function NewInstitutePage() {
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>New institute</CardTitle>
@@ -12,6 +12,6 @@ export default function NewInstitutePage() {
           <InstituteForm />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
