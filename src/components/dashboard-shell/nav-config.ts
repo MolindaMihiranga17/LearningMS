@@ -53,3 +53,12 @@ export const STUDENT_NAV: NavItem[] = [
   { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
+
+export const NAV_BY_ROLE = {
+  "institute-admin": INSTITUTE_ADMIN_NAV,
+  teacher: TEACHER_NAV,
+  "super-admin": SUPER_ADMIN_NAV,
+  student: STUDENT_NAV,
+} as const;
+
+export type NavKey = keyof typeof NAV_BY_ROLE;

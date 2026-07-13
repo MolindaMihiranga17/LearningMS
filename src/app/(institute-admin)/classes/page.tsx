@@ -16,7 +16,7 @@ export default async function ClassesPage() {
   const classes = await listClasses();
 
   return (
-    <main className="p-8">
+    <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Classes</h1>
         <Link href="/classes/new" className={cn(buttonVariants())}>
@@ -74,6 +74,6 @@ export default async function ClassesPage() {
           </TableBody>
         </Table>
       </div>
-    </main>
+    </div>
   );
 }

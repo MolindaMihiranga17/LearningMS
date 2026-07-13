@@ -15,7 +15,7 @@ export default async function InstitutesPage() {
   const institutes = await listInstitutes();
 
   return (
-    <main className="p-8">
+    <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Institutes</h1>
         <Link href="/institutes/new" className={cn(buttonVariants())}>
@@ -63,6 +63,6 @@ export default async function InstitutesPage() {
           </TableBody>
         </Table>
       </div>
-    </main>
+    </div>
   );
 }

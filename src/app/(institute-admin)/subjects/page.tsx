@@ -16,7 +16,7 @@ export default async function SubjectsPage() {
   const subjects = await listSubjects();
 
   return (
-    <main className="p-8">
+    <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Subjects</h1>
         <Link href="/subjects/new" className={cn(buttonVariants())}>
@@ -82,6 +82,6 @@ export default async function SubjectsPage() {
           </TableBody>
         </Table>
       </div>
-    </main>
+    </div>
   );
 }

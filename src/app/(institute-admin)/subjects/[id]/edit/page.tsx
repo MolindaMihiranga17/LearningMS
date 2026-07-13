@@ -18,7 +18,7 @@ export default async function EditSubjectPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <main className="mx-auto max-w-lg p-8">
+    <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle>Edit subject</CardTitle>
@@ -41,6 +41,6 @@ export default async function EditSubjectPage({ params }: { params: Promise<{ id
           />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

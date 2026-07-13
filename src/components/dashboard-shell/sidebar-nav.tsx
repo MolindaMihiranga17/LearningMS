@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { NavItem } from "./nav-config";
+import { NAV_BY_ROLE, type NavKey } from "./nav-config";
 
-export function SidebarNav({ items }: { items: NavItem[] }) {
+export function SidebarNav({ navKey }: { navKey: NavKey }) {
   const pathname = usePathname();
+  const items = NAV_BY_ROLE[navKey];
 
   return (
     <div className="flex flex-col gap-1">

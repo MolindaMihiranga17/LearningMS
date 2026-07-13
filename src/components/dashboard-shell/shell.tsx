@@ -1,7 +1,14 @@
 import { LayoutGrid, Search, Bell } from "lucide-react";
 import { logout } from "@/lib/actions/auth.actions";
 import { SidebarNav } from "./sidebar-nav";
-import type { NavItem } from "./nav-config";
+import type { NavKey } from "./nav-config";
+
+export function formatRole(role: string) {
+  return role
+    .split("-")
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 function initials(name: string) {
   return name
@@ -13,13 +20,13 @@ function initials(name: string) {
 }
 
 export function DashboardShell({
-  navItems,
+  navKey,
   profileName,
   profileRole,
   brandName = "Northgate LMS",
   children,
 }: {
-  navItems: NavItem[];
+  navKey: NavKey;
   profileName: string;
   profileRole: string;
   brandName?: string;
@@ -35,7 +42,7 @@ export function DashboardShell({
           <span className="text-[16.5px] font-bold tracking-tight text-white">{brandName}</span>
         </div>
 
-        <SidebarNav items={navItems} />
+        <SidebarNav navKey={navKey} />
 
         <div className="flex-1" />
 

@@ -18,3 +18,11 @@ export async function getInstituteById(id: string) {
   await connectToDatabase();
   return InstituteModel.findById(id).lean();
 }
+
+export async function countInstitutes(): Promise<number> {
+  const session = await requireSession();
+  requireRole(session, ["super-admin"]);
+
+  await connectToDatabase();
+  return InstituteModel.countDocuments();
+}
