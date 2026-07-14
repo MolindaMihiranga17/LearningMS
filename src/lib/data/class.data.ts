@@ -21,3 +21,11 @@ export async function getClass(id: string) {
   await connectToDatabase();
   return ClassModel.findOne(withTenantScope({ _id: id }, session)).lean();
 }
+
+export async function listClassesForTeacher() {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+  return ClassModel.find(withTenantScope({}, session)).sort({ name: 1 }).lean();
+}
