@@ -22,3 +22,13 @@ export async function getSubject(id: string) {
   await connectToDatabase();
   return SubjectModel.findOne(withTenantScope({ _id: id }, session)).lean();
 }
+
+export async function listSubjectsForTeacher() {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+  return SubjectModel.find(withTenantScope({ teacherId: session.userId }, session))
+    .sort({ name: 1 })
+    .lean();
+}
