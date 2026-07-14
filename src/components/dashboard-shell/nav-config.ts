@@ -29,6 +29,7 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
 
 export const TEACHER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Courses", href: "/courses", icon: BookOpen },
   { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true },
   { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
   { label: "Students", href: "/students", icon: Users, disabled: true },
