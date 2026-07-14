@@ -1,0 +1,64 @@
+import "server-only";
+import { connectToDatabase } from "@/lib/db/connect";
+import CourseModel from "@/models/Course";
+import ModuleModel from "@/models/Module";
+import LessonModel from "@/models/Lesson";
+import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
+
+export async function listCoursesForTeacher() {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+  return CourseModel.find({ instituteId: session.instituteId, teacherId: session.userId })
+    .populate("subjectId", "name code")
+    .populate("classIds", "name section")
+    .sort({ createdAt: -1 })
+    .lean();
+}
+
+export async function getCourseForTeacher(courseId: string) {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+
+  const course = await CourseModel.findById(courseId)
+    .populate("subjectId", "name code")
+    .populate("classIds", "name section")
+    .lean();
+
+  if (!course) return null;
+  assertSameInstitute(course, session);
+  if (course.teacherId.toString() !== session.userId) {
+    throw new Error("Resource not found");
+  }
+
+  const modules = await ModuleModel.find({ courseId }).sort({ order: 1 }).lean();
+  const lessons = await LessonModel.find({ courseId }).sort({ order: 1 }).lean();
+
+  const modulesWithLessons = modules.map((module) => ({
+    ...module,
+    lessons: lessons.filter((lesson) => lesson.moduleId.toString() === module._id.toString()),
+  }));
+
+  return { ...course, modules: modulesWithLessons };
+}
+
+export async function getLessonForTeacher(lessonId: string) {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+
+  const lesson = await LessonModel.findById(lessonId).lean();
+  if (!lesson) return null;
+  assertSameInstitute(lesson, session);
+
+  const course = await CourseModel.findById(lesson.courseId).lean();
+  if (!course || course.teacherId.toString() !== session.userId) {
+    throw new Error("Resource not found");
+  }
+
+  return lesson;
+}
