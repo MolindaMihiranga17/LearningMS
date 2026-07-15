@@ -24,6 +24,7 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Students", href: "/students", icon: Users },
   { label: "Classes", href: "/classes", icon: BookOpen },
   { label: "Subjects", href: "/subjects", icon: ClipboardCheck },
+  { label: "Enrollments", href: "/enrollments", icon: ClipboardCheck },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
 
@@ -47,6 +48,7 @@ export const SUPER_ADMIN_NAV: NavItem[] = [
 
 export const STUDENT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "My Courses", href: "/my-courses", icon: BookOpen },
   { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true },
   { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, disabled: true },
