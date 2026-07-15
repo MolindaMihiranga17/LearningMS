@@ -3,7 +3,19 @@ import { connectToDatabase } from "@/lib/db/connect";
 import CourseModel from "@/models/Course";
 import ModuleModel from "@/models/Module";
 import LessonModel from "@/models/Lesson";
-import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
+import { requireSession, requireRole, assertSameInstitute, withTenantScope } from "@/lib/tenant/scope";
+
+export async function listPublishedCoursesForInstitute() {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  await connectToDatabase();
+  return CourseModel.find(withTenantScope({ status: "published" }, session))
+    .select("title teacherId")
+    .populate("teacherId", "name")
+    .sort({ title: 1 })
+    .lean();
+}
 
 export async function listCoursesForTeacher() {
   const session = await requireSession();
