@@ -50,6 +50,18 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href={`/courses/${id}/assignments`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            Assignments
+          </Link>
+          <Link
+            href={`/courses/${id}/quizzes`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            Quizzes
+          </Link>
+          <Link
             href={`/courses/${id}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
