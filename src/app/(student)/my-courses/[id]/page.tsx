@@ -55,6 +55,9 @@ export default async function StudentCourseOverviewPage({
           />
         </div>
         <span className="text-sm text-muted-foreground">{course.percentComplete}% complete</span>
+        <Link href={`/my-courses/${id}/quizzes`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          Quizzes
+        </Link>
         {nextLesson ? (
           <Link
             href={`/my-courses/${id}/lessons/${String(nextLesson._id)}`}
