@@ -7,6 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FileUploader } from "@/components/shared/file-uploader";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateAssignmentState = {};
@@ -57,6 +58,12 @@ export function AssignmentForm({ courseId }: { courseId: string }) {
           <Input id="maxScore" name="maxScore" type="number" min={1} defaultValue={100} required />
         </div>
       </div>
+      <FileUploader
+        courseId={courseId}
+        name="attachmentKey"
+        label="Reference attachment (optional)"
+        accept="application/pdf,image/png,image/jpeg,.doc,.docx,.zip"
+      />
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Creating..." : "Create assignment"}

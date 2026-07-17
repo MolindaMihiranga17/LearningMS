@@ -11,12 +11,16 @@ export function FileUploader({
   label,
   accept,
   defaultKey,
+  endpoint = "/api/uploads/sign",
+  extraFields,
 }: {
-  courseId: string;
+  courseId?: string;
   name: string;
   label: string;
   accept: string;
   defaultKey?: string;
+  endpoint?: string;
+  extraFields?: Record<string, string>;
 }) {
   const [status, setStatus] = useState<UploadStatus>(defaultKey ? "done" : "idle");
   const [key, setKey] = useState(defaultKey ?? "");
@@ -32,10 +36,15 @@ export function FileUploader({
     setFileName(file.name);
 
     try {
-      const signRes = await fetch("/api/uploads/sign", {
+      const signRes = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId, fileName: file.name, contentType: file.type }),
+        body: JSON.stringify({
+          ...extraFields,
+          courseId,
+          fileName: file.name,
+          contentType: file.type,
+        }),
       });
 
       if (!signRes.ok) {
