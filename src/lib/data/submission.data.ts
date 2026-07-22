@@ -26,7 +26,16 @@ export async function listSubmissionsForAssignment(assignmentId: string) {
     .sort({ submittedAt: -1 })
     .lean();
 
-  return { assignment, course, submissions };
+  const submissionsWithUrls = await Promise.all(
+    submissions.map(async (submission) => ({
+      ...submission,
+      attachmentUrl: submission.attachmentKey
+        ? await createReadUrl(submission.attachmentKey)
+        : null,
+    }))
+  );
+
+  return { assignment, course, submissions: submissionsWithUrls };
 }
 
 export async function getSubmissionForStudent(assignmentId: string) {
