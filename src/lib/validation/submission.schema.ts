@@ -11,3 +11,10 @@ export const submitAssignmentSchema = z
   });
 
 export type SubmitAssignmentInput = z.infer<typeof submitAssignmentSchema>;
+
+export const gradeSubmissionSchema = z.object({
+  score: z.coerce.number().min(0, "Score cannot be negative."),
+  feedback: z.string().trim().optional().or(z.literal("")),
+});
+
+export type GradeSubmissionInput = z.infer<typeof gradeSubmissionSchema>;

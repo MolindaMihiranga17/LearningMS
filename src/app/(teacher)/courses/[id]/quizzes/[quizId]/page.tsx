@@ -37,6 +37,12 @@ export default async function QuizDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href={`/courses/${id}/quizzes/${quizId}/attempts`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            View attempts
+          </Link>
+          <Link
             href={`/courses/${id}/quizzes/${quizId}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >

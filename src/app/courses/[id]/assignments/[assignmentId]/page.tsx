@@ -62,6 +62,12 @@ export default async function AssignmentDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href={`/courses/${id}/assignments/${assignmentId}/submissions`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            View submissions
+          </Link>
+          <Link
             href={`/courses/${id}/assignments/${assignmentId}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >

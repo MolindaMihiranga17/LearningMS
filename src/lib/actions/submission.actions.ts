@@ -7,8 +7,10 @@ import SubmissionModel from "@/models/Submission";
 import UserModel from "@/models/User";
 import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
 import { assertEnrolledInCourse } from "@/lib/actions/enrollment-ownership";
+import { assertOwnsAssignment } from "@/lib/actions/assignment-ownership";
 import { recordAuditEntry } from "@/lib/audit/log";
-import { submitAssignmentSchema } from "@/lib/validation/submission.schema";
+import { recomputeGradeForSource } from "@/lib/data/grade-rollup";
+import { submitAssignmentSchema, gradeSubmissionSchema } from "@/lib/validation/submission.schema";
 
 export type SubmitAssignmentState = {
   error?: string;
@@ -96,4 +98,81 @@ export async function submitAssignment(
   revalidatePath(`/courses/${courseId}/assignments/${assignmentId}`);
 
   return { success: { submissionId: submission._id.toString() } };
+}
+
+export type GradeSubmissionState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function gradeSubmission(
+  _prevState: GradeSubmissionState,
+  formData: FormData
+): Promise<GradeSubmissionState> {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  const submissionId = formData.get("submissionId");
+  if (typeof submissionId !== "string" || !submissionId) {
+    return { error: "Missing submission id." };
+  }
+
+  const parsed = gradeSubmissionSchema.safeParse({
+    score: formData.get("score"),
+    feedback: formData.get("feedback"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  await connectToDatabase();
+
+  const submission = await SubmissionModel.findById(submissionId);
+  if (!submission) {
+    return { error: "Submission not found." };
+  }
+  assertSameInstitute(submission, session);
+
+  const owned = await assertOwnsAssignment(submission.assignmentId.toString(), session);
+  if (!owned) {
+    return { error: "Assignment not found." };
+  }
+  const { assignment } = owned;
+
+  const { score, feedback } = parsed.data;
+  if (score > assignment.maxScore) {
+    return { error: `Score cannot exceed the max score of ${assignment.maxScore}.` };
+  }
+
+  submission.status = "graded";
+  submission.grade = {
+    score,
+    feedback: feedback || undefined,
+    gradedBy: session.userId,
+    gradedAt: new Date(),
+  };
+  await submission.save();
+
+  const actor = await UserModel.findById(session.userId).select("name");
+  const student = await UserModel.findById(submission.studentId).select("name");
+
+  await recordAuditEntry({
+    session,
+    actorName: actor?.name ?? "Unknown",
+    action: "submission.grade",
+    targetType: "Submission",
+    targetId: submission._id.toString(),
+    targetName: assignment.title,
+    summary: `Graded ${student?.name ?? "student"}'s submission for "${assignment.title}" (${score}/${assignment.maxScore})`,
+  });
+
+  await recomputeGradeForSource("assignment", submission._id.toString(), session);
+
+  const courseId = assignment.courseId.toString();
+  const assignmentId = assignment._id.toString();
+  revalidatePath(`/courses/${courseId}/assignments/${assignmentId}/submissions`);
+  revalidatePath(`/my-courses/${courseId}/assignments/${assignmentId}`);
+
+  return { success: true };
 }
