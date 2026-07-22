@@ -23,3 +23,9 @@ export const submitQuizAttemptSchema = z.object({
 });
 
 export type SubmitQuizAttemptInput = z.infer<typeof submitQuizAttemptSchema>;
+
+export const gradeShortAnswerSchema = z.object({
+  points: z.coerce.number().min(0, "Points cannot be negative."),
+});
+
+export type GradeShortAnswerInput = z.infer<typeof gradeShortAnswerSchema>;
