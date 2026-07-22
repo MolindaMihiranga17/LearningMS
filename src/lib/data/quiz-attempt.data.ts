@@ -5,6 +5,7 @@ import QuizQuestionModel from "@/models/QuizQuestion";
 import QuizAttemptModel from "@/models/QuizAttempt";
 import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
 import { toStudentSafeQuestion } from "@/lib/data/quiz.data";
+import { assertOwnsQuiz } from "@/lib/actions/quiz-ownership";
 
 /**
  * If a student never clicks submit, the deadline is still enforced here: any
@@ -111,4 +112,45 @@ export async function getAttemptResultForStudent(quizId: string) {
   const quiz = await QuizModel.findById(quizId).select("title").lean();
 
   return { attempt: attempt.toObject(), quizTitle: quiz?.title ?? "" };
+}
+
+export async function listAttemptsForQuizTeacher(quizId: string) {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+
+  const owned = await assertOwnsQuiz(quizId, session);
+  if (!owned) return null;
+  const { quiz, course } = owned;
+
+  const attempts = await QuizAttemptModel.find({ quizId })
+    .populate("studentId", "name email")
+    .sort({ submittedAt: -1 })
+    .lean();
+
+  return { quiz, course, attempts };
+}
+
+export async function getAttemptForTeacherGrading(attemptId: string) {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+
+  const attempt = await QuizAttemptModel.findById(attemptId)
+    .populate("studentId", "name email")
+    .lean();
+  if (!attempt) return null;
+  assertSameInstitute(attempt, session);
+
+  const owned = await assertOwnsQuiz(attempt.quizId.toString(), session);
+  if (!owned) return null;
+  const { quiz, course } = owned;
+
+  const questions = await QuizQuestionModel.find({ quizId: attempt.quizId })
+    .sort({ order: 1 })
+    .lean();
+
+  return { attempt, quiz, course, questions };
 }
