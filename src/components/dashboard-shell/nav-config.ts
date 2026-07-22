@@ -35,7 +35,7 @@ export const TEACHER_NAV: NavItem[] = [
   { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
   { label: "Students", href: "/students", icon: Users, disabled: true },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, disabled: true },
-  { label: "Grades", href: "/grades", icon: BarChart3, disabled: true },
+  { label: "Grades", href: "/grades", icon: BarChart3 },
   { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
@@ -52,7 +52,7 @@ export const STUDENT_NAV: NavItem[] = [
   { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true },
   { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, disabled: true },
-  { label: "Grades", href: "/grades", icon: BarChart3, disabled: true },
+  { label: "Grades", href: "/grades", icon: BarChart3 },
   { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
