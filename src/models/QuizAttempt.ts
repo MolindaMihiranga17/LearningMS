@@ -40,6 +40,17 @@ const quizAttemptSchema = new Schema(
 // Not unique — the one-attempt-per-student policy is enforced in startQuizAttempt.
 quizAttemptSchema.index({ quizId: 1, studentId: 1 });
 
+export type QuizAttemptAnswer = {
+  questionId: mongoose.Types.ObjectId;
+  type: "mcq" | "truefalse" | "short";
+  selectedOptionIndex?: number;
+  selectedBoolean?: boolean;
+  textAnswer?: string;
+  isCorrect?: boolean | null;
+  pointsAwarded?: number;
+  needsManualGrade?: boolean;
+};
+
 export type QuizAttempt = InferSchemaType<typeof quizAttemptSchema>;
 
 export default mongoose.models.QuizAttempt || mongoose.model("QuizAttempt", quizAttemptSchema);
