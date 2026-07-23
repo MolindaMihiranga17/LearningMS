@@ -9,6 +9,7 @@ import {
   Megaphone,
   Settings,
   Building2,
+  FileText,
 } from "lucide-react";
 
 export type NavItem = {
@@ -25,6 +26,8 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Classes", href: "/classes", icon: BookOpen },
   { label: "Subjects", href: "/subjects", icon: ClipboardCheck },
   { label: "Enrollments", href: "/enrollments", icon: ClipboardCheck },
+  { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
+  { label: "Exams", href: "/exams", icon: FileText },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
 
@@ -34,7 +37,8 @@ export const TEACHER_NAV: NavItem[] = [
   { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true },
   { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
   { label: "Students", href: "/students", icon: Users, disabled: true },
-  { label: "Attendance", href: "/attendance", icon: ClipboardCheck, disabled: true },
+  { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
+  { label: "Exams", href: "/exams", icon: FileText },
   { label: "Grades", href: "/grades", icon: BarChart3 },
   { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
@@ -51,7 +55,7 @@ export const STUDENT_NAV: NavItem[] = [
   { label: "My Courses", href: "/my-courses", icon: BookOpen },
   { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true },
   { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
-  { label: "Attendance", href: "/attendance", icon: ClipboardCheck, disabled: true },
+  { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
   { label: "Grades", href: "/grades", icon: BarChart3 },
   { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },

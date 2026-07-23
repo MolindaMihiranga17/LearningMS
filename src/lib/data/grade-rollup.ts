@@ -4,6 +4,8 @@ import GradeModel, { type GradeSource } from "@/models/Grade";
 import SubmissionModel from "@/models/Submission";
 import AssignmentModel from "@/models/Assignment";
 import QuizAttemptModel from "@/models/QuizAttempt";
+import MarksModel from "@/models/Marks";
+import ExamModel from "@/models/Exam";
 import { assertSameInstitute, type SessionPayload } from "@/lib/tenant/scope";
 
 /**
@@ -48,20 +50,48 @@ export async function recomputeGradeForSource(
     return;
   }
 
-  const attempt = await QuizAttemptModel.findById(sourceId).lean();
-  if (!attempt || attempt.status !== "graded") return;
-  assertSameInstitute(attempt, session);
+  if (source === "quiz") {
+    const attempt = await QuizAttemptModel.findById(sourceId).lean();
+    if (!attempt || attempt.status !== "graded") return;
+    assertSameInstitute(attempt, session);
+
+    await GradeModel.findOneAndUpdate(
+      { source: "quiz", sourceId: attempt._id },
+      {
+        instituteId: attempt.instituteId,
+        studentId: attempt.studentId,
+        courseId: attempt.courseId,
+        source: "quiz",
+        sourceId: attempt._id,
+        score: attempt.totalScore,
+        maxScore: attempt.maxScore,
+        computedAt: new Date(),
+      },
+      { upsert: true }
+    );
+    return;
+  }
+
+  // source === "exam" — sourceId is a Marks._id.
+  const marks = await MarksModel.findById(sourceId).lean();
+  if (!marks) return;
+  assertSameInstitute(marks, session);
+
+  const exam = await ExamModel.findById(marks.examId).select("subjectId maxMarks").lean();
+  if (!exam) return;
 
   await GradeModel.findOneAndUpdate(
-    { source: "quiz", sourceId: attempt._id },
+    { source: "exam", sourceId: marks._id },
     {
-      instituteId: attempt.instituteId,
-      studentId: attempt.studentId,
-      courseId: attempt.courseId,
-      source: "quiz",
-      sourceId: attempt._id,
-      score: attempt.totalScore,
-      maxScore: attempt.maxScore,
+      instituteId: marks.instituteId,
+      studentId: marks.studentId,
+      courseId: null,
+      subjectId: exam.subjectId,
+      examId: marks.examId,
+      source: "exam",
+      sourceId: marks._id,
+      score: marks.marksObtained,
+      maxScore: exam.maxMarks,
       computedAt: new Date(),
     },
     { upsert: true }
