@@ -79,16 +79,19 @@ export async function getMyGradesForStudent(): Promise<StudentCourseGradeGroup[]
 
   const grades = await GradeModel.find({ studentId: session.userId })
     .populate("courseId", "title")
+    .populate("subjectId", "name")
     .lean();
 
   const groups = new Map<string, StudentCourseGradeGroup>();
 
   for (const grade of grades) {
-    const course = grade.courseId as unknown as { _id: string; title?: string };
-    const key = course._id.toString();
+    const course = grade.courseId as unknown as { _id: string; title?: string } | null;
+    const subject = grade.subjectId as unknown as { _id: string; name?: string } | null;
+    // Exam grades aren't tied to a course — group them by subject instead.
+    const key = course ? course._id.toString() : `subject-${subject?._id?.toString() ?? "none"}`;
     const group = groups.get(key) ?? {
-      courseId: key,
-      courseTitle: course.title ?? "Course",
+      courseId: course ? course._id.toString() : "",
+      courseTitle: course?.title ?? (subject?.name ? `${subject.name} exams` : "Exams"),
       totalScore: 0,
       totalMaxScore: 0,
       percent: null,
