@@ -7,12 +7,12 @@ const gradeSchema = new Schema(
   {
     instituteId: { type: Schema.Types.ObjectId, ref: "Institute", required: true },
     studentId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    courseId: { type: Schema.Types.ObjectId, ref: "Course", required: true },
-    // Reserved for Week 5 (report cards) — unused until then.
+    // Null for institute-wide/class-wide exams not tied to a course.
+    courseId: { type: Schema.Types.ObjectId, ref: "Course", default: null },
     subjectId: { type: Schema.Types.ObjectId, ref: "Subject", default: null },
     examId: { type: Schema.Types.ObjectId, ref: "Exam", default: null },
     source: { type: String, enum: GRADE_SOURCES, required: true },
-    // Submission._id for "assignment", QuizAttempt._id for "quiz".
+    // Submission._id for "assignment", QuizAttempt._id for "quiz", Marks._id for "exam".
     sourceId: { type: Schema.Types.ObjectId, required: true },
     score: { type: Number, required: true },
     maxScore: { type: Number, required: true },
