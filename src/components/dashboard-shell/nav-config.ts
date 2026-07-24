@@ -10,6 +10,7 @@ import {
   Settings,
   Building2,
   FileText,
+  Wallet,
 } from "lucide-react";
 
 export type NavItem = {
@@ -28,6 +29,7 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Enrollments", href: "/enrollments", icon: ClipboardCheck },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
   { label: "Exams", href: "/exams", icon: FileText },
+  { label: "Fees", href: "/fees", icon: Wallet },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
 
@@ -57,6 +59,7 @@ export const STUDENT_NAV: NavItem[] = [
   { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
   { label: "Grades", href: "/grades", icon: BarChart3 },
+  { label: "Fees", href: "/fees", icon: Wallet },
   { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
