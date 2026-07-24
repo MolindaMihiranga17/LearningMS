@@ -31,12 +31,13 @@ export default async function StudentsPage() {
               <TableHead>Roll number</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {students.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No students yet.
                 </TableCell>
               </TableRow>
@@ -51,6 +52,14 @@ export default async function StudentsPage() {
                     {student.createdAt
                       ? new Date(student.createdAt).toLocaleDateString()
                       : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/fees/students/${student._id}/payments`}
+                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                    >
+                      Fees
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))
