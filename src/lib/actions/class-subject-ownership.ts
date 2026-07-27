@@ -50,3 +50,15 @@ export async function assertOwnsExam(examId: string, session: SessionPayload) {
   if (!subject) return null;
   return { exam, subject };
 }
+
+/**
+ * Class-scoped announcements may only be posted by that class's class teacher
+ * (institute-admin has a separate, unrestricted path and doesn't call this).
+ */
+export async function assertCanAnnounceToClass(classId: string, session: SessionPayload) {
+  const klass = await ClassModel.findById(classId);
+  if (!klass) return null;
+  assertSameInstitute(klass, session);
+  if (klass.classTeacherId?.toString() !== session.userId) return null;
+  return klass;
+}
