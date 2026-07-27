@@ -68,6 +68,29 @@ export async function getInstituteRecentActivity(limit = 5): Promise<RecentActiv
   }));
 }
 
+export async function getTeacherRecentActivity(limit = 5): Promise<RecentActivityEntry[]> {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+  const logs = await AuditLogModel.find(
+    withTenantScope({ actorUserId: session.userId }, session)
+  )
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .select("actorName action summary targetName createdAt")
+    .lean();
+
+  return logs.map((log) => ({
+    id: String(log._id),
+    actorName: log.actorName,
+    action: log.action,
+    summary: log.summary,
+    targetName: log.targetName ?? undefined,
+    createdAt: log.createdAt,
+  }));
+}
+
 export type ClassOverviewRow = {
   id: string;
   name: string;
