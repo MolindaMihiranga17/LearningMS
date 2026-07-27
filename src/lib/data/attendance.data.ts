@@ -160,6 +160,60 @@ export async function getMyAttendanceHistory() {
   return { history, percentPresent };
 }
 
+export async function getAttendanceSummaryForTeacherClasses() {
+  const session = await requireSession();
+  requireRole(session, ["teacher"]);
+
+  await connectToDatabase();
+
+  const [classTeacherOf, taughtSubjects] = await Promise.all([
+    ClassModel.find(withTenantScope({ classTeacherId: session.userId }, session)).lean(),
+    SubjectModel.find(withTenantScope({ teacherId: session.userId }, session)).lean(),
+  ]);
+
+  const classIds = new Set(classTeacherOf.map((klass) => klass._id.toString()));
+  for (const subject of taughtSubjects) {
+    for (const id of subject.classIds as mongoose.Types.ObjectId[]) {
+      classIds.add(id.toString());
+    }
+  }
+
+  if (classIds.size === 0) return [];
+
+  const classes = await ClassModel.find({ _id: { $in: Array.from(classIds) } })
+    .sort({ name: 1 })
+    .lean();
+
+  const rows = await AttendanceModel.aggregate([
+    { $match: { classId: { $in: classes.map((klass) => klass._id) } } },
+    { $unwind: "$records" },
+    {
+      $group: {
+        _id: "$classId",
+        total: { $sum: 1 },
+        present: {
+          $sum: {
+            $cond: [{ $in: ["$records.status", ["present", "late"]] }, 1, 0],
+          },
+        },
+      },
+    },
+  ]);
+
+  const summaryByClass = new Map(rows.map((row) => [row._id.toString(), row]));
+
+  return classes.map((klass) => {
+    const summary = summaryByClass.get(klass._id.toString());
+    const total = summary?.total ?? 0;
+    const present = summary?.present ?? 0;
+    return {
+      id: klass._id.toString(),
+      name: klass.section ? `${klass.name} ${klass.section}` : klass.name,
+      percentPresent: total > 0 ? Math.round((present / total) * 100) : null,
+    };
+  });
+}
+
 export async function getInstituteAttendanceSummary() {
   const session = await requireSession();
   requireRole(session, ["institute-admin"]);
