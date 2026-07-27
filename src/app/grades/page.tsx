@@ -33,8 +33,20 @@ export default async function GradesPage() {
         profileName={profile.name}
         profileRole={formatRole(profile.role)}
       >
-        <h2 className="text-2xl font-semibold">Grades</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Your grades across all courses.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Grades</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Your grades across all courses.</p>
+          </div>
+          <a
+            href={`/api/reports/report-card/${session.userId}`}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Download report card
+          </a>
+        </div>
 
         {groups.length === 0 ? (
           <p className="mt-6 text-sm text-muted-foreground">No grades yet.</p>
