@@ -7,20 +7,34 @@ import {
   ClipboardCheck,
   Building2,
   Activity,
+  Wallet,
+  FileText,
+  Megaphone,
+  Bell,
 } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import {
   getInstituteDashboardCounts,
   getCurrentUserProfile,
   getInstituteRecentActivity,
+  getTeacherRecentActivity,
   getInstituteClassesOverview,
 } from "@/lib/data/dashboard.data";
 import { countInstitutes } from "@/lib/data/institute.data";
 import { getTeacherDashboardData } from "@/lib/data/teacher-dashboard.data";
+import { getStudentDashboardData } from "@/lib/data/student-dashboard.data";
+import {
+  getInstituteAttendanceSummary,
+  getAttendanceSummaryForTeacherClasses,
+} from "@/lib/data/attendance.data";
+import {
+  getRecentFeeCollectionSummary,
+  listRecentPaymentsForInstitute,
+} from "@/lib/data/payment.data";
 import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
-import { ChartPlaceholder } from "@/components/dashboard-shell/chart-placeholder";
+import { AttendanceChart } from "@/components/dashboard-shell/attendance-chart";
 import { ActivityFeed, type ActivityItem } from "@/components/dashboard-shell/activity-feed";
 import {
   DashboardTable,
@@ -44,6 +58,12 @@ const ACTIVITY_ICON = {
   subject: ClipboardCheck,
   class: BookOpen,
   institute: Building2,
+  attendance: ClipboardCheck,
+  exam: FileText,
+  marks: FileText,
+  fee: Wallet,
+  payment: Wallet,
+  announcement: Megaphone,
 } as const;
 
 export default async function DashboardPage() {
@@ -56,11 +76,15 @@ export default async function DashboardPage() {
   const profile = await getCurrentUserProfile();
 
   if (session.role === "institute-admin") {
-    const [counts, activity, classesOverview] = await Promise.all([
-      getInstituteDashboardCounts(),
-      getInstituteRecentActivity(),
-      getInstituteClassesOverview(),
-    ]);
+    const [counts, activity, classesOverview, attendanceSummary, feeSummary, recentPayments] =
+      await Promise.all([
+        getInstituteDashboardCounts(),
+        getInstituteRecentActivity(),
+        getInstituteClassesOverview(),
+        getInstituteAttendanceSummary(),
+        getRecentFeeCollectionSummary(),
+        listRecentPaymentsForInstitute(5),
+      ]);
 
     const activityItems: ActivityItem[] = activity.map((entry) => {
       const entity = entry.action.split(".")[0] as keyof typeof ACTIVITY_ICON;
@@ -87,6 +111,15 @@ export default async function DashboardPage() {
       ),
     }));
 
+    const paymentRows: DashboardTableRow[] = recentPayments.map((payment) => ({
+      id: String(payment._id),
+      cells: [
+        (payment.studentId as unknown as { name?: string } | null)?.name ?? "Unknown",
+        payment.amount.toFixed(2),
+        new Date(payment.paymentDate).toLocaleDateString(),
+      ],
+    }));
+
     return (
       <DashboardShell
         navKey="institute-admin"
@@ -100,8 +133,25 @@ export default async function DashboardPage() {
           <StatCard label="Subjects" icon={ClipboardCheck} value={counts.subjects} />
         </div>
 
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatCard
+            label="Fees collected (30d)"
+            icon={Wallet}
+            value={feeSummary.totalCollected.toFixed(2)}
+            sub={`${feeSummary.paymentCount} payment${feeSummary.paymentCount === 1 ? "" : "s"}`}
+          />
+        </div>
+
         <div className="flex flex-col gap-6 lg:flex-row">
-          <ChartPlaceholder title="Attendance overview" sub="Weekly trend across classes" />
+          <AttendanceChart
+            title="Attendance overview"
+            sub="Percent present per class"
+            rows={attendanceSummary.map((row) => ({
+              id: row.id,
+              name: row.section ? `${row.name} ${row.section}` : row.name,
+              percentPresent: row.percentPresent,
+            }))}
+          />
           <ActivityFeed
             title="Recent activity"
             sub="Latest changes across your institute"
@@ -120,18 +170,44 @@ export default async function DashboardPage() {
           ]}
           rows={classRows}
         />
+
+        <DashboardTable
+          title="Recent payments"
+          sub="Latest fee payments recorded across your institute"
+          columns={[
+            { key: "student", label: "Student" },
+            { key: "amount", label: "Amount" },
+            { key: "date", label: "Date" },
+          ]}
+          rows={paymentRows}
+          emptyLabel="No payments recorded yet."
+        />
       </DashboardShell>
     );
   }
 
   if (session.role === "teacher") {
-    const data = await getTeacherDashboardData();
+    const [data, activity, attendanceSummary] = await Promise.all([
+      getTeacherDashboardData(),
+      getTeacherRecentActivity(),
+      getAttendanceSummaryForTeacherClasses(),
+    ]);
 
     const rows: DashboardTableRow[] = data.rows.map((row) => ({
       id: row.id,
       cells: [row.className, row.subjectName, row.academicYear],
       badge: row.isClassTeacher ? "Class teacher" : undefined,
     }));
+
+    const activityItems: ActivityItem[] = activity.map((entry) => {
+      const entity = entry.action.split(".")[0] as keyof typeof ACTIVITY_ICON;
+      return {
+        icon: ACTIVITY_ICON[entity] ?? Activity,
+        title: entry.actorName,
+        detail: entry.summary,
+        meta: formatRelativeTime(entry.createdAt),
+      };
+    });
 
     return (
       <DashboardShell
@@ -146,12 +222,16 @@ export default async function DashboardPage() {
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row">
-          <ChartPlaceholder title="Attendance overview" sub="Weekly trend across your classes" />
+          <AttendanceChart
+            title="Attendance overview"
+            sub="Percent present across your classes"
+            rows={attendanceSummary}
+          />
           <ActivityFeed
             title="Recent activity"
-            sub="Submissions and announcements"
-            items={[]}
-            emptyLabel="Not tracked yet &mdash; coming soon."
+            sub="Your recent actions"
+            items={activityItems}
+            emptyLabel="No recent activity yet."
           />
         </div>
 
@@ -191,22 +271,72 @@ export default async function DashboardPage() {
     );
   }
 
+  const studentData = await getStudentDashboardData();
+
+  const dueRows: DashboardTableRow[] = studentData.upcomingAssignments.map((assignment) => ({
+    id: assignment.id,
+    cells: [
+      assignment.title,
+      assignment.courseTitle,
+      new Date(assignment.dueAt).toLocaleDateString(),
+    ],
+  }));
+
   return (
     <DashboardShell
       navKey="student"
       profileName={profile.name}
       profileRole={formatRole(profile.role)}
     >
-      <Panel
-        title="Welcome"
-        sub="Your dashboard will fill in as your institute sets up classes"
-        className="p-6"
-      >
-        <p className="mt-3 text-sm text-[#17181B]/60">
-          There&rsquo;s nothing to show yet &mdash; check back once your institute-admin sets up
-          classes, subjects, and assignments.
-        </p>
-      </Panel>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard
+          label="Attendance"
+          icon={ClipboardCheck}
+          value={`${studentData.attendancePercent}%`}
+        />
+        <StatCard label="Fee balance" icon={Wallet} value={studentData.feeBalance.toFixed(2)} />
+        <StatCard
+          label="Unread notifications"
+          icon={Bell}
+          value={studentData.unreadNotificationCount}
+        />
+        <StatCard
+          label="Courses graded"
+          icon={GraduationCap}
+          value={studentData.gradeGroups.length}
+        />
+      </div>
+
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <Panel title="Recent grades" sub="Your latest graded courses" className="flex-1 p-5">
+          {studentData.gradeGroups.length === 0 ? (
+            <p className="mt-4 text-[13px] text-[#17181B]/45">No grades yet.</p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-3">
+              {studentData.gradeGroups.slice(0, 5).map((group) => (
+                <div key={group.courseId || group.courseTitle} className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#17181B]/80">{group.courseTitle}</span>
+                  <span className="text-[13px] font-medium text-[#17181B]/70">
+                    {group.percent !== null ? `${group.percent.toFixed(1)}%` : "-"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        <DashboardTable
+          title="Upcoming assignments"
+          sub="Due soon across your enrolled courses"
+          columns={[
+            { key: "title", label: "Assignment" },
+            { key: "course", label: "Course" },
+            { key: "due", label: "Due date" },
+          ]}
+          rows={dueRows}
+          emptyLabel="Nothing due soon."
+        />
+      </div>
     </DashboardShell>
   );
 }
