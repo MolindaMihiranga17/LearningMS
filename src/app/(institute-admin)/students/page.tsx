@@ -54,12 +54,22 @@ export default async function StudentsPage() {
                       : "-"}
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`/fees/students/${student._id}/payments`}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                    >
-                      Fees
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/fees/students/${student._id}/payments`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        Fees
+                      </Link>
+                      <a
+                        href={`/api/reports/report-card/${student._id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        Report card
+                      </a>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

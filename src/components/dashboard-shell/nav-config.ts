@@ -30,6 +30,7 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
   { label: "Exams", href: "/exams", icon: FileText },
   { label: "Fees", href: "/fees", icon: Wallet },
+  { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
 
@@ -42,7 +43,7 @@ export const TEACHER_NAV: NavItem[] = [
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
   { label: "Exams", href: "/exams", icon: FileText },
   { label: "Grades", href: "/grades", icon: BarChart3 },
-  { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
+  { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
 
@@ -60,7 +61,7 @@ export const STUDENT_NAV: NavItem[] = [
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
   { label: "Grades", href: "/grades", icon: BarChart3 },
   { label: "Fees", href: "/fees", icon: Wallet },
-  { label: "Announcements", href: "/announcements", icon: Megaphone, disabled: true },
+  { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true },
 ];
 
