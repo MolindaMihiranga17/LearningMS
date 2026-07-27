@@ -1,6 +1,8 @@
-import { LayoutGrid, Search, Bell } from "lucide-react";
+import { LayoutGrid, Search } from "lucide-react";
 import { logout } from "@/lib/actions/auth.actions";
+import { listNotificationsForUser, countUnreadForUser } from "@/lib/data/notification.data";
 import { SidebarNav } from "./sidebar-nav";
+import { NotificationBell } from "./notification-bell";
 import type { NavKey } from "./nav-config";
 
 export function formatRole(role: string) {
@@ -19,7 +21,7 @@ function initials(name: string) {
     .join("");
 }
 
-export function DashboardShell({
+export async function DashboardShell({
   navKey,
   profileName,
   profileRole,
@@ -32,6 +34,11 @@ export function DashboardShell({
   brandName?: string;
   children: React.ReactNode;
 }) {
+  const [notifications, unreadCount] = await Promise.all([
+    listNotificationsForUser(8),
+    countUnreadForUser(),
+  ]);
+
   return (
     <div className="flex min-h-screen bg-[var(--shell-page-bg)]">
       <nav className="flex w-[232px] shrink-0 flex-col gap-1 bg-[var(--shell-sidebar)] p-4">
@@ -64,13 +71,7 @@ export function DashboardShell({
               <Search className="size-[15px] text-[#17181B]/40" />
               <span className="text-[13px] text-[#17181B]/40">Search</span>
             </div>
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="flex size-8.5 items-center justify-center rounded-lg bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]"
-            >
-              <Bell className="size-4 text-[#17181B]/55" />
-            </button>
+            <NotificationBell notifications={notifications} unreadCount={unreadCount} />
             <div className="flex items-center gap-2.5">
               <div className="flex size-8.5 items-center justify-center rounded-full bg-[#DDE7DF] text-[13px] font-semibold text-[#2F5C3D]">
                 {initials(profileName)}
