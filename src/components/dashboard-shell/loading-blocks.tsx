@@ -1,0 +1,175 @@
+import * as React from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+export function TableSkeleton({
+  columns = 4,
+  rows = 6,
+  withHeaderAction = true,
+}: {
+  columns?: number;
+  rows?: number;
+  withHeaderAction?: boolean;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-40" />
+        {withHeaderAction ? <Skeleton className="h-9 w-28" /> : null}
+      </div>
+      <div className="mt-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {Array.from({ length: columns }).map((_, i) => (
+                <TableHead key={i}>
+                  <Skeleton className="h-4 w-20" />
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: rows }).map((_, r) => (
+              <TableRow key={r}>
+                {Array.from({ length: columns }).map((_, c) => (
+                  <TableCell key={c}>
+                    <Skeleton className="h-4 w-full max-w-32" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+export function FormSkeleton({ fields = 4 }: { fields?: number }) {
+  return (
+    <Card className="mx-auto max-w-lg">
+      <CardHeader>
+        <Skeleton className="h-6 w-40" />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {Array.from({ length: fields }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        ))}
+        <Skeleton className="mt-2 h-9 w-28" />
+      </CardContent>
+    </Card>
+  );
+}
+
+export function DetailSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="mx-auto max-w-lg">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3">
+            {Array.from({ length: rows }).map((_, i) => (
+              <React.Fragment key={i}>
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-40" />
+              </React.Fragment>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function DashboardSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="flex flex-col gap-2 pt-5">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-7 w-16" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <Card className="flex-1">
+          <CardHeader>
+            <Skeleton className="h-5 w-40" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-48 w-full" />
+          </CardContent>
+        </Card>
+        <Card className="flex-1">
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+      <TableSkeleton columns={4} rows={4} withHeaderAction={false} />
+    </div>
+  );
+}
+
+export function CardListSkeleton({ cards = 6 }: { cards?: number }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: cards }).map((_, i) => (
+        <Card key={i}>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="mt-2 h-4 w-20" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export function CenteredFormSkeleton({ fields = 2 }: { fields?: number }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[var(--shell-page-bg)] p-4">
+      <div className="w-full max-w-sm rounded-[18px] bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,.04),0_8px_24px_-14px_rgba(0,0,0,.12)]">
+        <div className="flex flex-col items-center gap-3 pb-6">
+          <Skeleton className="size-10 rounded-[10px]" />
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex flex-col gap-4">
+          {Array.from({ length: fields }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ))}
+          <Skeleton className="mt-2 h-9 w-full" />
+        </div>
+      </div>
+    </main>
+  );
+}
