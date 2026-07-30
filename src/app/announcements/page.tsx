@@ -9,7 +9,8 @@ import {
 } from "@/lib/data/announcement.data";
 import { deleteAnnouncement } from "@/lib/actions/announcement.actions";
 import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { cn } from "@/lib/utils";
 
 type PopulatedRef = { name?: string; section?: string; title?: string } | null;
@@ -91,12 +92,11 @@ export default async function AnnouncementsPage() {
                     {creator?.name ? ` · Posted by ${creator.name}` : ""}
                   </span>
                   {session.role !== "student" ? (
-                    <form action={deleteAnnouncement}>
-                      <input type="hidden" name="id" value={String(announcement._id)} />
-                      <Button type="submit" variant="destructive" size="sm">
-                        Delete
-                      </Button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteAnnouncement}
+                      hiddenFields={{ id: String(announcement._id) }}
+                      itemLabel={announcement.title}
+                    />
                   ) : null}
                 </div>
               </div>
