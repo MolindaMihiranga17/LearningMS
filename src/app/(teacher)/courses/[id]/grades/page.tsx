@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCourseGradeSummaryForTeacher } from "@/lib/data/grade.data";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+
+const COLUMNS = [
+  { key: "student", header: "Student" },
+  { key: "gradedItems", header: "Graded items" },
+  { key: "score", header: "Score" },
+  { key: "percent", header: "Percent" },
+];
 
 export default async function CourseGradesPage({
   params,
@@ -22,7 +22,21 @@ export default async function CourseGradesPage({
     notFound();
   }
 
-  const { course, rows } = data;
+  const { course, rows: gradeRows } = data;
+
+  const rows: DataTableRow[] = gradeRows.map((row) => ({
+    key: row.studentId,
+    searchValue: `${row.name} ${row.email}`,
+    cells: [
+      <>
+        <div className="font-medium">{row.name}</div>
+        <div className="text-xs text-muted-foreground">{row.email}</div>
+      </>,
+      row.itemCount,
+      row.itemCount > 0 ? `${row.totalScore} / ${row.totalMaxScore}` : "-",
+      row.percent !== null ? `${row.percent.toFixed(1)}%` : "-",
+    ],
+  }));
 
   return (
     <>
@@ -35,41 +49,12 @@ export default async function CourseGradesPage({
       </div>
 
       <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Student</TableHead>
-              <TableHead>Graded items</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>Percent</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  No enrolled students yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row) => (
-                <TableRow key={row.studentId}>
-                  <TableCell>
-                    <div className="font-medium">{row.name}</div>
-                    <div className="text-xs text-muted-foreground">{row.email}</div>
-                  </TableCell>
-                  <TableCell>{row.itemCount}</TableCell>
-                  <TableCell>
-                    {row.itemCount > 0 ? `${row.totalScore} / ${row.totalMaxScore}` : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {row.percent !== null ? `${row.percent.toFixed(1)}%` : "-"}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTableCard
+          columns={COLUMNS}
+          rows={rows}
+          searchPlaceholder="Search students..."
+          emptyTitle="No enrolled students yet."
+        />
       </div>
     </>
   );
