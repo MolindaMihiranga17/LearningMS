@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { AlertCircle } from "lucide-react";
 import { login, type LoginState } from "@/lib/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,10 @@ export function LoginForm() {
         <Input id="password" name="password" type="password" required autoComplete="current-password" />
       </div>
       {state.error ? (
-        <p className="text-sm text-destructive">{state.error}</p>
+        <p className="flex items-center gap-1.5 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" />
+          {state.error}
+        </p>
       ) : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Signing in..." : "Sign in"}
