@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { deleteQuizQuestion, moveQuizQuestion } from "@/lib/actions/quiz-question.actions";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -79,12 +80,14 @@ export function QuestionList({
               >
                 Edit
               </Link>
-              <form action={deleteQuizQuestion}>
-                <input type="hidden" name="id" value={questionId} />
-                <Button type="submit" variant="destructive" size="icon-sm" title="Delete">
-                  ×
-                </Button>
-              </form>
+              <ConfirmDeleteButton
+                action={deleteQuizQuestion}
+                hiddenFields={{ id: questionId }}
+                itemLabel="question"
+                triggerLabel="×"
+                size="icon-sm"
+                title="Delete"
+              />
             </div>
           </li>
         );
