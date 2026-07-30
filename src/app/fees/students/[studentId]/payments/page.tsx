@@ -7,15 +7,24 @@ import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard } from "@/components/data-table/data-table-card";
 import { PaymentForm } from "./payment-form";
+
+const FEE_COLUMNS = [
+  { key: "fee", header: "Fee" },
+  { key: "amount", header: "Amount" },
+  { key: "paid", header: "Paid" },
+  { key: "balance", header: "Balance" },
+  { key: "due", header: "Due date" },
+];
+
+const PAYMENT_COLUMNS = [
+  { key: "date", header: "Date" },
+  { key: "fee", header: "Fee" },
+  { key: "amount", header: "Amount" },
+  { key: "method", header: "Method" },
+  { key: "receipt", header: "Receipt" },
+];
 
 export default async function StudentPaymentsPage({
   params,
@@ -86,43 +95,23 @@ export default async function StudentPaymentsPage({
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Applicable fees</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fee</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead>Due date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {overview.fees.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No fees apply to this student.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  overview.fees.map((fee) => (
-                    <TableRow key={fee.id}>
-                      <TableCell className="font-medium">{fee.title}</TableCell>
-                      <TableCell>{fee.amount.toFixed(2)}</TableCell>
-                      <TableCell>{fee.paid.toFixed(2)}</TableCell>
-                      <TableCell>{fee.balance.toFixed(2)}</TableCell>
-                      <TableCell>{new Date(fee.dueDate).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div>
+          <h2 className="mb-3 text-lg font-medium">Applicable fees</h2>
+          <DataTableCard
+            columns={FEE_COLUMNS}
+            rows={overview.fees.map((fee) => ({
+              key: fee.id,
+              cells: [
+                <span className="font-medium">{fee.title}</span>,
+                fee.amount.toFixed(2),
+                fee.paid.toFixed(2),
+                fee.balance.toFixed(2),
+                new Date(fee.dueDate).toLocaleDateString(),
+              ],
+            }))}
+            emptyTitle="No fees apply to this student."
+          />
+        </div>
 
         <Card>
           <CardHeader>
@@ -136,54 +125,30 @@ export default async function StudentPaymentsPage({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment history</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Fee</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Receipt</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {overview.payments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No payments recorded yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  overview.payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>{new Date(payment.paymentDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{payment.feeTitle ?? "Ad-hoc"}</TableCell>
-                      <TableCell>{payment.amount.toFixed(2)}</TableCell>
-                      <TableCell className="capitalize">
-                        {payment.paymentMethod.replace("-", " ")}
-                      </TableCell>
-                      <TableCell>
-                        <a
-                          href={`/api/reports/receipt/${payment.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline"
-                        >
-                          {payment.receiptNumber}
-                        </a>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div>
+          <h2 className="mb-3 text-lg font-medium">Payment history</h2>
+          <DataTableCard
+            columns={PAYMENT_COLUMNS}
+            rows={overview.payments.map((payment) => ({
+              key: payment.id,
+              cells: [
+                new Date(payment.paymentDate).toLocaleDateString(),
+                payment.feeTitle ?? "Ad-hoc",
+                payment.amount.toFixed(2),
+                <span className="capitalize">{payment.paymentMethod.replace("-", " ")}</span>,
+                <a
+                  href={`/api/reports/receipt/${payment.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  {payment.receiptNumber}
+                </a>,
+              ],
+            }))}
+            emptyTitle="No payments recorded yet."
+          />
+        </div>
       </div>
     </DashboardShell>
   );
