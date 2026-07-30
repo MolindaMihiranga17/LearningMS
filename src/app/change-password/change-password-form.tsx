@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { AlertCircle } from "lucide-react";
 import { changePassword, type ChangePasswordState } from "@/lib/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,12 @@ export function ChangePasswordForm() {
           autoComplete="new-password"
         />
       </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+      {state.error ? (
+        <p className="flex items-center gap-1.5 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" />
+          {state.error}
+        </p>
+      ) : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Updating..." : "Update password"}
       </Button>
