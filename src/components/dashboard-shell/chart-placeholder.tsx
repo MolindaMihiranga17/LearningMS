@@ -15,12 +15,12 @@ export function ChartPlaceholder({
         {BARS.map((height, i) => (
           <div
             key={i}
-            className="flex-1 rounded-t-[8px] rounded-b-[3px] bg-[#17181B]/[.07]"
+            className="flex-1 rounded-t-[8px] rounded-b-[3px] bg-foreground/[.07]"
             style={{ height: `${height}%` }}
           />
         ))}
       </div>
-      <p className="mt-4 text-xs text-[#17181B]/40">Coming soon &mdash; not tracked yet.</p>
+      <p className="mt-4 text-xs text-foreground/40">Coming soon &mdash; not tracked yet.</p>
     </Panel>
   );
 }

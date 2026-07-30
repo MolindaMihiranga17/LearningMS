@@ -1,6 +1,11 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AUTH_CARD_CLASS,
+  AUTH_CARD_WRAPPER_CLASS,
+  AuthCardBackdrop,
+} from "@/components/auth/auth-card";
 import {
   Table,
   TableBody,
@@ -25,30 +30,38 @@ export function TableSkeleton({
         <Skeleton className="h-8 w-40" />
         {withHeaderAction ? <Skeleton className="h-9 w-28" /> : null}
       </div>
-      <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {Array.from({ length: columns }).map((_, i) => (
-                <TableHead key={i}>
-                  <Skeleton className="h-4 w-20" />
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: rows }).map((_, r) => (
-              <TableRow key={r}>
-                {Array.from({ length: columns }).map((_, c) => (
-                  <TableCell key={c}>
-                    <Skeleton className="h-4 w-full max-w-32" />
-                  </TableCell>
+      <Card className="mt-6">
+        <CardHeader className="border-b border-border/60 pb-(--card-spacing)">
+          <Skeleton className="h-10 w-full max-w-xs" />
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {Array.from({ length: columns }).map((_, i) => (
+                  <TableHead key={i}>
+                    <Skeleton className="h-4 w-20" />
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: rows }).map((_, r) => (
+                <TableRow key={r}>
+                  {Array.from({ length: columns }).map((_, c) => (
+                    <TableCell key={c}>
+                      <Skeleton className="h-4 w-full max-w-32" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter>
+          <Skeleton className="h-4 w-40" />
+        </CardFooter>
+      </Card>
     </div>
   );
 }
@@ -153,8 +166,9 @@ export function CardListSkeleton({ cards = 6 }: { cards?: number }) {
 
 export function CenteredFormSkeleton({ fields = 2 }: { fields?: number }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--shell-page-bg)] p-4">
-      <div className="w-full max-w-sm rounded-[18px] bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,.04),0_8px_24px_-14px_rgba(0,0,0,.12)]">
+    <main className={AUTH_CARD_WRAPPER_CLASS}>
+      <AuthCardBackdrop />
+      <div className={AUTH_CARD_CLASS}>
         <div className="flex flex-col items-center gap-3 pb-6">
           <Skeleton className="size-10 rounded-[10px]" />
           <Skeleton className="h-5 w-40" />

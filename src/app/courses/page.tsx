@@ -4,15 +4,9 @@ import { getCurrentUserProfile } from "@/lib/data/dashboard.data";
 import { listCoursesForTeacher } from "@/lib/data/course.data";
 import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -20,11 +14,47 @@ const STATUS_LABEL: Record<string, string> = {
   archived: "Archived",
 };
 
+const COLUMNS = [
+  { key: "title", header: "Title" },
+  { key: "subject", header: "Subject" },
+  { key: "classes", header: "Classes" },
+  { key: "status", header: "Status" },
+  { key: "actions", header: "Actions" },
+];
+
 export default async function CoursesPage() {
   const session = await requireSession();
   requireRole(session, ["teacher"]);
 
   const [profile, courses] = await Promise.all([getCurrentUserProfile(), listCoursesForTeacher()]);
+
+  const rows: DataTableRow[] = courses.map((course) => {
+    const subject = course.subjectId as unknown as { name?: string } | null;
+    const classes = (course.classIds ?? []) as unknown as { name: string; section?: string }[];
+    const classesLabel =
+      classes.length > 0
+        ? classes.map((c) => (c.section ? `${c.name} ${c.section}` : c.name)).join(", ")
+        : "-";
+
+    return {
+      key: String(course._id),
+      searchValue: `${course.title} ${subject?.name ?? ""}`,
+      cells: [
+        <span className="font-medium">{course.title}</span>,
+        subject?.name ?? "-",
+        classesLabel,
+        <Badge variant={course.status === "published" ? "success" : "secondary"} className="capitalize">
+          {STATUS_LABEL[course.status ?? "draft"]}
+        </Badge>,
+        <Link
+          href={`/courses/${course._id}`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          Manage
+        </Link>,
+      ],
+    };
+  });
 
   return (
     <DashboardShell
@@ -39,60 +69,12 @@ export default async function CoursesPage() {
         </Link>
       </div>
       <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Subject</TableHead>
-              <TableHead>Classes</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {courses.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No courses yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              courses.map((course) => {
-                const subject = course.subjectId as unknown as { name?: string } | null;
-                const classes = (course.classIds ?? []) as unknown as {
-                  name: string;
-                  section?: string;
-                }[];
-                return (
-                  <TableRow key={String(course._id)}>
-                    <TableCell className="font-medium">{course.title}</TableCell>
-                    <TableCell>{subject?.name ?? "-"}</TableCell>
-                    <TableCell>
-                      {classes.length > 0
-                        ? classes
-                            .map((c) => (c.section ? `${c.name} ${c.section}` : c.name))
-                            .join(", ")
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {STATUS_LABEL[course.status ?? "draft"]}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/courses/${course._id}`}
-                          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                        >
-                          Manage
-                        </Link>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+        <DataTableCard
+          columns={COLUMNS}
+          rows={rows}
+          searchPlaceholder="Search courses..."
+          emptyTitle="No courses yet."
+        />
       </div>
     </DashboardShell>
   );

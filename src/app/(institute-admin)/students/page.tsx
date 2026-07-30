@@ -1,18 +1,51 @@
 import Link from "next/link";
 import { listStudents } from "@/lib/data/user.data";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+
+const COLUMNS = [
+  { key: "name", header: "Name" },
+  { key: "email", header: "Email" },
+  { key: "rollNumber", header: "Roll number" },
+  { key: "status", header: "Status" },
+  { key: "created", header: "Created" },
+  { key: "actions", header: "Actions" },
+];
 
 export default async function StudentsPage() {
   const students = await listStudents();
+
+  const rows: DataTableRow[] = students.map((student) => ({
+    key: String(student._id),
+    searchValue: `${student.name} ${student.email} ${student.studentMeta?.rollNumber ?? ""}`,
+    cells: [
+      <span className="font-medium">{student.name}</span>,
+      student.email,
+      student.studentMeta?.rollNumber || "-",
+      <Badge variant={student.status === "active" ? "success" : "secondary"} className="capitalize">
+        {student.status}
+      </Badge>,
+      student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "-",
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/fees/students/${student._id}/payments`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          Fees
+        </Link>
+        <a
+          href={`/api/reports/report-card/${student._id}`}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          Report card
+        </a>
+      </div>,
+    ],
+  }));
 
   return (
     <div>
@@ -23,59 +56,12 @@ export default async function StudentsPage() {
         </Link>
       </div>
       <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Roll number</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {students.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  No students yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              students.map((student) => (
-                <TableRow key={String(student._id)}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell>{student.email}</TableCell>
-                  <TableCell>{student.studentMeta?.rollNumber || "-"}</TableCell>
-                  <TableCell className="capitalize">{student.status}</TableCell>
-                  <TableCell>
-                    {student.createdAt
-                      ? new Date(student.createdAt).toLocaleDateString()
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/fees/students/${student._id}/payments`}
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                      >
-                        Fees
-                      </Link>
-                      <a
-                        href={`/api/reports/report-card/${student._id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                      >
-                        Report card
-                      </a>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTableCard
+          columns={COLUMNS}
+          rows={rows}
+          searchPlaceholder="Search students..."
+          emptyTitle="No students yet."
+        />
       </div>
     </div>
   );

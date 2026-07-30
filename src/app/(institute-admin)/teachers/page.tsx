@@ -1,18 +1,34 @@
 import Link from "next/link";
 import { listTeachers } from "@/lib/data/user.data";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+
+const COLUMNS = [
+  { key: "name", header: "Name" },
+  { key: "email", header: "Email" },
+  { key: "employeeCode", header: "Employee code" },
+  { key: "status", header: "Status" },
+  { key: "created", header: "Created" },
+];
 
 export default async function TeachersPage() {
   const teachers = await listTeachers();
+
+  const rows: DataTableRow[] = teachers.map((teacher) => ({
+    key: String(teacher._id),
+    searchValue: `${teacher.name} ${teacher.email} ${teacher.teacherMeta?.employeeCode ?? ""}`,
+    cells: [
+      <span className="font-medium">{teacher.name}</span>,
+      teacher.email,
+      teacher.teacherMeta?.employeeCode || "-",
+      <Badge variant={teacher.status === "active" ? "success" : "secondary"} className="capitalize">
+        {teacher.status}
+      </Badge>,
+      teacher.createdAt ? new Date(teacher.createdAt).toLocaleDateString() : "-",
+    ],
+  }));
 
   return (
     <div>
@@ -23,40 +39,12 @@ export default async function TeachersPage() {
         </Link>
       </div>
       <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Employee code</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teachers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No teachers yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              teachers.map((teacher) => (
-                <TableRow key={String(teacher._id)}>
-                  <TableCell className="font-medium">{teacher.name}</TableCell>
-                  <TableCell>{teacher.email}</TableCell>
-                  <TableCell>{teacher.teacherMeta?.employeeCode || "-"}</TableCell>
-                  <TableCell className="capitalize">{teacher.status}</TableCell>
-                  <TableCell>
-                    {teacher.createdAt
-                      ? new Date(teacher.createdAt).toLocaleDateString()
-                      : "-"}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTableCard
+          columns={COLUMNS}
+          rows={rows}
+          searchPlaceholder="Search teachers..."
+          emptyTitle="No teachers yet."
+        />
       </div>
     </div>
   );

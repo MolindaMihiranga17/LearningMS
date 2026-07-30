@@ -7,14 +7,13 @@ import { getMyGradesForStudent } from "@/lib/data/grade.data";
 import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+
+const TEACHER_COLUMNS = [
+  { key: "course", header: "Course" },
+  { key: "status", header: "Status" },
+  { key: "actions", header: "Actions" },
+];
 
 export default async function GradesPage() {
   const session = await getSession();
@@ -75,6 +74,21 @@ export default async function GradesPage() {
   if (session.role === "teacher") {
     const courses = await listCoursesForTeacher();
 
+    const rows: DataTableRow[] = courses.map((course) => ({
+      key: String(course._id),
+      searchValue: course.title,
+      cells: [
+        <span className="font-medium">{course.title}</span>,
+        <span className="capitalize">{course.status}</span>,
+        <Link
+          href={`/courses/${course._id}/grades`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          View grades
+        </Link>,
+      ],
+    }));
+
     return (
       <DashboardShell
         navKey="teacher"
@@ -87,39 +101,7 @@ export default async function GradesPage() {
         </p>
 
         <div className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Course</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {courses.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
-                    No courses yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                courses.map((course) => (
-                  <TableRow key={String(course._id)}>
-                    <TableCell className="font-medium">{course.title}</TableCell>
-                    <TableCell className="capitalize">{course.status}</TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/courses/${course._id}/grades`}
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                      >
-                        View grades
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <DataTableCard columns={TEACHER_COLUMNS} rows={rows} emptyTitle="No courses yet." />
         </div>
       </DashboardShell>
     );

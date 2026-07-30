@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { renameModule, deleteModule, moveModule } from "@/lib/actions/module.actions";
 import { deleteLesson, moveLesson } from "@/lib/actions/lesson.actions";
 import { AddLessonForm } from "./add-lesson-form";
@@ -55,12 +56,12 @@ export function ModuleCard({
               ↓
             </Button>
           </form>
-          <form action={deleteModule}>
-            <input type="hidden" name="id" value={moduleId} />
-            <Button type="submit" variant="destructive" size="sm">
-              Delete module
-            </Button>
-          </form>
+          <ConfirmDeleteButton
+            action={deleteModule}
+            hiddenFields={{ id: moduleId }}
+            itemLabel="module"
+            triggerLabel="Delete module"
+          />
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -125,12 +126,14 @@ export function ModuleCard({
                     >
                       Edit
                     </a>
-                    <form action={deleteLesson}>
-                      <input type="hidden" name="id" value={lessonId} />
-                      <Button type="submit" variant="destructive" size="icon-sm" title="Delete">
-                        ×
-                      </Button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteLesson}
+                      hiddenFields={{ id: lessonId }}
+                      itemLabel="lesson"
+                      triggerLabel="×"
+                      size="icon-sm"
+                      title="Delete"
+                    />
                   </div>
                 </li>
               );

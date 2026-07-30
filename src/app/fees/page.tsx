@@ -5,7 +5,8 @@ import { getCurrentUserProfile } from "@/lib/data/dashboard.data";
 import { listFeesForInstitute, getStudentFeeOverview } from "@/lib/data/fee.data";
 import { deleteFee } from "@/lib/actions/fee.actions";
 import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +17,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+
+const FEE_COLUMNS = [
+  { key: "title", header: "Title" },
+  { key: "scope", header: "Scope" },
+  { key: "amount", header: "Amount" },
+  { key: "due", header: "Due date" },
+  { key: "frequency", header: "Frequency" },
+  { key: "actions", header: "Actions" },
+];
 
 export default async function FeesPage() {
   const session = await getSession();
@@ -27,6 +38,41 @@ export default async function FeesPage() {
 
   if (session.role === "institute-admin") {
     const fees = await listFeesForInstitute();
+
+    const rows: DataTableRow[] = fees.map((fee) => {
+      const klass = fee.classId as unknown as { name?: string; section?: string } | null;
+      const student = fee.studentId as unknown as { name?: string } | null;
+      const scope = student
+        ? `Student: ${student.name}`
+        : klass
+          ? `Class: ${klass.name}${klass.section ? ` - ${klass.section}` : ""}`
+          : "Institute-wide";
+
+      return {
+        key: String(fee._id),
+        searchValue: `${fee.title} ${scope}`,
+        cells: [
+          <span className="font-medium">{fee.title}</span>,
+          scope,
+          fee.amount.toFixed(2),
+          new Date(fee.dueDate).toLocaleDateString(),
+          <span className="capitalize">{fee.frequency}</span>,
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/fees/${fee._id}/edit`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Edit
+            </Link>
+            <ConfirmDeleteButton
+              action={deleteFee}
+              hiddenFields={{ id: String(fee._id) }}
+              itemLabel={fee.title}
+            />
+          </div>,
+        ],
+      };
+    });
 
     return (
       <DashboardShell
@@ -46,63 +92,12 @@ export default async function FeesPage() {
           </div>
         </div>
         <div className="mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Scope</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Due date</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {fees.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No fees defined yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                fees.map((fee) => {
-                  const klass = fee.classId as unknown as { name?: string; section?: string } | null;
-                  const student = fee.studentId as unknown as { name?: string } | null;
-                  const scope = student
-                    ? `Student: ${student.name}`
-                    : klass
-                      ? `Class: ${klass.name}${klass.section ? ` - ${klass.section}` : ""}`
-                      : "Institute-wide";
-
-                  return (
-                    <TableRow key={String(fee._id)}>
-                      <TableCell className="font-medium">{fee.title}</TableCell>
-                      <TableCell>{scope}</TableCell>
-                      <TableCell>{fee.amount.toFixed(2)}</TableCell>
-                      <TableCell>{new Date(fee.dueDate).toLocaleDateString()}</TableCell>
-                      <TableCell className="capitalize">{fee.frequency}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/fees/${fee._id}/edit`}
-                            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                          >
-                            Edit
-                          </Link>
-                          <form action={deleteFee}>
-                            <input type="hidden" name="id" value={String(fee._id)} />
-                            <Button type="submit" variant="destructive" size="sm">
-                              Delete
-                            </Button>
-                          </form>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+          <DataTableCard
+            columns={FEE_COLUMNS}
+            rows={rows}
+            searchPlaceholder="Search fees..."
+            emptyTitle="No fees defined yet."
+          />
         </div>
       </DashboardShell>
     );

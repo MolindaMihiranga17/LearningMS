@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Panel } from "./panel";
 
 export type DashboardTableColumn = { key: string; label: string };
@@ -27,43 +28,39 @@ export function DashboardTable({
   return (
     <Panel title={title} sub={sub} className="px-6 pb-2">
       <div
-        className="mt-4 grid gap-x-2 border-b border-black/[.07] pb-2.5"
+        className="mt-4 grid gap-x-2 border-b border-border/70 pb-2.5"
         style={{ gridTemplateColumns: gridCols }}
       >
         {columns.map((col, i) => (
           <span
             key={col.key}
-            className={`text-[11px] font-semibold uppercase tracking-wide text-[#17181B]/40 ${
+            className={`text-[11px] font-semibold uppercase tracking-wide text-foreground/40 ${
               i === columns.length - 1 ? "text-right" : ""
             }`}
           >
             {col.label}
           </span>
         ))}
-        <span className="text-right text-[11px] font-semibold uppercase tracking-wide text-[#17181B]/40">
+        <span className="text-right text-[11px] font-semibold uppercase tracking-wide text-foreground/40">
           Action
         </span>
       </div>
 
       {rows.length === 0 ? (
-        <p className="py-6 text-sm text-[#17181B]/40">{emptyLabel}</p>
+        <p className="py-6 text-sm text-foreground/40">{emptyLabel}</p>
       ) : (
         rows.map((row) => (
           <div
             key={row.id}
-            className="grid items-center gap-x-2 border-b border-black/[.04] py-3 last:border-b-0"
+            className="grid items-center gap-x-2 border-b border-border/50 py-3 last:border-b-0"
             style={{ gridTemplateColumns: gridCols }}
           >
             {row.cells.map((cell, i) => (
-              <div key={i} className="flex items-center gap-2 truncate text-[13px] text-[#17181B]/65">
+              <div key={i} className="flex items-center gap-2 truncate text-[13px] text-foreground/65">
                 {i === 0 ? (
                   <>
-                    <span className="truncate font-semibold text-[#17181B]">{cell}</span>
-                    {row.badge ? (
-                      <span className="shrink-0 rounded-[5px] bg-[#22C55E]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#16A34A]">
-                        {row.badge}
-                      </span>
-                    ) : null}
+                    <span className="truncate font-semibold text-foreground">{cell}</span>
+                    {row.badge ? <Badge variant="success">{row.badge}</Badge> : null}
                   </>
                 ) : (
                   cell

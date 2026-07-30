@@ -5,15 +5,17 @@ import { getCurrentUserProfile } from "@/lib/data/dashboard.data";
 import { listAssignmentsForCourse } from "@/lib/data/assignment.data";
 import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+
+const COLUMNS = [
+  { key: "title", header: "Title" },
+  { key: "due", header: "Due" },
+  { key: "maxScore", header: "Max score" },
+  { key: "status", header: "Status" },
+  { key: "actions", header: "Actions" },
+];
 
 export default async function CourseAssignmentsPage({
   params,
@@ -34,6 +36,25 @@ export default async function CourseAssignmentsPage({
   }
 
   const { course, assignments } = result;
+
+  const rows: DataTableRow[] = assignments.map((assignment) => ({
+    key: String(assignment._id),
+    searchValue: assignment.title,
+    cells: [
+      <span className="font-medium">{assignment.title}</span>,
+      assignment.dueAt ? new Date(assignment.dueAt).toLocaleString() : "-",
+      assignment.maxScore,
+      <Badge variant={assignment.status === "published" ? "success" : "secondary"} className="capitalize">
+        {assignment.status}
+      </Badge>,
+      <Link
+        href={`/courses/${id}/assignments/${String(assignment._id)}`}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        Manage
+      </Link>,
+    ],
+  }));
 
   return (
     <DashboardShell
@@ -60,45 +81,7 @@ export default async function CourseAssignmentsPage({
       </div>
 
       <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Due</TableHead>
-              <TableHead>Max score</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assignments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No assignments yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              assignments.map((assignment) => (
-                <TableRow key={String(assignment._id)}>
-                  <TableCell className="font-medium">{assignment.title}</TableCell>
-                  <TableCell>
-                    {assignment.dueAt ? new Date(assignment.dueAt).toLocaleString() : "-"}
-                  </TableCell>
-                  <TableCell>{assignment.maxScore}</TableCell>
-                  <TableCell className="capitalize">{assignment.status}</TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/courses/${id}/assignments/${String(assignment._id)}`}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                    >
-                      Manage
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTableCard columns={COLUMNS} rows={rows} emptyTitle="No assignments yet." />
       </div>
     </DashboardShell>
   );

@@ -2,15 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listQuizzesForCourse } from "@/lib/data/quiz.data";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+
+const COLUMNS = [
+  { key: "title", header: "Title" },
+  { key: "timeLimit", header: "Time limit" },
+  { key: "status", header: "Status" },
+  { key: "actions", header: "Actions" },
+];
 
 export default async function CourseQuizzesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,6 +22,24 @@ export default async function CourseQuizzesPage({ params }: { params: Promise<{ 
   }
 
   const { course, quizzes } = result;
+
+  const rows: DataTableRow[] = quizzes.map((quiz) => ({
+    key: String(quiz._id),
+    searchValue: quiz.title,
+    cells: [
+      <span className="font-medium">{quiz.title}</span>,
+      `${quiz.timeLimitMinutes} min`,
+      <Badge variant={quiz.status === "published" ? "success" : "secondary"} className="capitalize">
+        {quiz.status}
+      </Badge>,
+      <Link
+        href={`/courses/${id}/quizzes/${String(quiz._id)}`}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        Manage
+      </Link>,
+    ],
+  }));
 
   return (
     <>
@@ -43,41 +62,7 @@ export default async function CourseQuizzesPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Time limit</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {quizzes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  No quizzes yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              quizzes.map((quiz) => (
-                <TableRow key={String(quiz._id)}>
-                  <TableCell className="font-medium">{quiz.title}</TableCell>
-                  <TableCell>{quiz.timeLimitMinutes} min</TableCell>
-                  <TableCell className="capitalize">{quiz.status}</TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/courses/${id}/quizzes/${String(quiz._id)}`}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                    >
-                      Manage
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTableCard columns={COLUMNS} rows={rows} emptyTitle="No quizzes yet." />
       </div>
     </>
   );
