@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEnrolledCourseForStudent } from "@/lib/data/enrollment.data";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -104,9 +105,7 @@ export default async function StudentCourseOverviewPage({
                             </span>
                             <span className="font-medium">{lesson.title}</span>
                           </span>
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                            {TYPE_LABEL[lesson.type] ?? lesson.type}
-                          </span>
+                          <Badge variant="secondary">{TYPE_LABEL[lesson.type] ?? lesson.type}</Badge>
                         </Link>
                       </li>
                     ))}

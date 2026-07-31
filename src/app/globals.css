@@ -52,6 +52,7 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-icon: calc(var(--radius) * 1.5);
 }
 
 :root {
@@ -139,6 +140,16 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+:root {
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -14px rgba(0, 0, 0, 0.12);
+  --shadow-card-hover: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 28px -12px rgba(0, 0, 0, 0.16);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 10px -6px rgba(0, 0, 0, 0.15);
+  --shadow-button-hover: 0 2px 4px rgba(0, 0, 0, 0.06), 0 8px 18px -6px rgba(0, 0, 0, 0.2);
+  --shadow-sidebar: 10px 0 30px rgba(15, 23, 42, 0.04);
+  --shadow-modal: 0 32px 80px rgba(15, 23, 42, 0.22);
+  --shadow-hairline: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -148,5 +159,38 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .shadow-panel {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-panel-hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+  .shadow-sidebar {
+    box-shadow: var(--shadow-sidebar);
+  }
+  .shadow-hairline {
+    box-shadow: var(--shadow-hairline);
+  }
+  .shadow-button {
+    box-shadow: var(--shadow-button);
+  }
+  .shadow-button-hover {
+    box-shadow: var(--shadow-button-hover);
+  }
+  .shadow-modal {
+    box-shadow: var(--shadow-modal);
+  }
+  .text-heading {
+    @apply font-bold tracking-tight text-foreground;
+  }
+  .text-eyebrow {
+    @apply text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase;
+  }
+  .text-label-form {
+    @apply text-[11px] font-bold tracking-[0.06em] text-foreground/70 uppercase;
   }
 }
