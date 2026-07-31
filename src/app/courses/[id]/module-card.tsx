@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { renameModule, deleteModule, moveModule } from "@/lib/actions/module.actions";
 import { deleteLesson, moveLesson } from "@/lib/actions/lesson.actions";
+import { cn } from "@/lib/utils";
 import { AddLessonForm } from "./add-lesson-form";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -84,14 +86,8 @@ export function ModuleCard({
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{lesson.title}</span>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {TYPE_LABEL[lesson.type] ?? lesson.type}
-                    </span>
-                    {lesson.isPreview ? (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        Preview
-                      </span>
-                    ) : null}
+                    <Badge variant="secondary">{TYPE_LABEL[lesson.type] ?? lesson.type}</Badge>
+                    {lesson.isPreview ? <Badge variant="secondary">Preview</Badge> : null}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <form action={moveLesson}>
@@ -122,7 +118,7 @@ export function ModuleCard({
                     </form>
                     <a
                       href={`/courses/${courseId}/lessons/${lessonId}/edit`}
-                      className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                      className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
                     >
                       Edit
                     </a>
