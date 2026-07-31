@@ -9,9 +9,9 @@ const STATUSES = ["present", "absent", "late", "excused"] as const;
 type Status = (typeof STATUSES)[number];
 
 const STATUS_STYLES: Record<Status, string> = {
-  present: "data-[checked=true]:bg-emerald-500/15 data-[checked=true]:text-emerald-600",
+  present: "data-[checked=true]:bg-success/15 data-[checked=true]:text-success",
   absent: "data-[checked=true]:bg-destructive/15 data-[checked=true]:text-destructive",
-  late: "data-[checked=true]:bg-amber-500/15 data-[checked=true]:text-amber-600",
+  late: "data-[checked=true]:bg-warning/15 data-[checked=true]:text-warning",
   excused: "data-[checked=true]:bg-muted data-[checked=true]:text-foreground",
 };
 
@@ -84,7 +84,7 @@ export function AttendanceGrid({
       </div>
 
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-emerald-600">Attendance saved.</p> : null}
+      {state.success ? <p className="text-sm text-success">Attendance saved.</p> : null}
 
       <Button type="submit" disabled={pending} className="self-start">
         {pending ? "Saving..." : "Save attendance"}
