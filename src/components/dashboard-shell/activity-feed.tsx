@@ -23,7 +23,7 @@ export function ActivityFeed({
     <Panel title={title} sub={sub} className="flex-1 pb-2">
       <div className="mt-3 px-6 pb-2">
         {items.length === 0 ? (
-          <p className="py-6 text-sm text-foreground/40">{emptyLabel}</p>
+          <p className="py-6 text-sm text-muted-foreground/70">{emptyLabel}</p>
         ) : (
           items.map((item, i) => {
             const Icon = item.icon;
@@ -40,9 +40,9 @@ export function ActivityFeed({
                     {item.title}
                   </span>
                   {item.detail ? (
-                    <span className="text-[12.5px] text-foreground/60"> {item.detail}</span>
+                    <span className="text-[12.5px] text-muted-foreground"> {item.detail}</span>
                   ) : null}
-                  <div className="mt-0.5 text-[11.5px] text-foreground/40">{item.meta}</div>
+                  <div className="mt-0.5 text-[11.5px] text-muted-foreground/70">{item.meta}</div>
                 </div>
               </div>
             );

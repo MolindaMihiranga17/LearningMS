@@ -56,7 +56,7 @@ export function ConfirmDeleteButton({
       >
         {triggerLabel}
       </Button>
-      <DialogPopup>
+      <DialogPopup tone="danger">
         <DialogHeader>
           <DialogTitle>Delete {itemLabel}?</DialogTitle>
           <DialogDescription>This action cannot be undone.</DialogDescription>

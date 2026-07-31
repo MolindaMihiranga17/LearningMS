@@ -15,16 +15,13 @@ export function Panel({
 }) {
   return (
     <div
-      className={cn(
-        "rounded-[18px] bg-card shadow-[0_1px_2px_rgba(0,0,0,.04),0_8px_24px_-14px_rgba(0,0,0,.12)]",
-        className
-      )}
+      className={cn("shadow-panel rounded-2xl bg-card", className)}
     >
       {title ? (
         <div className="flex items-start justify-between gap-4 px-6 pt-5">
           <div>
-            <div className="text-[15px] font-bold text-foreground">{title}</div>
-            {sub ? <div className="mt-0.5 text-xs text-foreground/45">{sub}</div> : null}
+            <div className="text-heading text-[15px] text-foreground">{title}</div>
+            {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}
           </div>
           {action}
         </div>

@@ -20,7 +20,7 @@ export function ChartPlaceholder({
           />
         ))}
       </div>
-      <p className="mt-4 text-xs text-foreground/40">Coming soon &mdash; not tracked yet.</p>
+      <p className="mt-4 text-xs text-muted-foreground/70">Coming soon &mdash; not tracked yet.</p>
     </Panel>
   );
 }

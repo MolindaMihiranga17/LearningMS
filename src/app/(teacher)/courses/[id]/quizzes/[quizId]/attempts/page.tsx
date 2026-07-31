@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { listAttemptsForQuizTeacher } from "@/lib/data/quiz-attempt.data";
 
 export default async function QuizAttemptsPage({
@@ -52,9 +53,9 @@ export default async function QuizAttemptsPage({
                   <span>
                     {attempt.totalScore} / {attempt.maxScore}
                   </span>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
+                  <Badge variant="secondary" className="capitalize">
                     {attempt.status === "submitted" ? "Needs grading" : attempt.status}
-                  </span>
+                  </Badge>
                 </div>
               </Link>
             );

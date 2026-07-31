@@ -74,7 +74,7 @@ export function PaymentForm({
       </div>
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.success ? (
-        <p className="text-sm text-emerald-600">
+        <p className="text-sm text-success">
           Payment recorded (receipt {state.success.receiptNumber}).{" "}
           <a
             href={`/api/reports/receipt/${state.success.paymentId}`}

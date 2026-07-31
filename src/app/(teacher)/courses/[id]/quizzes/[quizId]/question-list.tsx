@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { deleteQuizQuestion, moveQuizQuestion } from "@/lib/actions/quiz-question.actions";
+import { cn } from "@/lib/utils";
 
 const TYPE_LABEL: Record<string, string> = {
   mcq: "Multiple choice",
@@ -40,12 +42,10 @@ export function QuestionList({
           >
             <div className="flex items-center gap-2">
               <span className="font-medium">{question.prompt}</span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                {TYPE_LABEL[question.type] ?? question.type}
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              <Badge variant="secondary">{TYPE_LABEL[question.type] ?? question.type}</Badge>
+              <Badge variant="secondary">
                 {question.points} pt{question.points === 1 ? "" : "s"}
-              </span>
+              </Badge>
             </div>
             <div className="flex items-center gap-1.5">
               <form action={moveQuizQuestion}>
@@ -76,7 +76,7 @@ export function QuestionList({
               </form>
               <Link
                 href={`/courses/${courseId}/quizzes/${quizId}/questions/${questionId}/edit`}
-                className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
               >
                 Edit
               </Link>

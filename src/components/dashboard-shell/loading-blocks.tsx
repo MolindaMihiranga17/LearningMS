@@ -1,9 +1,12 @@
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AUTH_CARD_CLASS,
   AUTH_CARD_WRAPPER_CLASS,
+  AUTH_FORM_COLUMN_CLASS,
+  AUTH_HERO_PANEL_CLASS,
   AuthCardBackdrop,
 } from "@/components/auth/auth-card";
 import {
@@ -167,21 +170,24 @@ export function CardListSkeleton({ cards = 6 }: { cards?: number }) {
 export function CenteredFormSkeleton({ fields = 2 }: { fields?: number }) {
   return (
     <main className={AUTH_CARD_WRAPPER_CLASS}>
-      <AuthCardBackdrop />
-      <div className={AUTH_CARD_CLASS}>
-        <div className="flex flex-col items-center gap-3 pb-6">
-          <Skeleton className="size-10 rounded-[10px]" />
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-        <div className="flex flex-col gap-4">
-          {Array.from({ length: fields }).map((_, i) => (
-            <div key={i} className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-9 w-full" />
-            </div>
-          ))}
-          <Skeleton className="mt-2 h-9 w-full" />
+      <div className={AUTH_HERO_PANEL_CLASS} />
+      <div className={cn("relative", AUTH_FORM_COLUMN_CLASS)}>
+        <AuthCardBackdrop />
+        <div className={cn("relative", AUTH_CARD_CLASS)}>
+          <div className="flex flex-col items-center gap-3 pb-6">
+            <Skeleton className="size-10 rounded-(--radius-icon)" />
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: fields }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-9 w-full" />
+              </div>
+            ))}
+            <Skeleton className="mt-2 h-9 w-full" />
+          </div>
         </div>
       </div>
     </main>
