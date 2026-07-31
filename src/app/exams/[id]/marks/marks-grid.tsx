@@ -79,7 +79,7 @@ export function MarksGrid({
       </div>
 
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-emerald-600">Marks saved.</p> : null}
+      {state.success ? <p className="text-sm text-success">Marks saved.</p> : null}
 
       <Button type="submit" disabled={pending} className="self-start">
         {pending ? "Saving..." : "Save marks"}
