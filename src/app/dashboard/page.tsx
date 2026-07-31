@@ -36,10 +36,8 @@ import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
 import { AttendanceChart } from "@/components/dashboard-shell/attendance-chart";
 import { ActivityFeed, type ActivityItem } from "@/components/dashboard-shell/activity-feed";
-import {
-  DashboardTable,
-  type DashboardTableRow,
-} from "@/components/dashboard-shell/dashboard-table";
+import { Badge } from "@/components/ui/badge";
+import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 
 function formatRelativeTime(date: Date) {
   const seconds = Math.round((Date.now() - new Date(date).getTime()) / 1000);
@@ -96,23 +94,25 @@ export default async function DashboardPage() {
       };
     });
 
-    const classRows: DashboardTableRow[] = classesOverview.map((cls) => ({
-      id: cls.id,
+    const classRows: DataTableRow[] = classesOverview.map((cls) => ({
+      key: cls.id,
       cells: [
         cls.section ? `${cls.name} ${cls.section}` : cls.name,
         cls.classTeacherName,
         cls.academicYear,
         `${cls.studentCount} students`,
-      ],
-      action: (
-        <Link href={`/classes/${cls.id}/edit`} className="text-xs font-semibold text-[#16A34A]">
+        <Link
+          key="action"
+          href={`/classes/${cls.id}/edit`}
+          className="text-xs font-semibold text-success"
+        >
           Edit
-        </Link>
-      ),
+        </Link>,
+      ],
     }));
 
-    const paymentRows: DashboardTableRow[] = recentPayments.map((payment) => ({
-      id: String(payment._id),
+    const paymentRows: DataTableRow[] = recentPayments.map((payment) => ({
+      key: String(payment._id),
       cells: [
         (payment.studentId as unknown as { name?: string } | null)?.name ?? "Unknown",
         payment.amount.toFixed(2),
@@ -127,10 +127,10 @@ export default async function DashboardPage() {
         profileRole={formatRole(profile.role)}
       >
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard label="Teachers" icon={GraduationCap} value={counts.teachers} />
-          <StatCard label="Students" icon={Users} value={counts.students} />
-          <StatCard label="Classes" icon={BookOpen} value={counts.classes} />
-          <StatCard label="Subjects" icon={ClipboardCheck} value={counts.subjects} />
+          <StatCard label="Teachers" icon={GraduationCap} value={counts.teachers} tone="primary" />
+          <StatCard label="Students" icon={Users} value={counts.students} tone="info" />
+          <StatCard label="Classes" icon={BookOpen} value={counts.classes} tone="success" />
+          <StatCard label="Subjects" icon={ClipboardCheck} value={counts.subjects} tone="warning" />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -139,6 +139,7 @@ export default async function DashboardPage() {
             icon={Wallet}
             value={feeSummary.totalCollected.toFixed(2)}
             sub={`${feeSummary.paymentCount} payment${feeSummary.paymentCount === 1 ? "" : "s"}`}
+            tone="success"
           />
         </div>
 
@@ -159,28 +160,31 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <DashboardTable
+        <DataTableCard
           title="Classes"
           sub="Overview of your most recently created classes"
+          compact
           columns={[
-            { key: "name", label: "Class" },
-            { key: "teacher", label: "Class Teacher" },
-            { key: "year", label: "Academic Year" },
-            { key: "students", label: "Students" },
+            { key: "name", header: "Class" },
+            { key: "teacher", header: "Class Teacher" },
+            { key: "year", header: "Academic Year" },
+            { key: "students", header: "Students" },
+            { key: "action", header: "Action" },
           ]}
           rows={classRows}
         />
 
-        <DashboardTable
+        <DataTableCard
           title="Recent payments"
           sub="Latest fee payments recorded across your institute"
+          compact
           columns={[
-            { key: "student", label: "Student" },
-            { key: "amount", label: "Amount" },
-            { key: "date", label: "Date" },
+            { key: "student", header: "Student" },
+            { key: "amount", header: "Amount" },
+            { key: "date", header: "Date" },
           ]}
           rows={paymentRows}
-          emptyLabel="No payments recorded yet."
+          emptyTitle="No payments recorded yet."
         />
       </DashboardShell>
     );
@@ -193,10 +197,16 @@ export default async function DashboardPage() {
       getAttendanceSummaryForTeacherClasses(),
     ]);
 
-    const rows: DashboardTableRow[] = data.rows.map((row) => ({
-      id: row.id,
-      cells: [row.className, row.subjectName, row.academicYear],
-      badge: row.isClassTeacher ? "Class teacher" : undefined,
+    const rows: DataTableRow[] = data.rows.map((row) => ({
+      key: row.id,
+      cells: [
+        <span key="class" className="flex items-center gap-2">
+          {row.className}
+          {row.isClassTeacher ? <Badge variant="success">Class teacher</Badge> : null}
+        </span>,
+        row.subjectName,
+        row.academicYear,
+      ],
     }));
 
     const activityItems: ActivityItem[] = activity.map((entry) => {
@@ -216,9 +226,9 @@ export default async function DashboardPage() {
         profileRole={formatRole(profile.role)}
       >
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <StatCard label="My Classes" icon={BookOpen} value={data.classCount} />
-          <StatCard label="My Subjects" icon={ClipboardCheck} value={data.subjectCount} />
-          <StatCard label="Total Students" icon={Users} value={data.studentCount} />
+          <StatCard label="My Classes" icon={BookOpen} value={data.classCount} tone="primary" />
+          <StatCard label="My Subjects" icon={ClipboardCheck} value={data.subjectCount} tone="info" />
+          <StatCard label="Total Students" icon={Users} value={data.studentCount} tone="success" />
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row">
@@ -235,13 +245,14 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <DashboardTable
+        <DataTableCard
           title="My classes & subjects"
           sub="Everywhere you teach or act as class teacher"
+          compact
           columns={[
-            { key: "class", label: "Class" },
-            { key: "subject", label: "Subject" },
-            { key: "year", label: "Academic Year" },
+            { key: "class", header: "Class" },
+            { key: "subject", header: "Subject" },
+            { key: "year", header: "Academic Year" },
           ]}
           rows={rows}
         />
@@ -259,11 +270,11 @@ export default async function DashboardPage() {
         profileRole={formatRole(profile.role)}
       >
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard label="Institutes" icon={Building2} value={instituteCount} />
+          <StatCard label="Institutes" icon={Building2} value={instituteCount} tone="primary" />
         </div>
 
         <Panel title="Welcome" sub="Manage every institute on the platform" className="p-6">
-          <Link href="/institutes" className="mt-3 inline-block text-sm font-semibold text-[#16A34A]">
+          <Link href="/institutes" className="mt-3 inline-block text-sm font-semibold text-success">
             Manage institutes &rarr;
           </Link>
         </Panel>
@@ -273,8 +284,8 @@ export default async function DashboardPage() {
 
   const studentData = await getStudentDashboardData();
 
-  const dueRows: DashboardTableRow[] = studentData.upcomingAssignments.map((assignment) => ({
-    id: assignment.id,
+  const dueRows: DataTableRow[] = studentData.upcomingAssignments.map((assignment) => ({
+    key: assignment.id,
     cells: [
       assignment.title,
       assignment.courseTitle,
@@ -293,30 +304,38 @@ export default async function DashboardPage() {
           label="Attendance"
           icon={ClipboardCheck}
           value={`${studentData.attendancePercent}%`}
+          tone="success"
         />
-        <StatCard label="Fee balance" icon={Wallet} value={studentData.feeBalance.toFixed(2)} />
+        <StatCard
+          label="Fee balance"
+          icon={Wallet}
+          value={studentData.feeBalance.toFixed(2)}
+          tone="warning"
+        />
         <StatCard
           label="Unread notifications"
           icon={Bell}
           value={studentData.unreadNotificationCount}
+          tone="info"
         />
         <StatCard
           label="Courses graded"
           icon={GraduationCap}
           value={studentData.gradeGroups.length}
+          tone="primary"
         />
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row">
         <Panel title="Recent grades" sub="Your latest graded courses" className="flex-1 p-5">
           {studentData.gradeGroups.length === 0 ? (
-            <p className="mt-4 text-[13px] text-[#17181B]/45">No grades yet.</p>
+            <p className="mt-4 text-[13px] text-muted-foreground">No grades yet.</p>
           ) : (
             <div className="mt-4 flex flex-col gap-3">
               {studentData.gradeGroups.slice(0, 5).map((group) => (
                 <div key={group.courseId || group.courseTitle} className="flex items-center justify-between">
-                  <span className="text-[13px] text-[#17181B]/80">{group.courseTitle}</span>
-                  <span className="text-[13px] font-medium text-[#17181B]/70">
+                  <span className="text-[13px] text-foreground">{group.courseTitle}</span>
+                  <span className="text-[13px] font-medium text-muted-foreground">
                     {group.percent !== null ? `${group.percent.toFixed(1)}%` : "-"}
                   </span>
                 </div>
@@ -325,16 +344,17 @@ export default async function DashboardPage() {
           )}
         </Panel>
 
-        <DashboardTable
+        <DataTableCard
           title="Upcoming assignments"
           sub="Due soon across your enrolled courses"
+          compact
           columns={[
-            { key: "title", label: "Assignment" },
-            { key: "course", label: "Course" },
-            { key: "due", label: "Due date" },
+            { key: "title", header: "Assignment" },
+            { key: "course", header: "Course" },
+            { key: "due", header: "Due date" },
           ]}
           rows={dueRows}
-          emptyLabel="Nothing due soon."
+          emptyTitle="Nothing due soon."
         />
       </div>
     </DashboardShell>
