@@ -18,51 +18,52 @@ export type NavItem = {
   href: string;
   icon: LucideIcon;
   disabled?: boolean;
+  group?: string;
 };
 
 export const INSTITUTE_ADMIN_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Teachers", href: "/teachers", icon: GraduationCap },
-  { label: "Students", href: "/students", icon: Users },
-  { label: "Classes", href: "/classes", icon: BookOpen },
-  { label: "Subjects", href: "/subjects", icon: ClipboardCheck },
-  { label: "Enrollments", href: "/enrollments", icon: ClipboardCheck },
-  { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
-  { label: "Exams", href: "/exams", icon: FileText },
-  { label: "Fees", href: "/fees", icon: Wallet },
-  { label: "Announcements", href: "/announcements", icon: Megaphone },
-  { label: "Settings", href: "/settings", icon: Settings, disabled: true },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
+  { label: "Teachers", href: "/teachers", icon: GraduationCap, group: "Academics" },
+  { label: "Students", href: "/students", icon: Users, group: "Academics" },
+  { label: "Classes", href: "/classes", icon: BookOpen, group: "Academics" },
+  { label: "Subjects", href: "/subjects", icon: ClipboardCheck, group: "Academics" },
+  { label: "Enrollments", href: "/enrollments", icon: ClipboardCheck, group: "Academics" },
+  { label: "Attendance", href: "/attendance", icon: ClipboardCheck, group: "Operations" },
+  { label: "Exams", href: "/exams", icon: FileText, group: "Operations" },
+  { label: "Fees", href: "/fees", icon: Wallet, group: "Operations" },
+  { label: "Announcements", href: "/announcements", icon: Megaphone, group: "Engage" },
+  { label: "Settings", href: "/settings", icon: Settings, disabled: true, group: "System" },
 ];
 
 export const TEACHER_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Courses", href: "/courses", icon: BookOpen },
-  { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true },
-  { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
-  { label: "Students", href: "/students", icon: Users, disabled: true },
-  { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
-  { label: "Exams", href: "/exams", icon: FileText },
-  { label: "Grades", href: "/grades", icon: BarChart3 },
-  { label: "Announcements", href: "/announcements", icon: Megaphone },
-  { label: "Settings", href: "/settings", icon: Settings, disabled: true },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
+  { label: "Courses", href: "/courses", icon: BookOpen, group: "Teaching" },
+  { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true, group: "Teaching" },
+  { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true, group: "Teaching" },
+  { label: "Students", href: "/students", icon: Users, disabled: true, group: "Teaching" },
+  { label: "Attendance", href: "/attendance", icon: ClipboardCheck, group: "Operations" },
+  { label: "Exams", href: "/exams", icon: FileText, group: "Operations" },
+  { label: "Grades", href: "/grades", icon: BarChart3, group: "Operations" },
+  { label: "Announcements", href: "/announcements", icon: Megaphone, group: "Engage" },
+  { label: "Settings", href: "/settings", icon: Settings, disabled: true, group: "System" },
 ];
 
 export const SUPER_ADMIN_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Institutes", href: "/institutes", icon: Building2 },
-  { label: "Settings", href: "/settings", icon: Settings, disabled: true },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
+  { label: "Institutes", href: "/institutes", icon: Building2, group: "Platform" },
+  { label: "Settings", href: "/settings", icon: Settings, disabled: true, group: "System" },
 ];
 
 export const STUDENT_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Courses", href: "/my-courses", icon: BookOpen },
-  { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true },
-  { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true },
-  { label: "Attendance", href: "/attendance", icon: ClipboardCheck },
-  { label: "Grades", href: "/grades", icon: BarChart3 },
-  { label: "Fees", href: "/fees", icon: Wallet },
-  { label: "Announcements", href: "/announcements", icon: Megaphone },
-  { label: "Settings", href: "/settings", icon: Settings, disabled: true },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
+  { label: "My Courses", href: "/my-courses", icon: BookOpen, group: "Learning" },
+  { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true, group: "Learning" },
+  { label: "My Subjects", href: "/subjects", icon: ClipboardCheck, disabled: true, group: "Learning" },
+  { label: "Attendance", href: "/attendance", icon: ClipboardCheck, group: "Progress" },
+  { label: "Grades", href: "/grades", icon: BarChart3, group: "Progress" },
+  { label: "Fees", href: "/fees", icon: Wallet, group: "Progress" },
+  { label: "Announcements", href: "/announcements", icon: Megaphone, group: "Engage" },
+  { label: "Settings", href: "/settings", icon: Settings, disabled: true, group: "System" },
 ];
 
 export const NAV_BY_ROLE = {
