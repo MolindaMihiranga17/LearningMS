@@ -14,7 +14,7 @@ function ToastList() {
       key={item.id}
       toast={item}
       className={cn(
-        "relative flex w-80 items-start gap-2.5 rounded-xl border bg-card p-4 pr-9 text-sm shadow-lg transition-all",
+        "shadow-panel-hover relative flex w-80 items-start gap-2.5 rounded-xl border bg-card p-4 pr-9 text-sm transition-all",
         "data-[ending-style]:translate-x-4 data-[ending-style]:opacity-0 data-[starting-style]:translate-x-4 data-[starting-style]:opacity-0",
         item.type === "success" && "border-success/30",
         item.type === "error" && "border-destructive/30",
