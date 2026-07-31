@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
 import { getCurrentUserProfile } from "@/lib/data/dashboard.data";
 import { listSubmissionsForAssignment } from "@/lib/data/submission.data";
@@ -69,9 +70,9 @@ export default async function AssignmentSubmissionsPage({
                       Submitted {new Date(submission.submittedAt).toLocaleString()}
                     </p>
                   </div>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
+                  <Badge variant="secondary" className="capitalize">
                     {submission.status}
-                  </span>
+                  </Badge>
                 </div>
 
                 {submission.textResponse ? (
