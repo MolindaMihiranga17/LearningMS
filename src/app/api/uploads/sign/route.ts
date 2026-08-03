@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
-  if (session.role !== "teacher") {
+  if (session.role !== "institute-staff") {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
