@@ -12,7 +12,7 @@ import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope
 
 export async function listClassesForAttendanceTeacher() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -60,7 +60,7 @@ export async function getAttendanceMarkingContext(
   date: string
 ) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -115,7 +115,7 @@ export async function getAttendanceMarkingContext(
 
 export async function listAttendanceHistoryForClass(classId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -162,7 +162,7 @@ export async function getMyAttendanceHistory() {
 
 export async function getAttendanceSummaryForTeacherClasses() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

@@ -5,6 +5,7 @@ import ClassModel from "@/models/Class";
 import SubjectModel from "@/models/Subject";
 import AuditLogModel from "@/models/AuditLog";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
+import { getIncomeStatistics, type IncomeStatistics } from "@/lib/data/finance.data";
 
 export type InstituteDashboardCounts = {
   teachers: number;
@@ -20,13 +21,17 @@ export async function getInstituteDashboardCounts(): Promise<InstituteDashboardC
   await connectToDatabase();
 
   const [teachers, students, classes, subjects] = await Promise.all([
-    UserModel.countDocuments(withTenantScope({ role: "teacher" }, session)),
+    UserModel.countDocuments(withTenantScope({ role: "institute-staff" }, session)),
     UserModel.countDocuments(withTenantScope({ role: "student" }, session)),
     ClassModel.countDocuments(withTenantScope({}, session)),
     SubjectModel.countDocuments(withTenantScope({}, session)),
   ]);
 
   return { teachers, students, classes, subjects };
+}
+
+export async function getInstituteFinanceSummary(): Promise<IncomeStatistics> {
+  return getIncomeStatistics();
 }
 
 export async function getCurrentUserProfile(): Promise<{ name: string; role: string }> {
@@ -70,7 +75,7 @@ export async function getInstituteRecentActivity(limit = 5): Promise<RecentActiv
 
 export async function getTeacherRecentActivity(limit = 5): Promise<RecentActivityEntry[]> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
   const logs = await AuditLogModel.find(
