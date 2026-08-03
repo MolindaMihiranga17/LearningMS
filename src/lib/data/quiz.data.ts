@@ -31,7 +31,7 @@ export function toStudentSafeQuestion(question: {
 
 export async function listQuizzesForCourse(courseId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -47,7 +47,7 @@ export async function listQuizzesForCourse(courseId: string) {
 
 export async function getQuizForTeacher(quizId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -67,7 +67,7 @@ export async function getQuizForTeacher(quizId: string) {
 
 export async function getQuizQuestionForTeacher(questionId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
