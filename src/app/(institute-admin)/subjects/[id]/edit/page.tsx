@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSubject } from "@/lib/data/subject.data";
-import { listTeachers } from "@/lib/data/user.data";
+import { listStaff } from "@/lib/data/user.data";
 import { listClasses } from "@/lib/data/class.data";
 import { SubjectEditForm } from "./subject-edit-form";
 
@@ -9,7 +9,7 @@ export default async function EditSubjectPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const [subject, teachers, classes] = await Promise.all([
     getSubject(id),
-    listTeachers(),
+    listStaff(),
     listClasses(),
   ]);
 
