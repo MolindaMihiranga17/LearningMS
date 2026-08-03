@@ -22,7 +22,7 @@ export async function createQuiz(
   formData: FormData
 ): Promise<CreateQuizState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const courseId = formData.get("courseId");
   if (typeof courseId !== "string" || !courseId) {
@@ -86,7 +86,7 @@ export async function updateQuiz(
   formData: FormData
 ): Promise<UpdateQuizState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) {
@@ -149,7 +149,7 @@ export async function updateQuiz(
 
 export async function setQuizStatus(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   const status = formData.get("status");
@@ -186,7 +186,7 @@ export async function setQuizStatus(formData: FormData): Promise<void> {
 
 export async function deleteQuiz(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return;

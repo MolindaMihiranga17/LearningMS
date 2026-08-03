@@ -182,7 +182,7 @@ export async function gradeShortAnswer(
   formData: FormData
 ): Promise<GradeShortAnswerState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const attemptId = formData.get("attemptId");
   const questionId = formData.get("questionId");

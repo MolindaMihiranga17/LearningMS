@@ -46,7 +46,7 @@ export async function createLesson(
   formData: FormData
 ): Promise<CreateLessonState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const moduleId = formData.get("moduleId");
   if (typeof moduleId !== "string" || !moduleId) {
@@ -108,7 +108,7 @@ export async function updateLesson(
   formData: FormData
 ): Promise<UpdateLessonState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) {
@@ -180,7 +180,7 @@ export async function updateLesson(
 
 export async function deleteLesson(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return;
@@ -223,7 +223,7 @@ export async function deleteLesson(formData: FormData): Promise<void> {
 
 export async function moveLesson(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   const direction = formData.get("direction");

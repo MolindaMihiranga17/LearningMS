@@ -21,7 +21,7 @@ export async function createModule(
   formData: FormData
 ): Promise<CreateModuleState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const courseId = formData.get("courseId");
   if (typeof courseId !== "string" || !courseId) {
@@ -73,7 +73,7 @@ export async function createModule(
 
 export async function renameModule(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return;
@@ -110,7 +110,7 @@ export async function renameModule(formData: FormData): Promise<void> {
 
 export async function deleteModule(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return;
@@ -154,7 +154,7 @@ export async function deleteModule(formData: FormData): Promise<void> {
 
 export async function moveModule(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   const direction = formData.get("direction");
