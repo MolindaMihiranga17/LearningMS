@@ -1,9 +1,13 @@
+import { Suspense } from "react";
 import { LayoutGrid, Menu, Search } from "lucide-react";
 import { logout } from "@/lib/actions/auth.actions";
-import { listNotificationsForUser, countUnreadForUser } from "@/lib/data/notification.data";
 import { SidebarNav } from "./sidebar-nav";
-import { NotificationBell } from "./notification-bell";
+import { NotificationBellServer } from "./notification-bell-server";
 import type { NavKey } from "./nav-config";
+
+function NotificationBellSkeleton() {
+  return <div className="shadow-hairline size-8.5 animate-pulse rounded-lg bg-card" />;
+}
 
 export function formatRole(role: string) {
   return role
@@ -21,11 +25,11 @@ function initials(name: string) {
     .join("");
 }
 
-export async function DashboardShell({
+export function DashboardShell({
   navKey,
   profileName,
   profileRole,
-  brandName = "Northgate LMS",
+  brandName = "RaxwoLMS",
   children,
 }: {
   navKey: NavKey;
@@ -34,11 +38,6 @@ export async function DashboardShell({
   brandName?: string;
   children: React.ReactNode;
 }) {
-  const [notifications, unreadCount] = await Promise.all([
-    listNotificationsForUser(8),
-    countUnreadForUser(),
-  ]);
-
   return (
     <div className="flex min-h-screen bg-background">
       <input type="checkbox" id="mobile-nav-toggle" className="peer hidden" />
@@ -87,7 +86,9 @@ export async function DashboardShell({
               <Search className="size-[15px] text-muted-foreground" />
               <span className="text-[13px] text-muted-foreground">Search</span>
             </div>
-            <NotificationBell notifications={notifications} unreadCount={unreadCount} />
+            <Suspense fallback={<NotificationBellSkeleton />}>
+              <NotificationBellServer />
+            </Suspense>
             <div className="flex items-center gap-2.5">
               <div className="flex size-8.5 items-center justify-center rounded-full bg-primary/10 text-[13px] font-semibold text-primary">
                 {initials(profileName)}

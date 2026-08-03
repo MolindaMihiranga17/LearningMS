@@ -19,7 +19,7 @@ export async function markAttendance(
   formData: FormData
 ): Promise<MarkAttendanceState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const rawRecords = formData.get("records");
   let recordsInput: unknown = [];
