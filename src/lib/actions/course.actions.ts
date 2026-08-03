@@ -24,7 +24,7 @@ export async function createCourse(
   formData: FormData
 ): Promise<CreateCourseState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const parsed = createCourseSchema.safeParse({
     title: formData.get("title"),
@@ -99,7 +99,7 @@ export async function updateCourse(
   formData: FormData
 ): Promise<UpdateCourseState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) {
@@ -184,7 +184,7 @@ export async function updateCourse(
 
 export async function setCourseStatus(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   const status = formData.get("status");
@@ -220,7 +220,7 @@ export async function setCourseStatus(formData: FormData): Promise<void> {
 
 export async function deleteCourse(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return;

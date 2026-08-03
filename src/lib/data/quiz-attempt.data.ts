@@ -116,7 +116,7 @@ export async function getAttemptResultForStudent(quizId: string) {
 
 export async function listAttemptsForQuizTeacher(quizId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -134,7 +134,7 @@ export async function listAttemptsForQuizTeacher(quizId: string) {
 
 export async function getAttemptForTeacherGrading(attemptId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

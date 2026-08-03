@@ -74,11 +74,11 @@ async function main() {
         name: t.name,
         email: t.email,
         passwordHash,
-        role: "teacher",
+        role: "institute-staff",
         instituteId: nps._id,
         status: t.status ?? "active",
         mustChangePassword: t.name === "Nadeesha Silva",
-        teacherMeta: { employeeCode: t.employeeCode },
+        staffMeta: { employeeCode: t.employeeCode },
         createdBy: admin._id,
       })
     )
@@ -133,7 +133,7 @@ async function main() {
       const subjectIds = subjects
         .filter((s) => String(s.teacherId) === String(teacher._id))
         .map((s) => s._id);
-      return UserModel.updateOne({ _id: teacher._id }, { "teacherMeta.subjectIds": subjectIds });
+      return UserModel.updateOne({ _id: teacher._id }, { "staffMeta.subjectIds": subjectIds });
     })
   );
 
@@ -205,11 +205,11 @@ async function main() {
     },
     {
       actorName: admin.name,
-      action: "teacher.create",
+      action: "staff.create",
       targetType: "User",
       targetId: ruwan._id,
       targetName: ruwan.name,
-      summary: `added teacher ${ruwan.name}`,
+      summary: `added staff member ${ruwan.name}`,
       minutesAgo: 180,
     },
     {
@@ -283,10 +283,10 @@ async function main() {
   console.log("");
   console.log("Northgate Public School (fully populated):");
   console.log(`  institute-admin : admin@nps.edu`);
-  console.log(`  teacher (temp pw required): nadeesha.silva@nps.edu`);
-  console.log(`  teacher                   : kasun.fernando@nps.edu`);
-  console.log(`  teacher                   : ishara.jayasuriya@nps.edu`);
-  console.log(`  teacher (suspended)       : ruwan.bandara@nps.edu`);
+  console.log(`  staff (temp pw required)   : nadeesha.silva@nps.edu`);
+  console.log(`  staff                     : kasun.fernando@nps.edu`);
+  console.log(`  staff                     : ishara.jayasuriya@nps.edu`);
+  console.log(`  staff (suspended)                : ruwan.bandara@nps.edu`);
   console.log(`  student (temp pw required): ${students[0].email}`);
   console.log(`  student                   : ${students[1].email}`);
   console.log("");

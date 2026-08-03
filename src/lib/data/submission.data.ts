@@ -8,7 +8,7 @@ import { createReadUrl } from "@/lib/storage/s3";
 
 export async function listSubmissionsForAssignment(assignmentId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

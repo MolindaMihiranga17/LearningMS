@@ -19,7 +19,7 @@ export async function listPublishedCoursesForInstitute() {
 
 export async function listCoursesForTeacher() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
   return CourseModel.find({ instituteId: session.instituteId, teacherId: session.userId })
@@ -31,7 +31,7 @@ export async function listCoursesForTeacher() {
 
 export async function getCourseForTeacher(courseId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -59,7 +59,7 @@ export async function getCourseForTeacher(courseId: string) {
 
 export async function getLessonForTeacher(lessonId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

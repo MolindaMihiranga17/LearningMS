@@ -9,7 +9,7 @@ import { createReadUrl } from "@/lib/storage/s3";
 
 export async function listAssignmentsForCourse(courseId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
@@ -25,7 +25,7 @@ export async function listAssignmentsForCourse(courseId: string) {
 
 export async function getAssignmentForTeacher(assignmentId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

@@ -42,7 +42,7 @@ export async function createClass(
     const teacher = await UserModel.findOne({
       _id: classTeacherId,
       instituteId: session.instituteId,
-      role: "teacher",
+      role: "institute-staff",
     });
     if (!teacher) {
       return { error: "Selected class teacher was not found in your institute." };
@@ -119,7 +119,7 @@ export async function updateClass(
     const teacher = await UserModel.findOne({
       _id: classTeacherId,
       instituteId: session.instituteId,
-      role: "teacher",
+      role: "institute-staff",
     });
     if (!teacher) {
       return { error: "Selected class teacher was not found in your institute." };

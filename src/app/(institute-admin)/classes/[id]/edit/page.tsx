@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getClass } from "@/lib/data/class.data";
-import { listTeachers } from "@/lib/data/user.data";
+import { listStaff } from "@/lib/data/user.data";
 import { ClassEditForm } from "./class-edit-form";
 
 export default async function EditClassPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [klass, teachers] = await Promise.all([getClass(id), listTeachers()]);
+  const [klass, teachers] = await Promise.all([getClass(id), listStaff()]);
 
   if (!klass) {
     notFound();

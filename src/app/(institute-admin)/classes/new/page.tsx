@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { listTeachers } from "@/lib/data/user.data";
+import { listStaff } from "@/lib/data/user.data";
 import { ClassForm } from "./class-form";
 
 export default async function NewClassPage() {
-  const teachers = await listTeachers();
+  const teachers = await listStaff();
 
   return (
     <div className="mx-auto max-w-lg">

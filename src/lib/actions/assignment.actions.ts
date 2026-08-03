@@ -21,7 +21,7 @@ export async function createAssignment(
   formData: FormData
 ): Promise<CreateAssignmentState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const courseId = formData.get("courseId");
   if (typeof courseId !== "string" || !courseId) {
@@ -89,7 +89,7 @@ export async function updateAssignment(
   formData: FormData
 ): Promise<UpdateAssignmentState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) {
@@ -157,7 +157,7 @@ export async function updateAssignment(
 
 export async function setAssignmentStatus(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   const status = formData.get("status");
@@ -194,7 +194,7 @@ export async function setAssignmentStatus(formData: FormData): Promise<void> {
 
 export async function deleteAssignment(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return;

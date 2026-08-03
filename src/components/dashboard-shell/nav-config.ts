@@ -11,6 +11,8 @@ import {
   Building2,
   FileText,
   Wallet,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 
 export type NavItem = {
@@ -23,7 +25,7 @@ export type NavItem = {
 
 export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
-  { label: "Teachers", href: "/teachers", icon: GraduationCap, group: "Academics" },
+  { label: "Staff", href: "/staff", icon: GraduationCap, group: "Academics" },
   { label: "Students", href: "/students", icon: Users, group: "Academics" },
   { label: "Classes", href: "/classes", icon: BookOpen, group: "Academics" },
   { label: "Subjects", href: "/subjects", icon: ClipboardCheck, group: "Academics" },
@@ -31,11 +33,13 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, group: "Operations" },
   { label: "Exams", href: "/exams", icon: FileText, group: "Operations" },
   { label: "Fees", href: "/fees", icon: Wallet, group: "Operations" },
+  { label: "Expenses", href: "/expenses", icon: TrendingDown, group: "Finance" },
+  { label: "Income", href: "/income", icon: TrendingUp, group: "Finance" },
   { label: "Announcements", href: "/announcements", icon: Megaphone, group: "Engage" },
   { label: "Settings", href: "/settings", icon: Settings, disabled: true, group: "System" },
 ];
 
-export const TEACHER_NAV: NavItem[] = [
+export const INSTITUTE_STAFF_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
   { label: "Courses", href: "/courses", icon: BookOpen, group: "Teaching" },
   { label: "My Classes", href: "/classes", icon: BookOpen, disabled: true, group: "Teaching" },
@@ -68,7 +72,7 @@ export const STUDENT_NAV: NavItem[] = [
 
 export const NAV_BY_ROLE = {
   "institute-admin": INSTITUTE_ADMIN_NAV,
-  teacher: TEACHER_NAV,
+  "institute-staff": INSTITUTE_STAFF_NAV,
   "super-admin": SUPER_ADMIN_NAV,
   student: STUDENT_NAV,
 } as const;

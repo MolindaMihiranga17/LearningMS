@@ -52,7 +52,7 @@ export async function createSubject(
     const teacher = await UserModel.findOne({
       _id: teacherId,
       instituteId: session.instituteId,
-      role: "teacher",
+      role: "institute-staff",
     });
     if (!teacher) {
       return { error: "Selected teacher was not found in your institute." };
@@ -148,7 +148,7 @@ export async function updateSubject(
     const teacher = await UserModel.findOne({
       _id: teacherId,
       instituteId: session.instituteId,
-      role: "teacher",
+      role: "institute-staff",
     });
     if (!teacher) {
       return { error: "Selected teacher was not found in your institute." };

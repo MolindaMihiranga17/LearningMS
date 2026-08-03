@@ -29,7 +29,7 @@ type PopulatedClassRef = {
 
 export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

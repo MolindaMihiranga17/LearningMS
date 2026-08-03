@@ -8,7 +8,7 @@ import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope
 
 export async function listClassesForAnnouncementTeacher() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
   return ClassModel.find(withTenantScope({ classTeacherId: session.userId }, session))
@@ -32,7 +32,7 @@ export async function listAnnouncementsForInstitute() {
 
 export async function listAnnouncementsForTeacher() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

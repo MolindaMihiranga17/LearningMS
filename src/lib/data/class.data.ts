@@ -24,7 +24,7 @@ export async function getClass(id: string) {
 
 export async function listClassesForTeacher() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
   return ClassModel.find(withTenantScope({}, session)).sort({ name: 1 }).lean();

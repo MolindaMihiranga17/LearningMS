@@ -8,7 +8,7 @@ import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/s
 
 export async function getMarksEntryContext(examId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { listTeachers } from "@/lib/data/user.data";
+import { listStaff } from "@/lib/data/user.data";
 import { listClasses } from "@/lib/data/class.data";
 import { SubjectForm } from "./subject-form";
 
 export default async function NewSubjectPage() {
-  const [teachers, classes] = await Promise.all([listTeachers(), listClasses()]);
+  const [teachers, classes] = await Promise.all([listStaff(), listClasses()]);
 
   return (
     <div className="mx-auto max-w-lg">

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Northgate LMS",
+  title: "RaxwoLMS",
   description: "Learning management system for institutes, teachers, and students.",
 };
 

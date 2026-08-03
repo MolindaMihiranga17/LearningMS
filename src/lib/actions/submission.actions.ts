@@ -110,7 +110,7 @@ export async function gradeSubmission(
   formData: FormData
 ): Promise<GradeSubmissionState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const submissionId = formData.get("submissionId");
   if (typeof submissionId !== "string" || !submissionId) {

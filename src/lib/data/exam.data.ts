@@ -26,7 +26,7 @@ export async function getExamForInstitute(id: string) {
 
 export async function listExamsForTeacher() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 

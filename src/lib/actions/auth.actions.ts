@@ -19,7 +19,7 @@ export type LoginState = {
 const ROLE_HOME: Record<Role, string> = {
   "super-admin": "/dashboard",
   "institute-admin": "/dashboard",
-  teacher: "/dashboard",
+  "institute-staff": "/dashboard",
   student: "/dashboard",
 };
 

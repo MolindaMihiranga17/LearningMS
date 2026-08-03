@@ -20,7 +20,7 @@ export async function enterMarks(
   formData: FormData
 ): Promise<EnterMarksState> {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   const rawEntries = formData.get("entries");
   let entriesInput: unknown = [];
