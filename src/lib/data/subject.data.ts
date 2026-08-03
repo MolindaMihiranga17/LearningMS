@@ -25,7 +25,7 @@ export async function getSubject(id: string) {
 
 export async function listSubjectsForTeacher() {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
   return SubjectModel.find(withTenantScope({ teacherId: session.userId }, session))
