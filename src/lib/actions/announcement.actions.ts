@@ -59,7 +59,7 @@ export async function createAnnouncement(
   formData: FormData
 ): Promise<CreateAnnouncementState> {
   const session = await requireSession();
-  requireRole(session, ["institute-admin", "teacher"]);
+  requireRole(session, ["institute-admin", "institute-staff"]);
 
   const parsed = createAnnouncementSchema.safeParse({
     audience: formData.get("audience"),
@@ -160,7 +160,7 @@ export async function createAnnouncement(
 
 export async function deleteAnnouncement(formData: FormData): Promise<void> {
   const session = await requireSession();
-  requireRole(session, ["institute-admin", "teacher"]);
+  requireRole(session, ["institute-admin", "institute-staff"]);
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return;
@@ -170,7 +170,7 @@ export async function deleteAnnouncement(formData: FormData): Promise<void> {
   const announcement = await AnnouncementModel.findOne(withTenantScope({ _id: id }, session));
   if (!announcement) return;
 
-  if (session.role === "teacher") {
+  if (session.role === "institute-staff") {
     if (announcement.createdBy.toString() !== session.userId) return;
   }
 
