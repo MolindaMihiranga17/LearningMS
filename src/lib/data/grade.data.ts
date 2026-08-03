@@ -17,7 +17,7 @@ export type CourseGradeRow = {
 
 export async function getCourseGradeSummaryForTeacher(courseId: string) {
   const session = await requireSession();
-  requireRole(session, ["teacher"]);
+  requireRole(session, ["institute-staff"]);
 
   await connectToDatabase();
 
