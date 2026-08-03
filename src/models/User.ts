@@ -1,6 +1,6 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
-export const ROLES = ["super-admin", "institute-admin", "teacher", "student"] as const;
+export const ROLES = ["super-admin", "institute-admin", "institute-staff", "student"] as const;
 export type Role = (typeof ROLES)[number];
 
 const userSchema = new Schema(
@@ -21,9 +21,28 @@ const userSchema = new Schema(
       guardianName: { type: String },
       guardianPhone: { type: String },
     },
-    teacherMeta: {
+    staffMeta: {
       employeeCode: { type: String },
       subjectIds: [{ type: Schema.Types.ObjectId, ref: "Subject" }],
+      basicSalary: { type: Number, default: 0 },
+      commission: { type: Number, default: 0 },
+      monthlyCommissions: [
+        {
+          month: { type: String },
+          amount: { type: Number, default: 0 },
+          recordedAt: { type: Date, default: Date.now },
+        },
+      ],
+      permissions: {
+        dashboard: { type: Boolean, default: true },
+        staff: { type: Boolean, default: false },
+        students: { type: Boolean, default: false },
+        subjects: { type: Boolean, default: false },
+        classes: { type: Boolean, default: false },
+        expenses: { type: Boolean, default: false },
+        salary: { type: Boolean, default: false },
+        income: { type: Boolean, default: false },
+      },
     },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
