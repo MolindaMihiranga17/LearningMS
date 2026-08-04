@@ -30,3 +30,33 @@ export async function countUnreadForUser(): Promise<number> {
 
   return NotificationModel.countDocuments({ userId: session.userId, isRead: false });
 }
+
+export async function listAllNotificationsForUser(page = 1, pageSize = 20) {
+  const session = await requireSession();
+
+  await connectToDatabase();
+
+  const filter = { userId: session.userId };
+  const [notifications, total] = await Promise.all([
+    NotificationModel.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .lean(),
+    NotificationModel.countDocuments(filter),
+  ]);
+
+  return {
+    notifications: notifications.map((notification) => ({
+      id: notification._id.toString(),
+      title: notification.title,
+      body: notification.body,
+      link: notification.link ?? null,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+    })),
+    total,
+    page,
+    pageSize,
+  };
+}

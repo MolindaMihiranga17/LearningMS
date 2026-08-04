@@ -1,6 +1,7 @@
 import "server-only";
 import { connectToDatabase } from "@/lib/db/connect";
 import ClassModel from "@/models/Class";
+import UserModel from "@/models/User";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
 
 export async function listClasses() {
@@ -28,4 +29,19 @@ export async function listClassesForTeacher() {
 
   await connectToDatabase();
   return ClassModel.find(withTenantScope({}, session)).sort({ name: 1 }).lean();
+}
+
+export async function getMyClassForStudent() {
+  const session = await requireSession();
+  requireRole(session, ["student"]);
+
+  await connectToDatabase();
+
+  const student = await UserModel.findById(session.userId).select("studentMeta.classId").lean();
+  const classId = student?.studentMeta?.classId;
+  if (!classId) return null;
+
+  return ClassModel.findOne(withTenantScope({ _id: classId }, session))
+    .populate("classTeacherId", "name")
+    .lean();
 }
