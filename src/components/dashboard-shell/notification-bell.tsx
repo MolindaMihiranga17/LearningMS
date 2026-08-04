@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Bell } from "lucide-react";
 import { markNotificationRead, markAllNotificationsRead } from "@/lib/actions/notification.actions";
 
@@ -87,6 +88,14 @@ export function NotificationBell({
               ))
             )}
           </div>
+
+          <Link
+            href="/notifications"
+            onClick={() => setOpen(false)}
+            className="mt-1 block rounded-lg px-2 py-1.5 text-center text-[11.5px] font-medium text-primary hover:bg-primary/5"
+          >
+            View all
+          </Link>
         </div>
       ) : null}
     </div>
