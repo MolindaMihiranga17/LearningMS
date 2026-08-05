@@ -3,38 +3,37 @@ import { LayoutGrid, Menu, Search } from "lucide-react";
 import { logout } from "@/lib/actions/auth.actions";
 import { SidebarNav } from "./sidebar-nav";
 import { NotificationBellServer } from "./notification-bell-server";
+import { ProfileHeaderServer } from "./profile-header-server";
 import type { NavKey } from "./nav-config";
+
+export { formatRole } from "./profile-header";
 
 function NotificationBellSkeleton() {
   return <div className="shadow-hairline size-8.5 animate-pulse rounded-lg bg-card" />;
 }
 
-export function formatRole(role: string) {
-  return role
-    .split("-")
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
+function ProfileHeaderSkeleton() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="size-8.5 shrink-0 animate-pulse rounded-full bg-card" />
+      <div className="hidden sm:flex sm:flex-col sm:gap-1">
+        <div className="h-3 w-20 animate-pulse rounded bg-card" />
+        <div className="h-2.5 w-14 animate-pulse rounded bg-card" />
+      </div>
+    </div>
+  );
 }
 
 export function DashboardShell({
   navKey,
-  profileName,
-  profileRole,
+  userId,
+  role,
   brandName = "RaxwoLMS",
   children,
 }: {
   navKey: NavKey;
-  profileName: string;
-  profileRole: string;
+  userId: string;
+  role: string;
   brandName?: string;
   children: React.ReactNode;
 }) {
@@ -89,15 +88,9 @@ export function DashboardShell({
             <Suspense fallback={<NotificationBellSkeleton />}>
               <NotificationBellServer />
             </Suspense>
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-8.5 items-center justify-center rounded-full bg-primary/10 text-[13px] font-semibold text-primary">
-                {initials(profileName)}
-              </div>
-              <div className="hidden sm:block">
-                <div className="text-[13px] font-semibold text-foreground">{profileName}</div>
-                <div className="text-[11.5px] text-muted-foreground">{profileRole}</div>
-              </div>
-            </div>
+            <Suspense fallback={<ProfileHeaderSkeleton />}>
+              <ProfileHeaderServer userId={userId} role={role} />
+            </Suspense>
           </div>
         </div>
 
