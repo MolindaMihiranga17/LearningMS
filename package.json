@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:superadmin": "tsx scripts/bootstrapSuperAdmin.ts"
+    "seed:superadmin": "tsx scripts/bootstrapSuperAdmin.ts",
+    "backfill:subscriptions": "tsx scripts/backfillSubscriptions.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1086.0",
