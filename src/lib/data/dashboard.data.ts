@@ -34,13 +34,14 @@ export async function getInstituteFinanceSummary(): Promise<IncomeStatistics> {
   return getIncomeStatistics();
 }
 
-export async function getCurrentUserProfile(): Promise<{ name: string; role: string }> {
-  const session = await requireSession();
-
+export async function getCurrentUserProfile(
+  userId: string,
+  role: string,
+): Promise<{ name: string; role: string }> {
   await connectToDatabase();
-  const user = await UserModel.findById(session.userId).select("name").lean();
+  const user = await UserModel.findById(userId).select("name").lean();
 
-  return { name: user?.name ?? "User", role: session.role };
+  return { name: user?.name ?? "User", role };
 }
 
 export type RecentActivityEntry = {
