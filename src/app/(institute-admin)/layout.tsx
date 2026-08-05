@@ -1,6 +1,5 @@
 import { requireSession, requireRole } from "@/lib/tenant/scope";
-import { getCurrentUserProfile } from "@/lib/data/dashboard.data";
-import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
+import { DashboardShell } from "@/components/dashboard-shell/shell";
 
 export default async function InstituteAdminLayout({
   children,
@@ -10,14 +9,8 @@ export default async function InstituteAdminLayout({
   const session = await requireSession();
   requireRole(session, ["institute-admin"]);
 
-  const profile = await getCurrentUserProfile();
-
   return (
-    <DashboardShell
-      navKey="institute-admin"
-      profileName={profile.name}
-      profileRole={formatRole(profile.role)}
-    >
+    <DashboardShell navKey="institute-admin" userId={session.userId} role={session.role}>
       {children}
     </DashboardShell>
   );

@@ -6,7 +6,7 @@ const instituteSchema = new Schema(
     code: { type: String, required: true, trim: true, uppercase: true, unique: true },
     status: {
       type: String,
-      enum: ["active", "trial", "suspended"],
+      enum: ["trial", "active", "past_due", "suspended", "cancelled"],
       default: "trial",
     },
     plan: { type: String, default: "free" },

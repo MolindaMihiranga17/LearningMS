@@ -25,14 +25,14 @@ export default async function ClassesPage() {
       key: String(klass._id),
       searchValue: `${klass.name} ${klass.section ?? ""} ${teacher ?? ""}`,
       cells: [
-        <span className="font-medium">{klass.name}</span>,
+        <span key="name" className="font-medium">{klass.name}</span>,
         klass.section || "-",
         klass.academicYear,
         teacher || "-",
-        <Badge variant={klass.status === "active" ? "success" : "secondary"} className="capitalize">
+        <Badge key="status" variant={klass.status === "active" ? "success" : "secondary"} className="capitalize">
           {klass.status}
         </Badge>,
-        <div className="flex items-center gap-2">
+        <div key="actions" className="flex items-center gap-2">
           <Link
             href={`/classes/${klass._id}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
