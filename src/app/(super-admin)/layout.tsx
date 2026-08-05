@@ -1,6 +1,5 @@
 import { requireSession, requireRole } from "@/lib/tenant/scope";
-import { getCurrentUserProfile } from "@/lib/data/dashboard.data";
-import { DashboardShell, formatRole } from "@/components/dashboard-shell/shell";
+import { DashboardShell } from "@/components/dashboard-shell/shell";
 
 export default async function SuperAdminLayout({
   children,
@@ -10,14 +9,8 @@ export default async function SuperAdminLayout({
   const session = await requireSession();
   requireRole(session, ["super-admin"]);
 
-  const profile = await getCurrentUserProfile();
-
   return (
-    <DashboardShell
-      navKey="super-admin"
-      profileName={profile.name}
-      profileRole={formatRole(profile.role)}
-    >
+    <DashboardShell navKey="super-admin" userId={session.userId} role={session.role}>
       {children}
     </DashboardShell>
   );
