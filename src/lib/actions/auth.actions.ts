@@ -4,8 +4,11 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/db/connect";
 import UserModel, { type Role } from "@/models/User";
+import InstituteModel from "@/models/Institute";
+import SubscriptionModel from "@/models/Subscription";
 import { comparePassword, hashPassword } from "@/lib/auth/password";
 import { setSessionCookie, clearSessionCookie, getSession } from "@/lib/auth/session";
+import { evaluateAndSyncSubscriptionStatus } from "@/lib/subscription/lifecycle";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -46,6 +49,21 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   const isValid = await comparePassword(parsed.data.password, user.passwordHash);
   if (!isValid) {
     return { error: "Invalid email or password." };
+  }
+
+  if (user.role !== "super-admin" && user.instituteId) {
+    const subscription = await SubscriptionModel.findOne({ instituteId: user.instituteId });
+    if (subscription) {
+      await evaluateAndSyncSubscriptionStatus(subscription);
+    }
+
+    const institute = await InstituteModel.findById(user.instituteId).select("status");
+    if (institute?.status === "suspended") {
+      return { error: "This institute's account is suspended. Contact support." };
+    }
+    if (institute?.status === "cancelled") {
+      return { error: "This institute's account has been cancelled. Contact support." };
+    }
   }
 
   user.lastLoginAt = new Date();

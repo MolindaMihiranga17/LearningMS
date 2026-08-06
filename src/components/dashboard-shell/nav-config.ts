@@ -13,6 +13,7 @@ import {
   Wallet,
   TrendingDown,
   TrendingUp,
+  Layers,
 } from "lucide-react";
 
 export type NavItem = {
@@ -55,6 +56,7 @@ export const INSTITUTE_STAFF_NAV: NavItem[] = [
 export const SUPER_ADMIN_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
   { label: "Institutes", href: "/institutes", icon: Building2, group: "Platform" },
+  { label: "Plans", href: "/plans", icon: Layers, group: "Platform" },
   { label: "Settings", href: "/settings", icon: Settings, group: "System" },
 ];
 
