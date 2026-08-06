@@ -10,10 +10,14 @@ import {
   PiggyBank,
 } from "lucide-react";
 import { getInstituteById, getInstituteSummary } from "@/lib/data/institute.data";
+import { getInstituteSubscription, listPlans } from "@/lib/data/subscription.data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { cn } from "@/lib/utils";
+import { AssignPlanForm } from "./assign-plan-form";
+import { InstituteLifecycleActions } from "./institute-lifecycle-actions";
 
 export default async function InstituteDetailPage({
   params,
@@ -28,6 +32,11 @@ export default async function InstituteDetailPage({
   }
 
   const summary = await getInstituteSummary(id);
+  const [subscription, plans] = await Promise.all([getInstituteSubscription(id), listPlans()]);
+  const subscribedPlan = subscription?.planId as unknown as
+    | { _id: string; name: string }
+    | null
+    | undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,8 +54,6 @@ export default async function InstituteDetailPage({
               <dd>{institute.code}</dd>
               <dt className="text-muted-foreground">Status</dt>
               <dd className="capitalize">{institute.status}</dd>
-              <dt className="text-muted-foreground">Plan</dt>
-              <dd>{institute.plan}</dd>
               <dt className="text-muted-foreground">Contact email</dt>
               <dd>{institute.contactEmail || "-"}</dd>
               <dt className="text-muted-foreground">Phone</dt>
@@ -58,6 +65,44 @@ export default async function InstituteDetailPage({
                 {institute.createdAt ? new Date(institute.createdAt).toLocaleString() : "-"}
               </dd>
             </dl>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mx-auto w-full max-w-lg">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <CardTitle>Subscription</CardTitle>
+            {subscription ? (
+              <Badge variant="secondary" className="capitalize">
+                {subscription.status}
+              </Badge>
+            ) : null}
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+              <dt className="text-muted-foreground">Plan</dt>
+              <dd>{subscribedPlan?.name ?? "No plan assigned"}</dd>
+              <dt className="text-muted-foreground">Trial ends</dt>
+              <dd>
+                {subscription?.trialEndsAt
+                  ? new Date(subscription.trialEndsAt).toLocaleDateString()
+                  : "-"}
+              </dd>
+              <dt className="text-muted-foreground">Current period end</dt>
+              <dd>
+                {subscription?.currentPeriodEnd
+                  ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
+                  : "-"}
+              </dd>
+            </dl>
+            <AssignPlanForm
+              instituteId={id}
+              plans={plans.map((plan) => ({ id: String(plan._id), name: plan.name }))}
+              currentPlanId={subscribedPlan ? String(subscribedPlan._id) : undefined}
+            />
+            <hr className="border-border" />
+            <InstituteLifecycleActions instituteId={id} status={institute.status} />
           </CardContent>
         </Card>
       </div>
