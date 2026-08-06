@@ -8,12 +8,14 @@ import PaymentModel from "@/models/Payment";
 import ExpenseModel from "@/models/Expense";
 import ExtraIncomeModel from "@/models/ExtraIncome";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
+import { sweepExpiredTrials } from "@/lib/subscription/lifecycle";
 
 export async function listInstitutes() {
   const session = await requireSession();
   requireRole(session, ["super-admin"]);
 
   await connectToDatabase();
+  await sweepExpiredTrials();
   return InstituteModel.find().sort({ createdAt: -1 }).lean();
 }
 
@@ -22,6 +24,7 @@ export async function getInstituteById(id: string) {
   requireRole(session, ["super-admin"]);
 
   await connectToDatabase();
+  await sweepExpiredTrials();
   return InstituteModel.findById(id).lean();
 }
 
