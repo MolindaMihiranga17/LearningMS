@@ -10,7 +10,7 @@ export default async function SuperAdminLayout({
   requireRole(session, ["super-admin"]);
 
   return (
-    <DashboardShell navKey="super-admin" userId={session.userId} role={session.role}>
+    <DashboardShell navKey="super-admin" userId={session.userId} role={session.role} impersonatedByEmail={session.impersonatedByEmail}>
       {children}
     </DashboardShell>
   );

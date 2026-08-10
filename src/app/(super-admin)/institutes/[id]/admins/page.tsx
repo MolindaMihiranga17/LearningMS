@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { ImpersonateButton } from "./impersonate-button";
 
 const COLUMNS = [
   { key: "name", header: "Name" },
@@ -12,6 +13,7 @@ const COLUMNS = [
   { key: "phone", header: "Phone" },
   { key: "status", header: "Status" },
   { key: "lastLogin", header: "Last login" },
+  { key: "actions", header: "Actions" },
 ];
 
 export default async function InstituteAdminsPage({
@@ -39,6 +41,7 @@ export default async function InstituteAdminsPage({
         {admin.status}
       </Badge>,
       admin.lastLoginAt ? new Date(admin.lastLoginAt).toLocaleString() : "Never",
+      <ImpersonateButton key="impersonate" instituteAdminUserId={admin.id} />,
     ],
   }));
 

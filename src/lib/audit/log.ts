@@ -15,13 +15,14 @@ type RecordAuditEntryInput = {
   after?: unknown;
   changedFields?: string[];
   metadata?: Record<string, unknown>;
+  instituteId?: string | null;
 };
 
 export async function recordAuditEntry(input: RecordAuditEntryInput): Promise<void> {
   await connectToDatabase();
 
   await AuditLogModel.create({
-    instituteId: input.session.instituteId,
+    instituteId: input.instituteId ?? input.session.instituteId,
     actorUserId: input.session.userId,
     actorName: input.actorName,
     actorRole: input.session.role,

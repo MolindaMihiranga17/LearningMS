@@ -5,6 +5,7 @@ import { SidebarNav } from "./sidebar-nav";
 import { NotificationBellServer } from "./notification-bell-server";
 import { ProfileHeaderServer } from "./profile-header-server";
 import type { NavKey } from "./nav-config";
+import { ImpersonationBanner } from "./impersonation-banner";
 
 export { formatRole } from "./profile-header";
 
@@ -29,12 +30,14 @@ export function DashboardShell({
   userId,
   role,
   brandName = "RaxwoLMS",
+  impersonatedByEmail,
   children,
 }: {
   navKey: NavKey;
   userId: string;
   role: string;
   brandName?: string;
+  impersonatedByEmail?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -94,6 +97,7 @@ export function DashboardShell({
           </div>
         </div>
 
+        {impersonatedByEmail !== undefined ? <ImpersonationBanner email={impersonatedByEmail} /> : null}
         <main className="flex flex-col gap-6">{children}</main>
       </div>
     </div>

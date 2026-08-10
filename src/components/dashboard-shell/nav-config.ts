@@ -14,6 +14,7 @@ import {
   TrendingDown,
   TrendingUp,
   Layers,
+  CreditCard,
 } from "lucide-react";
 
 export type NavItem = {
@@ -57,6 +58,7 @@ export const SUPER_ADMIN_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
   { label: "Institutes", href: "/institutes", icon: Building2, group: "Platform" },
   { label: "Plans", href: "/plans", icon: Layers, group: "Platform" },
+  { label: "Billing", href: "/billing", icon: CreditCard, group: "Platform" },
   { label: "Settings", href: "/settings", icon: Settings, group: "System" },
 ];
 
