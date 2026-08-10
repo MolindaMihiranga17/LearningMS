@@ -6,7 +6,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   requireRole(session, ["student"]);
 
   return (
-    <DashboardShell navKey="student" userId={session.userId} role={session.role}>
+    <DashboardShell navKey="student" userId={session.userId} role={session.role} impersonatedByEmail={session.impersonatedByEmail}>
       {children}
     </DashboardShell>
   );
