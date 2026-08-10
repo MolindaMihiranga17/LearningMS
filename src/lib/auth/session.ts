@@ -16,6 +16,9 @@ export type SessionPayload = {
   role: Role;
   instituteId: string | null;
   mustChangePassword: boolean;
+  /** Present only while a super-admin is acting as an institute administrator. */
+  impersonatedBy?: string;
+  impersonatedByEmail?: string;
 };
 
 export function signSession(payload: SessionPayload, ttlSeconds = DEFAULT_TTL_SECONDS): string {
