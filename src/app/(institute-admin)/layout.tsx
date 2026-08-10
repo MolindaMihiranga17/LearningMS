@@ -10,7 +10,7 @@ export default async function InstituteAdminLayout({
   requireRole(session, ["institute-admin"]);
 
   return (
-    <DashboardShell navKey="institute-admin" userId={session.userId} role={session.role}>
+    <DashboardShell navKey="institute-admin" userId={session.userId} role={session.role} impersonatedByEmail={session.impersonatedByEmail}>
       {children}
     </DashboardShell>
   );
