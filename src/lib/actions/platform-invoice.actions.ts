@@ -38,6 +38,7 @@ export async function createInvoice(
     instituteId: formData.get("instituteId"), periodStart: formData.get("periodStart"), periodEnd: formData.get("periodEnd"),
     amount: formData.get("amount"), currency: formData.get("currency"), issuedAt: formData.get("issuedAt"),
     dueAt: formData.get("dueAt"), notes: formData.get("notes"),
+    discountAmount: formData.get("discountAmount") || undefined, discountReason: formData.get("discountReason"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   await connectToDatabase();
@@ -54,6 +55,8 @@ export async function createInvoice(
         ...parsed.data, subscriptionId: subscription._id, planId: subscription.planId._id,
         planNameSnapshot: subscription.planId.name, invoiceNumber: await nextInvoiceNumber(), recordedBy: session.userId,
         notes: parsed.data.notes || undefined,
+        discountAmount: parsed.data.discountAmount ?? 0,
+        discountReason: parsed.data.discountReason || undefined,
       });
       break;
     } catch (error) {
@@ -62,7 +65,7 @@ export async function createInvoice(
   }
   if (!invoice) return { error: "Could not create an invoice. Please try again." };
   const actorName = await getActorName(session.userId);
-  await recordAuditEntry({ session, actorName, action: "platformInvoice.create", targetType: "PlatformInvoice", targetId: String(invoice._id), targetName: invoice.invoiceNumber, summary: `Created invoice ${invoice.invoiceNumber} for ${institute.name}.`, after: { amount: invoice.amount, currency: invoice.currency, instituteId: String(institute._id) } });
+  await recordAuditEntry({ session, actorName, action: "platformInvoice.create", targetType: "PlatformInvoice", targetId: String(invoice._id), targetName: invoice.invoiceNumber, instituteId: institute._id.toString(), summary: `Created invoice ${invoice.invoiceNumber} for ${institute.name}.`, after: { amount: invoice.amount, currency: invoice.currency, instituteId: String(institute._id), discountAmount: invoice.discountAmount, discountReason: invoice.discountReason } });
   revalidatePath("/billing"); revalidatePath("/billing/invoices");
   return { success: { invoiceId: String(invoice._id), invoiceNumber: invoice.invoiceNumber } };
 }
@@ -78,7 +81,7 @@ export async function markInvoicePaid(_previousState: InvoiceActionState, formDa
   if (invoice.status === "paid") return { error: "This invoice is already paid." };
   invoice.status = "paid"; invoice.paymentMethod = parsed.data.paymentMethod; invoice.receiptNumber = parsed.data.receiptNumber || undefined; invoice.paidAt = new Date(parsed.data.paidAt); await invoice.save();
   const actorName = await getActorName(session.userId);
-  await recordAuditEntry({ session, actorName, action: "platformInvoice.markPaid", targetType: "PlatformInvoice", targetId: String(invoice._id), targetName: invoice.invoiceNumber, summary: `Marked invoice ${invoice.invoiceNumber} as paid.`, after: { paymentMethod: invoice.paymentMethod, paidAt: invoice.paidAt } });
+  await recordAuditEntry({ session, actorName, action: "platformInvoice.markPaid", targetType: "PlatformInvoice", targetId: String(invoice._id), targetName: invoice.invoiceNumber, instituteId: invoice.instituteId.toString(), summary: `Marked invoice ${invoice.invoiceNumber} as paid.`, after: { paymentMethod: invoice.paymentMethod, paidAt: invoice.paidAt } });
   revalidatePath("/billing"); revalidatePath("/billing/invoices"); revalidatePath(`/billing/invoices/${invoice._id}`);
   return { success: { invoiceId: String(invoice._id), invoiceNumber: invoice.invoiceNumber } };
 }
@@ -91,7 +94,7 @@ export async function voidInvoice(_previousState: InvoiceActionState, formData: 
   if (!invoice) return { error: "Invoice not found." }; if (invoice.status === "paid") return { error: "A paid invoice cannot be voided." }; if (invoice.status === "void") return { error: "This invoice is already void." };
   invoice.status = "void"; invoice.notes = [invoice.notes, `Voided: ${parsed.data.reason}`].filter(Boolean).join("\n"); await invoice.save();
   const actorName = await getActorName(session.userId);
-  await recordAuditEntry({ session, actorName, action: "platformInvoice.void", targetType: "PlatformInvoice", targetId: String(invoice._id), targetName: invoice.invoiceNumber, summary: `Voided invoice ${invoice.invoiceNumber}: ${parsed.data.reason}`, after: { status: "void", reason: parsed.data.reason } });
+  await recordAuditEntry({ session, actorName, action: "platformInvoice.void", targetType: "PlatformInvoice", targetId: String(invoice._id), targetName: invoice.invoiceNumber, instituteId: invoice.instituteId.toString(), summary: `Voided invoice ${invoice.invoiceNumber}: ${parsed.data.reason}`, after: { status: "void", reason: parsed.data.reason } });
   revalidatePath("/billing"); revalidatePath("/billing/invoices"); revalidatePath(`/billing/invoices/${invoice._id}`);
   return { success: { invoiceId: String(invoice._id), invoiceNumber: invoice.invoiceNumber } };
 }
