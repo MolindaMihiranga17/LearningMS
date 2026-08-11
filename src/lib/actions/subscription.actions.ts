@@ -169,6 +169,10 @@ export type AssignPlanState = {
   success?: boolean;
 };
 
+// Intentionally does not mirror Institute.status: switching plans is
+// independent of the suspend/active/cancelled lifecycle, which is only
+// driven by suspendInstitute/reactivateInstitute/cancelInstitute and the
+// trial-expiry sweep in lifecycle.ts.
 export async function assignPlan(
   _prevState: AssignPlanState,
   formData: FormData
@@ -231,6 +235,7 @@ export async function assignPlan(
     targetType: "Institute",
     targetId: institute._id.toString(),
     targetName: institute.name,
+    instituteId: institute._id.toString(),
     summary: `Assigned plan "${plan.name}" to institute "${institute.name}"`,
     before,
     after: { planId: plan._id.toString(), planName: plan.name },
@@ -298,6 +303,7 @@ export async function suspendInstitute(
     targetType: "Institute",
     targetId: institute._id.toString(),
     targetName: institute.name,
+    instituteId: institute._id.toString(),
     summary: `Suspended institute "${institute.name}": ${reason}`,
     before: { status: beforeStatus },
     after: { status: "suspended", reason },
@@ -359,6 +365,7 @@ export async function reactivateInstitute(
     targetType: "Institute",
     targetId: institute._id.toString(),
     targetName: institute.name,
+    instituteId: institute._id.toString(),
     summary: `Reactivated institute "${institute.name}"`,
     before: { status: beforeStatus },
     after: { status: "active" },
@@ -422,6 +429,7 @@ export async function cancelInstitute(
     targetType: "Institute",
     targetId: institute._id.toString(),
     targetName: institute.name,
+    instituteId: institute._id.toString(),
     summary: `Cancelled institute "${institute.name}": ${reason}`,
     before: { status: beforeStatus },
     after: { status: "cancelled", reason },

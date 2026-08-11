@@ -12,6 +12,8 @@ export const createPlatformInvoiceSchema = z
     issuedAt: z.string().trim().min(1, "Issue date is required."),
     dueAt: z.string().trim().min(1, "Due date is required."),
     notes: z.string().trim().max(2000).optional().or(z.literal("")),
+    discountAmount: z.coerce.number().nonnegative("Discount cannot be negative.").optional(),
+    discountReason: z.string().trim().max(500).optional().or(z.literal("")),
   })
   .refine((data) => new Date(data.periodEnd) >= new Date(data.periodStart), {
     message: "Period end must be after the period start.",
@@ -20,6 +22,10 @@ export const createPlatformInvoiceSchema = z
   .refine((data) => new Date(data.dueAt) >= new Date(data.issuedAt), {
     message: "Due date must be on or after the issue date.",
     path: ["dueAt"],
+  })
+  .refine((data) => (data.discountAmount ?? 0) <= data.amount, {
+    message: "Discount cannot exceed the invoice amount.",
+    path: ["discountAmount"],
   });
 
 export const markPlatformInvoicePaidSchema = z.object({

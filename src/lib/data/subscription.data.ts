@@ -79,6 +79,53 @@ export async function getOverdueInvoices() {
     .populate("instituteId", "name code").sort({ dueAt: 1 }).lean();
 }
 
+export async function getOverdueInvoiceTotal() {
+  await requireSuperAdmin();
+  const [result] = await PlatformInvoiceModel.aggregate<{ count: number; totalAmount: number }>([
+    { $match: { status: { $in: ["pending", "overdue"] }, dueAt: { $lt: new Date() } } },
+    { $group: { _id: null, count: { $sum: 1 }, totalAmount: { $sum: "$amount" } } },
+    { $project: { _id: 0, count: 1, totalAmount: 1 } },
+  ]);
+  return result ?? { count: 0, totalAmount: 0 };
+}
+
+export type RevenueTrendPoint = {
+  month: string;
+  totalPaid: number;
+};
+
+export async function getRevenueTrend(months = 6): Promise<RevenueTrendPoint[]> {
+  await requireSuperAdmin();
+
+  const since = new Date();
+  since.setMonth(since.getMonth() - (months - 1), 1);
+  since.setHours(0, 0, 0, 0);
+
+  const invoices = await PlatformInvoiceModel.find({ status: "paid", paidAt: { $gte: since } })
+    .select("paidAt amount")
+    .lean();
+
+  const buckets = new Map<string, number>();
+  for (let i = 0; i < months; i++) {
+    const bucketDate = new Date(since.getFullYear(), since.getMonth() + i, 1);
+    const key = bucketDate.toLocaleDateString("en-US", { year: "numeric", month: "short" });
+    buckets.set(key, 0);
+  }
+
+  for (const invoice of invoices) {
+    if (!invoice.paidAt) continue;
+    const key = new Date(invoice.paidAt).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+    });
+    if (buckets.has(key)) {
+      buckets.set(key, (buckets.get(key) ?? 0) + invoice.amount);
+    }
+  }
+
+  return Array.from(buckets.entries()).map(([month, totalPaid]) => ({ month, totalPaid }));
+}
+
 export async function listInvoices(status?: "pending" | "paid" | "overdue" | "void") {
   await requireSuperAdmin();
   const filter = status ? { status } : {};

@@ -25,6 +25,9 @@ const platformInvoiceSchema = new Schema(
     },
     receiptNumber: { type: String, trim: true },
     notes: { type: String, trim: true },
+    discountAmount: { type: Number, default: 0 },
+    discountReason: { type: String, trim: true },
+    lastOverdueReminderAt: { type: Date, default: null },
     recordedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

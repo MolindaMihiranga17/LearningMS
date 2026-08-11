@@ -8,7 +8,7 @@ import InstituteModel from "@/models/Institute";
 import SubscriptionModel from "@/models/Subscription";
 import { comparePassword, hashPassword } from "@/lib/auth/password";
 import { setSessionCookie, clearSessionCookie, getSession } from "@/lib/auth/session";
-import { evaluateAndSyncSubscriptionStatus } from "@/lib/subscription/lifecycle";
+import { evaluateAndSyncSubscriptionStatus, checkTrialExpiringSoon, notifyOverdueInvoices } from "@/lib/subscription/lifecycle";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -55,7 +55,9 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     const subscription = await SubscriptionModel.findOne({ instituteId: user.instituteId });
     if (subscription) {
       await evaluateAndSyncSubscriptionStatus(subscription);
+      await checkTrialExpiringSoon(subscription);
     }
+    await notifyOverdueInvoices(user.instituteId.toString());
 
     const institute = await InstituteModel.findById(user.instituteId).select("status");
     if (institute?.status === "suspended") {

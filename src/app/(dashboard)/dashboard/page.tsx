@@ -13,6 +13,8 @@ import {
   Bell,
   TrendingDown,
   PiggyBank,
+  CreditCard,
+  CircleAlert,
 } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import {
@@ -23,6 +25,7 @@ import {
   getInstituteFinanceSummary,
 } from "@/lib/data/dashboard.data";
 import { countInstitutes, getPlatformTrends } from "@/lib/data/institute.data";
+import { getMrrArr, getOverdueInvoiceTotal, getRevenueTrend } from "@/lib/data/subscription.data";
 import { getTeacherDashboardData } from "@/lib/data/teacher-dashboard.data";
 import { getStudentDashboardData } from "@/lib/data/student-dashboard.data";
 import {
@@ -278,16 +281,29 @@ export default async function DashboardPage() {
   }
 
   if (session.role === "super-admin") {
-    const [instituteCount, trends] = await Promise.all([
+    const [instituteCount, trends, metrics, overdueTotal, revenueTrend] = await Promise.all([
       countInstitutes(),
       getPlatformTrends(),
+      getMrrArr(),
+      getOverdueInvoiceTotal(),
+      getRevenueTrend(),
     ]);
     const maxTrend = Math.max(1, ...trends.map((point) => point.institutesCreated));
+    const maxRevenue = Math.max(1, ...revenueTrend.map((point) => point.totalPaid));
 
     return (
       <>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard label="Institutes" icon={Building2} value={instituteCount} tone="primary" />
+          <StatCard label="MRR" icon={CreditCard} value={`$${metrics.mrr.toFixed(2)}`} tone="success" />
+          <StatCard label="ARR" icon={CreditCard} value={`$${metrics.arr.toFixed(2)}`} tone="info" />
+          <StatCard
+            label="Overdue total"
+            icon={CircleAlert}
+            value={`$${overdueTotal.totalAmount.toFixed(2)}`}
+            sub={`${overdueTotal.count} invoice${overdueTotal.count === 1 ? "" : "s"}`}
+            tone="warning"
+          />
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row">
@@ -324,6 +340,38 @@ export default async function DashboardPage() {
             </Link>
           </Panel>
         </div>
+
+        <Panel
+          title="Revenue trend"
+          sub="Paid invoices over the last 6 months"
+          className="p-5"
+          action={
+            <Link href="/billing" className="text-xs font-semibold text-success">
+              View billing &rarr;
+            </Link>
+          }
+        >
+          <div className="mt-4 flex flex-col gap-3">
+            {revenueTrend.map((point) => (
+              <div key={point.month} className="flex items-center gap-3">
+                <span className="w-16 shrink-0 truncate text-[12.5px] text-muted-foreground">
+                  {point.month}
+                </span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{
+                      width: `${Math.max((point.totalPaid / maxRevenue) * 100, point.totalPaid > 0 ? 4 : 0)}%`,
+                    }}
+                  />
+                </div>
+                <span className="w-20 shrink-0 text-right text-[12px] font-medium text-muted-foreground">
+                  ${point.totalPaid.toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </>
     );
   }

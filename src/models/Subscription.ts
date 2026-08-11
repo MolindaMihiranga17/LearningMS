@@ -17,6 +17,7 @@ const subscriptionSchema = new Schema(
     cancelReason: { type: String, trim: true },
     suspendedAt: { type: Date, default: null },
     suspendReason: { type: String, trim: true },
+    lastTrialReminderAt: { type: Date, default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

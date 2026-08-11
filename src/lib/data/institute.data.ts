@@ -8,7 +8,7 @@ import PaymentModel from "@/models/Payment";
 import ExpenseModel from "@/models/Expense";
 import ExtraIncomeModel from "@/models/ExtraIncome";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
-import { sweepExpiredTrials } from "@/lib/subscription/lifecycle";
+import { sweepExpiredTrials, sweepTrialsExpiringSoon, notifyOverdueInvoices } from "@/lib/subscription/lifecycle";
 
 export async function listInstitutes() {
   const session = await requireSession();
@@ -16,6 +16,8 @@ export async function listInstitutes() {
 
   await connectToDatabase();
   await sweepExpiredTrials();
+  await sweepTrialsExpiringSoon();
+  await notifyOverdueInvoices();
   return InstituteModel.find().sort({ createdAt: -1 }).lean();
 }
 
@@ -25,6 +27,8 @@ export async function getInstituteById(id: string) {
 
   await connectToDatabase();
   await sweepExpiredTrials();
+  await sweepTrialsExpiringSoon();
+  await notifyOverdueInvoices();
   return InstituteModel.findById(id).lean();
 }
 
