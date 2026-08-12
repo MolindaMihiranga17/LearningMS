@@ -26,6 +26,7 @@ import {
 } from "@/lib/data/dashboard.data";
 import { countInstitutes, getPlatformTrends } from "@/lib/data/institute.data";
 import { getMrrArr, getOverdueInvoiceTotal, getRevenueTrend } from "@/lib/data/subscription.data";
+import { getPlatformAlerts, type PlatformAlertSeverity } from "@/lib/data/platform-alerts.data";
 import { getTeacherDashboardData } from "@/lib/data/teacher-dashboard.data";
 import { getStudentDashboardData } from "@/lib/data/student-dashboard.data";
 import {
@@ -281,13 +282,19 @@ export default async function DashboardPage() {
   }
 
   if (session.role === "super-admin") {
-    const [instituteCount, trends, metrics, overdueTotal, revenueTrend] = await Promise.all([
+    const [instituteCount, trends, metrics, overdueTotal, revenueTrend, alerts] = await Promise.all([
       countInstitutes(),
       getPlatformTrends(),
       getMrrArr(),
       getOverdueInvoiceTotal(),
       getRevenueTrend(),
+      getPlatformAlerts(),
     ]);
+    const ALERT_BADGE_VARIANT: Record<PlatformAlertSeverity, "destructive" | "warning" | "secondary"> = {
+      critical: "destructive",
+      warning: "warning",
+      info: "secondary",
+    };
     const maxTrend = Math.max(1, ...trends.map((point) => point.institutesCreated));
     const maxRevenue = Math.max(1, ...revenueTrend.map((point) => point.totalPaid));
 
@@ -371,6 +378,30 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+        </Panel>
+
+        <Panel title="Alerts" sub="Operational signals across the platform" className="p-5">
+          {alerts.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No active alerts.</p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-3">
+              {alerts.map((alert) => (
+                <Link
+                  key={alert.id}
+                  href={alert.href}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-border/60 p-3 hover:bg-muted/50"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{alert.title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{alert.description}</p>
+                  </div>
+                  <Badge variant={ALERT_BADGE_VARIANT[alert.severity]} className="capitalize shrink-0">
+                    {alert.severity}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          )}
         </Panel>
       </>
     );

@@ -44,9 +44,19 @@ export default async function InstituteDetailPage({
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <CardTitle>{institute.name}</CardTitle>
-            <Link href={`/institutes/${id}/admins`} className={cn(buttonVariants({ variant: "outline" }))}>
-              View admins
-            </Link>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/api/platform-reports/institute-backup?id=${id}`}
+                target="_blank"
+                rel="noreferrer"
+                className={cn(buttonVariants({ variant: "outline" }))}
+              >
+                Download backup
+              </a>
+              <Link href={`/institutes/${id}/admins`} className={cn(buttonVariants({ variant: "outline" }))}>
+                View admins
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

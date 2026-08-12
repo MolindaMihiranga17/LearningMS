@@ -16,6 +16,8 @@ import {
   Layers,
   CreditCard,
   ScrollText,
+  HeartPulse,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export type NavItem = {
@@ -61,6 +63,8 @@ export const SUPER_ADMIN_NAV: NavItem[] = [
   { label: "Plans", href: "/plans", icon: Layers, group: "Platform" },
   { label: "Billing", href: "/billing", icon: CreditCard, group: "Platform" },
   { label: "Audit log", href: "/audit-log", icon: ScrollText, group: "Platform" },
+  { label: "Institute health", href: "/health", icon: HeartPulse, group: "Platform" },
+  { label: "Platform settings", href: "/platform-settings", icon: SlidersHorizontal, group: "Platform" },
   { label: "Settings", href: "/settings", icon: Settings, group: "System" },
 ];
 
