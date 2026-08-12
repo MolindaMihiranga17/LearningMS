@@ -6,6 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { ImpersonateButton } from "./impersonate-button";
+import { AddAdminForm } from "./add-admin-form";
+import { AdminRowActions } from "./admin-row-actions";
 
 const COLUMNS = [
   { key: "name", header: "Name" },
@@ -41,7 +43,10 @@ export default async function InstituteAdminsPage({
         {admin.status}
       </Badge>,
       admin.lastLoginAt ? new Date(admin.lastLoginAt).toLocaleString() : "Never",
-      <ImpersonateButton key="impersonate" instituteAdminUserId={admin.id} />,
+      <div key="actions" className="flex flex-wrap items-center gap-2">
+        <ImpersonateButton instituteAdminUserId={admin.id} />
+        <AdminRowActions userId={admin.id} adminName={admin.name} />
+      </div>,
     ],
   }));
 
@@ -55,6 +60,9 @@ export default async function InstituteAdminsPage({
         <Link href={`/institutes/${id}`} className={cn(buttonVariants({ variant: "outline" }))}>
           Back to institute
         </Link>
+      </div>
+      <div className="mt-6">
+        <AddAdminForm instituteId={id} />
       </div>
       <div className="mt-6">
         <DataTableCard
