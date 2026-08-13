@@ -1,17 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createClass, type CreateClassState } from "@/lib/actions/class.actions";
+import { createClassSchema, type CreateClassInput } from "@/lib/validation/class.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateClassState = {};
 
 export function ClassForm({ teachers }: { teachers: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState(createClass, initialState);
+
+  const form = useForm<CreateClassInput>({
+    resolver: zodResolver(createClassSchema),
+    defaultValues: { name: "", section: "", academicYear: "", classTeacherId: "" },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not create class", state.error);
+  }, [state.error]);
 
   if (state.success) {
     return (
@@ -29,40 +43,85 @@ export function ClassForm({ teachers }: { teachers: { id: string; name: string }
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    formAction(formData);
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Class name</Label>
-        <Input id="name" name="name" required placeholder="e.g. Grade 10" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="section">Section</Label>
-        <Input id="section" name="section" placeholder="e.g. A" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="academicYear">Academic year</Label>
-        <Input id="academicYear" name="academicYear" required placeholder="e.g. 2026-2027" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="classTeacherId">Class teacher</Label>
-        <select
-          id="classTeacherId"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Class name</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. Grade 10" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="section"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Section</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. A" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="academicYear"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Academic year</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. 2026-2027" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="classTeacherId"
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          defaultValue=""
-        >
-          <option value="">Unassigned</option>
-          {teachers.map((teacher) => (
-            <option key={teacher.id} value={teacher.id}>
-              {teacher.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Creating..." : "Create class"}
-      </Button>
-    </form>
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Class teacher</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    <SelectItem value="">Unassigned</SelectItem>
+                    {teachers.map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id}>
+                        {teacher.name}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating..." : "Create class"}
+        </Button>
+      </form>
+    </Form>
   );
 }
