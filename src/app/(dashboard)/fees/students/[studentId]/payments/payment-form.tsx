@@ -1,13 +1,32 @@
 "use client";
 
+import * as React from "react";
 import { useActionState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import type { z } from "zod";
 import { recordPayment, type RecordPaymentState } from "@/lib/actions/payment.actions";
+import { recordPaymentSchema } from "@/lib/validation/payment.schema";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const initialState: RecordPaymentState = {};
+
+type RecordPaymentInput = z.input<typeof recordPaymentSchema>;
+
+const PAYMENT_METHODS = [
+  { value: "cash", label: "Cash" },
+  { value: "bank-transfer", label: "Bank transfer" },
+  { value: "card", label: "Card" },
+  { value: "cheque", label: "Cheque" },
+  { value: "other", label: "Other" },
+] as const;
 
 export function PaymentForm({
   studentId,
@@ -18,77 +37,153 @@ export function PaymentForm({
 }) {
   const [state, formAction, pending] = useActionState(recordPayment, initialState);
 
+  const form = useForm<RecordPaymentInput>({
+    resolver: zodResolver(recordPaymentSchema),
+    defaultValues: {
+      studentId,
+      feeId: "",
+      amount: 0,
+      paymentMethod: "cash",
+      paymentDate: format(new Date(), "yyyy-MM-dd"),
+      notes: "",
+    },
+  });
+
+  React.useEffect(() => {
+    if (state.error) toast.error("Could not record payment", state.error);
+    if (state.success) {
+      toast.success("Payment recorded", `Receipt ${state.success.receiptNumber}`);
+      form.reset({
+        studentId,
+        feeId: "",
+        amount: 0,
+        paymentMethod: "cash",
+        paymentDate: format(new Date(), "yyyy-MM-dd"),
+        notes: "",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    formAction(formData);
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="studentId" value={studentId} />
-      <div className="grid gap-2">
-        <Label htmlFor="feeId">Fee</Label>
-        <select
-          id="feeId"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
           name="feeId"
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          defaultValue=""
-        >
-          <option value="">Ad-hoc payment (not tied to a fee)</option>
-          {fees.map((fee) => (
-            <option key={fee.id} value={fee.id}>
-              {fee.title} (balance: {fee.balance.toFixed(2)})
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="amount">Amount</Label>
-        <Input id="amount" name="amount" type="number" min="1" step="0.01" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="paymentMethod">Payment method</Label>
-        <select
-          id="paymentMethod"
-          name="paymentMethod"
-          required
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          defaultValue="cash"
-        >
-          <option value="cash">Cash</option>
-          <option value="bank-transfer">Bank transfer</option>
-          <option value="card">Card</option>
-          <option value="cheque">Cheque</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="paymentDate">Payment date</Label>
-        <input
-          id="paymentDate"
-          name="paymentDate"
-          type="date"
-          required
-          defaultValue={new Date().toISOString().slice(0, 10)}
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fee</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ad-hoc payment (not tied to a fee)" />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    <SelectItem value="">Ad-hoc payment (not tied to a fee)</SelectItem>
+                    {fees.map((fee) => (
+                      <SelectItem key={fee.id} value={fee.id}>
+                        {fee.title} (balance: {fee.balance.toFixed(2)})
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea id="notes" name="notes" placeholder="Optional" />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? (
-        <p className="text-sm text-success">
-          Payment recorded (receipt {state.success.receiptNumber}).{" "}
-          <a
-            href={`/api/reports/receipt/${state.success.paymentId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-          >
-            View receipt
-          </a>
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Recording..." : "Record payment"}
-      </Button>
-    </form>
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amount</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value as number} type="number" min="1" step="0.01" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="paymentMethod"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment method</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    {PAYMENT_METHODS.map((method) => (
+                      <SelectItem key={method.value} value={method.value}>
+                        {method.label}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="paymentDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment date</FormLabel>
+              <FormControl>
+                <DatePicker
+                  value={field.value ? new Date(field.value) : null}
+                  onChange={(date) => field.onChange(format(date, "yyyy-MM-dd"))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Textarea {...field} placeholder="Optional" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {state.success ? (
+          <p className="text-sm text-success">
+            Payment recorded (receipt {state.success.receiptNumber}).{" "}
+            <a
+              href={`/api/reports/receipt/${state.success.paymentId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              View receipt
+            </a>
+          </p>
+        ) : null}
+        <Button type="submit" disabled={pending} className="self-start">
+          {pending ? "Recording..." : "Record payment"}
+        </Button>
+      </form>
+    </Form>
   );
 }

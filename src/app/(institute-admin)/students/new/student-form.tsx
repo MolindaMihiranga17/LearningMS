@@ -1,17 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createStudent, type CreateUserState } from "@/lib/actions/user.actions";
+import { createStudentSchema, type CreateStudentInput } from "@/lib/validation/user.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateUserState = {};
 
 export function StudentForm() {
   const [state, formAction, pending] = useActionState(createStudent, initialState);
+
+  const form = useForm<CreateStudentInput>({
+    resolver: zodResolver(createStudentSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      rollNumber: "",
+      guardianName: "",
+      guardianPhone: "",
+    },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not create student", state.error);
+  }, [state.error]);
 
   if (state.success) {
     const { name, email, tempPassword } = state.success;
@@ -42,36 +62,99 @@ export function StudentForm() {
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    formAction(formData);
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" name="phone" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="rollNumber">Roll number</Label>
-        <Input id="rollNumber" name="rollNumber" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="guardianName">Guardian name</Label>
-        <Input id="guardianName" name="guardianName" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="guardianPhone">Guardian phone</Label>
-        <Input id="guardianPhone" name="guardianPhone" />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Creating..." : "Create student"}
-      </Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="rollNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Roll number</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="guardianName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Guardian name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="guardianPhone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Guardian phone</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating..." : "Create student"}
+        </Button>
+      </form>
+    </Form>
   );
 }
