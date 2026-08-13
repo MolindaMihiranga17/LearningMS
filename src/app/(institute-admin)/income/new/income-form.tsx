@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { createExtraIncome, type CreateExtraIncomeState } from "@/lib/actions/finance.actions";
+import { createExtraIncomeSchema } from "@/lib/validation/finance.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateExtraIncomeState = {};
+
+type CreateExtraIncomeInput = z.input<typeof createExtraIncomeSchema>;
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -18,6 +26,21 @@ const MONTHS = [
 
 export function IncomeForm() {
   const [state, formAction, pending] = useActionState(createExtraIncome, initialState);
+
+  const form = useForm<CreateExtraIncomeInput>({
+    resolver: zodResolver(createExtraIncomeSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      amount: 0,
+      month: MONTHS[new Date().getMonth()],
+      year: String(new Date().getFullYear()),
+    },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not add income", state.error);
+  }, [state.error]);
 
   if (state.success) {
     return (
@@ -35,50 +58,97 @@ export function IncomeForm() {
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    formAction(formData);
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input id="title" name="title" required placeholder="e.g. Workshop fees" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="description">Description (optional)</Label>
-        <Textarea id="description" name="description" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="amount">Amount</Label>
-        <Input id="amount" name="amount" type="number" min="0.01" step="0.01" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="month">Month</Label>
-        <select
-          id="month"
-          name="month"
-          required
-          defaultValue={MONTHS[new Date().getMonth()]}
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          {MONTHS.map((month) => (
-            <option key={month} value={month}>
-              {month}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="year">Year</Label>
-        <Input
-          id="year"
-          name="year"
-          required
-          defaultValue={String(new Date().getFullYear())}
-          placeholder="e.g. 2026"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. Workshop fees" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Add income"}
-      </Button>
-    </form>
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Textarea {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amount</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value as number} type="number" min="0.01" step="0.01" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="month"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Month</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    {MONTHS.map((month) => (
+                      <SelectItem key={month} value={month}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="year"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Year</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. 2026" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving..." : "Add income"}
+        </Button>
+      </form>
+    </Form>
   );
 }
