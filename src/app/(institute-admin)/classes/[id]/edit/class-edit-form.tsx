@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { updateClass, type UpdateClassState } from "@/lib/actions/class.actions";
+import { updateClassSchema, type UpdateClassInput } from "@/lib/validation/class.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 const initialState: UpdateClassState = {};
@@ -29,6 +34,21 @@ export function ClassEditForm({
 }) {
   const [state, formAction, pending] = useActionState(updateClass, initialState);
 
+  const form = useForm<UpdateClassInput>({
+    resolver: zodResolver(updateClassSchema),
+    defaultValues: {
+      name,
+      section,
+      academicYear,
+      classTeacherId,
+      status: status === "archived" ? "archived" : "active",
+    },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not update class", state.error);
+  }, [state.error]);
+
   if (state.success) {
     return (
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
@@ -40,59 +60,107 @@ export function ClassEditForm({
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("id", classId);
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    formAction(formData);
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="id" value={classId} />
-      <div className="grid gap-2">
-        <Label htmlFor="name">Class name</Label>
-        <Input id="name" name="name" required defaultValue={name} placeholder="e.g. Grade 10" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="section">Section</Label>
-        <Input id="section" name="section" defaultValue={section} placeholder="e.g. A" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="academicYear">Academic year</Label>
-        <Input
-          id="academicYear"
-          name="academicYear"
-          required
-          defaultValue={academicYear}
-          placeholder="e.g. 2026-2027"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Class name</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. Grade 10" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="classTeacherId">Class teacher</Label>
-        <select
-          id="classTeacherId"
+        <FormField
+          control={form.control}
+          name="section"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Section</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. A" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="academicYear"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Academic year</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. 2026-2027" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="classTeacherId"
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          defaultValue={classTeacherId}
-        >
-          <option value="">Unassigned</option>
-          {teachers.map((teacher) => (
-            <option key={teacher.id} value={teacher.id}>
-              {teacher.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="status">Status</Label>
-        <select
-          id="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Class teacher</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    <SelectItem value="">Unassigned</SelectItem>
+                    {teachers.map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id}>
+                        {teacher.name}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="status"
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          defaultValue={status}
-        >
-          <option value="active">Active</option>
-          <option value="archived">Archived</option>
-        </select>
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save changes"}
-      </Button>
-    </form>
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectPopup>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving..." : "Save changes"}
+        </Button>
+      </form>
+    </Form>
   );
 }
