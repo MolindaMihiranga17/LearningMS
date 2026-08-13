@@ -1,92 +1,211 @@
 "use client";
 
+import * as React from "react";
 import { useActionState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import {
   updateSystemSettings,
   type UpdateSystemSettingsState,
 } from "@/lib/actions/system-settings.actions";
+import { updateSystemSettingsSchema } from "@/lib/validation/system-settings.schema";
+
+type UpdateSystemSettingsInput = z.input<typeof updateSystemSettingsSchema>;
 import type { SystemSettingsData } from "@/lib/data/system-settings.data";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const initialState: UpdateSystemSettingsState = {};
+
+function ColorSwatchInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const isValidHex = /^#[0-9a-fA-F]{6}$/.test(value);
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-input">
+        <input
+          type="color"
+          value={isValidHex ? value : "#0f172a"}
+          onChange={(event) => onChange(event.target.value)}
+          className="size-14 cursor-pointer border-none bg-transparent p-0"
+          aria-label="Pick primary color"
+        />
+      </div>
+      <Input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="#0f172a"
+        className="flex-1"
+      />
+    </div>
+  );
+}
 
 export function PlatformSettingsForm({ settings }: { settings: SystemSettingsData }) {
   const [state, formAction, pending] = useActionState(updateSystemSettings, initialState);
 
+  const form = useForm<UpdateSystemSettingsInput>({
+    resolver: zodResolver(updateSystemSettingsSchema),
+    defaultValues: {
+      systemName: settings.systemName ?? "",
+      tagline: settings.tagline ?? "",
+      logoUrl: settings.logoUrl ?? "",
+      supportEmail: settings.supportEmail ?? "",
+      defaultTrialDays: settings.defaultTrialDays ?? 0,
+      primaryColor: settings.primaryColor ?? "",
+      privacyPolicy: settings.privacyPolicy ?? "",
+      termsOfUse: settings.termsOfUse ?? "",
+      helpCenterContent: settings.helpCenterContent ?? "",
+    },
+  });
+
+  React.useEffect(() => {
+    if (state.success) toast.success("Settings saved");
+    if (state.error) toast.error("Could not save settings", state.error);
+  }, [state]);
+
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    formAction(formData);
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="systemName">System name</Label>
-        <Input id="systemName" name="systemName" defaultValue={settings.systemName} required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="tagline">Tagline</Label>
-        <Input id="tagline" name="tagline" defaultValue={settings.tagline} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="logoUrl">Logo URL</Label>
-        <Input id="logoUrl" name="logoUrl" defaultValue={settings.logoUrl} placeholder="https://..." />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="supportEmail">Support email</Label>
-        <Input
-          id="supportEmail"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="systemName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>System name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="tagline"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tagline</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="logoUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Logo URL</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="https://..." />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="supportEmail"
-          type="email"
-          defaultValue={settings.supportEmail}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Support email</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="defaultTrialDays">Default trial days</Label>
-        <Input
-          id="defaultTrialDays"
+        <FormField
+          control={form.control}
           name="defaultTrialDays"
-          type="number"
-          min={0}
-          max={365}
-          defaultValue={settings.defaultTrialDays}
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Default trial days</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value as number} type="number" min={0} max={365} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="primaryColor">Primary color</Label>
-        <Input
-          id="primaryColor"
+        <FormField
+          control={form.control}
           name="primaryColor"
-          defaultValue={settings.primaryColor}
-          placeholder="#0f172a"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Primary color</FormLabel>
+              <FormControl>
+                <ColorSwatchInput value={field.value ?? ""} onChange={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="privacyPolicy">Privacy policy</Label>
-        <Textarea
-          id="privacyPolicy"
+        <FormField
+          control={form.control}
           name="privacyPolicy"
-          defaultValue={settings.privacyPolicy}
-          rows={4}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Privacy policy</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={4} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="termsOfUse">Terms of use</Label>
-        <Textarea id="termsOfUse" name="termsOfUse" defaultValue={settings.termsOfUse} rows={4} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="helpCenterContent">Help center content</Label>
-        <Textarea
-          id="helpCenterContent"
+        <FormField
+          control={form.control}
+          name="termsOfUse"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Terms of use</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={4} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="helpCenterContent"
-          defaultValue={settings.helpCenterContent}
-          rows={4}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Help center content</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={4} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-success">Settings saved.</p> : null}
-      <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Saving..." : "Save changes"}
-      </Button>
-    </form>
+        <Button type="submit" disabled={pending} className="self-start">
+          {pending ? "Saving..." : "Save changes"}
+        </Button>
+      </form>
+    </Form>
   );
 }
