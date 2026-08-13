@@ -1,17 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { createStaff, type CreateUserState } from "@/lib/actions/user.actions";
+import { createStaffSchema } from "@/lib/validation/user.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateUserState = {};
 
+type CreateStaffInput = z.input<typeof createStaffSchema>;
+
 export function StaffForm() {
   const [state, formAction, pending] = useActionState(createStaff, initialState);
+
+  const form = useForm<CreateStaffInput>({
+    resolver: zodResolver(createStaffSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      employeeCode: "",
+      basicSalary: undefined,
+    },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not create staff member", state.error);
+  }, [state.error]);
 
   if (state.success) {
     const { name, email, tempPassword } = state.success;
@@ -42,32 +64,92 @@ export function StaffForm() {
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    formAction(formData);
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" name="phone" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="employeeCode">Employee code</Label>
-        <Input id="employeeCode" name="employeeCode" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="basicSalary">Basic salary</Label>
-        <Input id="basicSalary" name="basicSalary" type="number" min="0" step="0.01" />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Creating..." : "Create staff member"}
-      </Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="employeeCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Employee code</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="basicSalary"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Basic salary</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  value={(field.value as number | string | undefined) ?? ""}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating..." : "Create staff member"}
+        </Button>
+      </form>
+    </Form>
   );
 }
