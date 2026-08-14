@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 
 const COLUMNS = [
-  { key: "name", header: "Name" },
+  { key: "name", header: "Name", sortable: true },
   { key: "code", header: "Code" },
-  { key: "status", header: "Status" },
-  { key: "created", header: "Created" },
+  { key: "status", header: "Status", sortable: true },
+  { key: "created", header: "Created", sortable: true },
 ];
 
 export default async function InstitutesPage() {
@@ -18,6 +18,12 @@ export default async function InstitutesPage() {
   const rows: DataTableRow[] = institutes.map((institute) => ({
     key: String(institute._id),
     searchValue: `${institute.name} ${institute.code}`,
+    sortValues: [
+      institute.name,
+      null,
+      institute.status,
+      institute.createdAt ? new Date(institute.createdAt).getTime() : null,
+    ],
     cells: [
       <Link href={`/institutes/${institute._id}`} className="font-medium hover:underline">
         {institute.name}
