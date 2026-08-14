@@ -1,17 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createInstitute, type CreateInstituteState } from "@/lib/actions/institute.actions";
+import { createInstituteSchema, type CreateInstituteInput } from "@/lib/validation/institute.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateInstituteState = {};
 
 export function InstituteForm() {
   const [state, formAction, pending] = useActionState(createInstitute, initialState);
+
+  const form = useForm<CreateInstituteInput>({
+    resolver: zodResolver(createInstituteSchema),
+    defaultValues: {
+      name: "",
+      code: "",
+      contactEmail: "",
+      phone: "",
+      address: "",
+      adminName: "",
+      adminEmail: "",
+    },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not create institute", state.error);
+  }, [state.error]);
 
   if (state.success) {
     const { instituteId, instituteName, adminEmail, tempPassword } = state.success;
@@ -47,41 +68,115 @@ export function InstituteForm() {
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, String(value ?? ""));
+    });
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Institute name</Label>
-        <Input id="name" name="name" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="code">Institute code</Label>
-        <Input id="code" name="code" required placeholder="e.g. GREENWOOD" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="contactEmail">Contact email</Label>
-        <Input id="contactEmail" name="contactEmail" type="email" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" name="phone" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="address">Address</Label>
-        <Input id="address" name="address" />
-      </div>
-      <hr className="border-border" />
-      <div className="grid gap-2">
-        <Label htmlFor="adminName">First institute-admin name</Label>
-        <Input id="adminName" name="adminName" required />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="adminEmail">First institute-admin email</Label>
-        <Input id="adminEmail" name="adminEmail" type="email" required />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Creating..." : "Create institute"}
-      </Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Institute name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Institute code</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. GREENWOOD" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="contactEmail"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contact email</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <hr className="border-border" />
+        <FormField
+          control={form.control}
+          name="adminName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>First institute-admin name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="adminEmail"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>First institute-admin email</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating..." : "Create institute"}
+        </Button>
+      </form>
+    </Form>
   );
 }
