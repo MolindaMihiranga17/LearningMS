@@ -3,6 +3,7 @@ import { listAllNotificationsForUser } from "@/lib/data/notification.data";
 import { markNotificationRead, markAllNotificationsRead } from "@/lib/actions/notification.actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { NotificationTypeBadge } from "@/components/dashboard-shell/notification-type-badge";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -43,7 +44,13 @@ export default async function NotificationsPage({
                 )}
               >
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{notification.title}</p>
+                  <div className="flex items-center gap-2">
+                    <NotificationTypeBadge type={notification.type} />
+                    {!notification.isRead ? (
+                      <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+                    ) : null}
+                  </div>
+                  <p className="mt-1.5 text-sm font-semibold text-foreground">{notification.title}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">{notification.body}</p>
                   <p className="mt-1 text-xs text-muted-foreground/70">
                     {new Date(notification.createdAt).toLocaleString()}
