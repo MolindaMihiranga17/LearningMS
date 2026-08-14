@@ -18,6 +18,7 @@ export async function listNotificationsForUser(limit = 10) {
     title: notification.title,
     body: notification.body,
     link: notification.link ?? null,
+    type: notification.type,
     isRead: notification.isRead,
     createdAt: notification.createdAt,
   }));
@@ -52,6 +53,7 @@ export async function listAllNotificationsForUser(page = 1, pageSize = 20) {
       title: notification.title,
       body: notification.body,
       link: notification.link ?? null,
+      type: notification.type,
       isRead: notification.isRead,
       createdAt: notification.createdAt,
     })),
