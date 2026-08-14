@@ -1,6 +1,5 @@
 "use server";
 
-import { z } from "zod";
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/db/connect";
 import UserModel, { type Role } from "@/models/User";
@@ -9,11 +8,7 @@ import SubscriptionModel from "@/models/Subscription";
 import { comparePassword, hashPassword } from "@/lib/auth/password";
 import { setSessionCookie, clearSessionCookie, getSession } from "@/lib/auth/session";
 import { evaluateAndSyncSubscriptionStatus, checkTrialExpiringSoon, notifyOverdueInvoices } from "@/lib/subscription/lifecycle";
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+import { loginSchema, changePasswordSchema } from "@/lib/validation/auth.schema";
 
 export type LoginState = {
   error?: string;
@@ -85,17 +80,6 @@ export async function logout() {
   await clearSessionCookie();
   redirect("/login");
 }
-
-const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1),
-    newPassword: z.string().min(8, "New password must be at least 8 characters."),
-    confirmPassword: z.string().min(1),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "New password and confirmation do not match.",
-    path: ["confirmPassword"],
-  });
 
 export type ChangePasswordState = {
   error?: string;
