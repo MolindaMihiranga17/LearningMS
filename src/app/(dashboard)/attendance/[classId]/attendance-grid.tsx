@@ -1,8 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { markAttendance, type MarkAttendanceState } from "@/lib/actions/attendance.actions";
+import { markAttendanceSchema, type MarkAttendanceInput } from "@/lib/validation/attendance.schema";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { Form, FormField } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const STATUSES = ["present", "absent", "late", "excused"] as const;
@@ -29,66 +34,87 @@ export function AttendanceGrid({
   students: { id: string; name: string; rollNumber: string; status: string }[];
 }) {
   const [state, formAction, pending] = useActionState(markAttendance, initialState);
-  const [statuses, setStatuses] = useState<Record<string, Status>>(() =>
-    Object.fromEntries(students.map((s) => [s.id, s.status as Status]))
-  );
 
-  const recordsPayload = JSON.stringify(
-    students.map((student) => ({
-      studentId: student.id,
-      status: statuses[student.id] ?? "present",
-    }))
-  );
+  const form = useForm<MarkAttendanceInput>({
+    resolver: zodResolver(markAttendanceSchema),
+    defaultValues: {
+      classId,
+      subjectId,
+      date,
+      records: students.map((student) => ({
+        studentId: student.id,
+        status: student.status as Status,
+      })),
+    },
+  });
+
+  const { fields } = useFieldArray({ control: form.control, name: "records" });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not save attendance", state.error);
+    if (state.success) toast.success("Attendance saved");
+  }, [state.error, state.success]);
 
   if (students.length === 0) {
     return <p className="text-sm text-muted-foreground">No students enrolled in this class yet.</p>;
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("classId", classId);
+    formData.append("subjectId", subjectId);
+    formData.append("date", date);
+    formData.append("records", JSON.stringify(values.records));
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="classId" value={classId} />
-      <input type="hidden" name="subjectId" value={subjectId} />
-      <input type="hidden" name="date" value={date} />
-      <input type="hidden" name="records" value={recordsPayload} />
-
-      <div className="flex flex-col gap-2">
-        {students.map((student) => (
-          <div
-            key={student.id}
-            className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2"
-          >
-            <div>
-              <p className="text-sm font-medium">{student.name}</p>
-              {student.rollNumber ? (
-                <p className="text-xs text-muted-foreground">Roll no. {student.rollNumber}</p>
-              ) : null}
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          {fields.map((rowField, index) => (
+            <div
+              key={rowField.id}
+              className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium">{students[index].name}</p>
+                {students[index].rollNumber ? (
+                  <p className="text-xs text-muted-foreground">Roll no. {students[index].rollNumber}</p>
+                ) : null}
+              </div>
+              <FormField
+                control={form.control}
+                name={`records.${index}.status`}
+                render={({ field }) => (
+                  <div className="flex gap-1">
+                    {STATUSES.map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        data-checked={field.value === status}
+                        onClick={() => field.onChange(status)}
+                        className={cn(
+                          "rounded-full px-3 py-1 text-xs font-medium capitalize text-muted-foreground hover:bg-muted",
+                          STATUS_STYLES[status]
+                        )}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              />
             </div>
-            <div className="flex gap-1">
-              {STATUSES.map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  data-checked={statuses[student.id] === status}
-                  onClick={() => setStatuses((current) => ({ ...current, [student.id]: status }))}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium capitalize text-muted-foreground hover:bg-muted",
-                    STATUS_STYLES[status]
-                  )}
-                >
-                  {status}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-success">Attendance saved.</p> : null}
-
-      <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Saving..." : "Save attendance"}
-      </Button>
-    </form>
+        <Button type="submit" disabled={pending} className="self-start">
+          {pending ? "Saving..." : "Save attendance"}
+        </Button>
+      </form>
+    </Form>
   );
 }

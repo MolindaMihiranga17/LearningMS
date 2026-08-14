@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createAnnouncement,
   type CreateAnnouncementState,
 } from "@/lib/actions/announcement.actions";
+import {
+  createAnnouncementSchema,
+  type CreateAnnouncementInput,
+} from "@/lib/validation/announcement.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateAnnouncementState = {};
@@ -24,9 +32,23 @@ export function AnnouncementForm({
   courses: { id: string; title: string }[];
 }) {
   const [state, formAction, pending] = useActionState(createAnnouncement, initialState);
-  const [audience, setAudience] = useState<"institute" | "class" | "course">(
-    allowInstitute ? "institute" : "class"
-  );
+
+  const form = useForm<CreateAnnouncementInput>({
+    resolver: zodResolver(createAnnouncementSchema),
+    defaultValues: {
+      audience: allowInstitute ? "institute" : "class",
+      classId: "",
+      courseId: "",
+      title: "",
+      body: "",
+    },
+  });
+
+  const audience = form.watch("audience");
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not post announcement", state.error);
+  }, [state.error]);
 
   if (state.success) {
     return (
@@ -47,80 +69,129 @@ export function AnnouncementForm({
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("audience", values.audience);
+    formData.append("classId", values.classId ?? "");
+    formData.append("courseId", values.courseId ?? "");
+    formData.append("title", values.title);
+    formData.append("body", values.body);
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="audience">Audience</Label>
-        <select
-          id="audience"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
           name="audience"
-          value={audience}
-          onChange={(event) => setAudience(event.target.value as typeof audience)}
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          {allowInstitute ? <option value="institute">Entire institute</option> : null}
-          <option value="class">A class</option>
-          <option value="course">A course</option>
-        </select>
-      </div>
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Audience</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectPopup>
+                  {allowInstitute ? <SelectItem value="institute">Entire institute</SelectItem> : null}
+                  <SelectItem value="class">A class</SelectItem>
+                  <SelectItem value="course">A course</SelectItem>
+                </SelectPopup>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {audience === "class" ? (
-        <div className="grid gap-2">
-          <Label htmlFor="classId">Class</Label>
-          <select
-            id="classId"
+        {audience === "class" ? (
+          <FormField
+            control={form.control}
             name="classId"
-            required
-            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select a class
-            </option>
-            {classes.map((klass) => (
-              <option key={klass.id} value={klass.id}>
-                {klass.name}
-                {klass.section ? ` - ${klass.section}` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Class</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectPopup>
+                    {classes.map((klass) => (
+                      <SelectItem key={klass.id} value={klass.id}>
+                        {klass.name}
+                        {klass.section ? ` - ${klass.section}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : null}
 
-      {audience === "course" ? (
-        <div className="grid gap-2">
-          <Label htmlFor="courseId">Course</Label>
-          <select
-            id="courseId"
+        {audience === "course" ? (
+          <FormField
+            control={form.control}
             name="courseId"
-            required
-            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select a course
-            </option>
-            {courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Course</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a course" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectPopup>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.title}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : null}
 
-      <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input id="title" name="title" required placeholder="e.g. Sports day postponed" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="body">Message</Label>
-        <Textarea id="body" name="body" required rows={5} placeholder="Announcement details" />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Posting..." : "Post announcement"}
-      </Button>
-    </form>
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. Sports day postponed" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="body"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Message</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={5} placeholder="Announcement details" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Posting..." : "Post announcement"}
+        </Button>
+      </form>
+    </Form>
   );
 }
