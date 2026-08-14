@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 
 const COLUMNS = [
-  { key: "name", header: "Name" },
+  { key: "name", header: "Name", sortable: true },
   { key: "email", header: "Email" },
   { key: "rollNumber", header: "Roll number" },
-  { key: "status", header: "Status" },
-  { key: "created", header: "Created" },
+  { key: "status", header: "Status", sortable: true },
+  { key: "created", header: "Created", sortable: true },
   { key: "actions", header: "Actions" },
 ];
 
@@ -20,6 +20,14 @@ export default async function StudentsPage() {
   const rows: DataTableRow[] = students.map((student) => ({
     key: String(student._id),
     searchValue: `${student.name} ${student.email} ${student.studentMeta?.rollNumber ?? ""}`,
+    sortValues: [
+      student.name,
+      null,
+      null,
+      student.status,
+      student.createdAt ? new Date(student.createdAt).getTime() : null,
+      null,
+    ],
     cells: [
       <span className="font-medium">{student.name}</span>,
       student.email,
@@ -51,9 +59,27 @@ export default async function StudentsPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Students</h1>
-        <Link href="/students/new" className={cn(buttonVariants())}>
-          New student
-        </Link>
+        <div className="flex items-center gap-4">
+          <a
+            href="/api/reports/export/students?format=csv"
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-primary hover:underline"
+          >
+            Export CSV
+          </a>
+          <a
+            href="/api/reports/export/students?format=xlsx"
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-primary hover:underline"
+          >
+            Export Excel
+          </a>
+          <Link href="/students/new" className={cn(buttonVariants())}>
+            New student
+          </Link>
+        </div>
       </div>
       <div className="mt-6">
         <DataTableCard

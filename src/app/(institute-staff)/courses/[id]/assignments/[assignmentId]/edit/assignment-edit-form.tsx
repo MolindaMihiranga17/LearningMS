@@ -1,16 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { updateAssignment, type UpdateAssignmentState } from "@/lib/actions/assignment.actions";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FileUploader } from "@/components/shared/file-uploader";
 import { cn } from "@/lib/utils";
 
 const initialState: UpdateAssignmentState = {};
+
+// dueAt kept as a raw datetime-local string client-side; updateAssignmentSchema's z.coerce.date()
+// remains the server-side source of truth in the action.
+const assignmentFormSchema = z.object({
+  title: z.string().trim().min(1, "Title is required."),
+  instructions: z.string().trim().optional(),
+  dueAt: z.string().trim().min(1, "Due date is required."),
+  maxScore: z.coerce.number().int().positive(),
+  attachmentKey: z.string().trim().optional(),
+});
+
+type AssignmentFormInput = z.input<typeof assignmentFormSchema>;
 
 export function AssignmentEditForm({
   assignmentId,
@@ -33,6 +49,15 @@ export function AssignmentEditForm({
 }) {
   const [state, formAction, pending] = useActionState(updateAssignment, initialState);
 
+  const form = useForm<AssignmentFormInput>({
+    resolver: zodResolver(assignmentFormSchema),
+    defaultValues: { title, instructions, dueAt, maxScore, attachmentKey },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not update assignment", state.error);
+  }, [state.error]);
+
   if (state.success) {
     return (
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
@@ -47,52 +72,100 @@ export function AssignmentEditForm({
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("id", assignmentId);
+    formData.append("status", status);
+    formData.append("title", values.title);
+    formData.append("instructions", values.instructions ?? "");
+    formData.append("dueAt", values.dueAt);
+    formData.append("maxScore", String(values.maxScore));
+    formData.append("attachmentKey", values.attachmentKey ?? "");
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="id" value={assignmentId} />
-      <input type="hidden" name="status" value={status} />
-      <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input id="title" name="title" required defaultValue={title} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="instructions">Instructions</Label>
-        <Textarea id="instructions" name="instructions" rows={4} defaultValue={instructions} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-2">
-          <Label htmlFor="dueAt">Due</Label>
-          <Input
-            id="dueAt"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="instructions"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Instructions</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={4} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
             name="dueAt"
-            type="datetime-local"
-            required
-            defaultValue={dueAt}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Due</FormLabel>
+                <FormControl>
+                  <Input {...field} type="datetime-local" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="maxScore">Max score</Label>
-          <Input
-            id="maxScore"
+          <FormField
+            control={form.control}
             name="maxScore"
-            type="number"
-            min={1}
-            defaultValue={maxScore}
-            required
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Max score</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value as number} type="number" min={1} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-      </div>
-      <FileUploader
-        courseId={courseId}
-        name="attachmentKey"
-        label="Reference attachment (optional)"
-        accept="application/pdf,image/png,image/jpeg,.doc,.docx,.zip"
-        defaultKey={attachmentKey}
-      />
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save changes"}
-      </Button>
-    </form>
+        <FormField
+          control={form.control}
+          name="attachmentKey"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <FileUploader
+                  courseId={courseId}
+                  name="attachmentKey"
+                  label="Reference attachment (optional)"
+                  accept="application/pdf,image/png,image/jpeg,.doc,.docx,.zip"
+                  defaultKey={attachmentKey}
+                  onUploaded={(key) => field.onChange(key)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving..." : "Save changes"}
+        </Button>
+      </form>
+    </Form>
   );
 }

@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 
 const COLUMNS = [
-  { key: "name", header: "Name" },
+  { key: "name", header: "Name", sortable: true },
   { key: "email", header: "Email" },
   { key: "employeeCode", header: "Employee code" },
-  { key: "salary", header: "Basic salary" },
-  { key: "status", header: "Status" },
-  { key: "created", header: "Created" },
+  { key: "salary", header: "Basic salary", sortable: true },
+  { key: "status", header: "Status", sortable: true },
+  { key: "created", header: "Created", sortable: true },
   { key: "actions", header: "Actions" },
 ];
 
@@ -21,6 +21,15 @@ export default async function StaffPage() {
   const rows: DataTableRow[] = staff.map((member) => ({
     key: String(member._id),
     searchValue: `${member.name} ${member.email} ${member.staffMeta?.employeeCode ?? ""}`,
+    sortValues: [
+      member.name,
+      null,
+      null,
+      member.staffMeta?.basicSalary ?? 0,
+      member.status,
+      member.createdAt ? new Date(member.createdAt).getTime() : null,
+      null,
+    ],
     cells: [
       <span className="font-medium">{member.name}</span>,
       member.email,
