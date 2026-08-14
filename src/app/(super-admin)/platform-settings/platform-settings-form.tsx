@@ -79,7 +79,9 @@ export function PlatformSettingsForm({ settings }: { settings: SystemSettingsDat
     Object.entries(values).forEach(([key, value]) => {
       formData.append(key, String(value ?? ""));
     });
-    formAction(formData);
+    React.startTransition(() => {
+      formAction(formData);
+    });
   });
 
   return (
