@@ -42,11 +42,36 @@ export default async function AuditLogPage({
     listInstitutes(),
   ]);
 
+  const exportQuery = new URLSearchParams(
+    Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1]))
+  ).toString();
+  const exportSuffix = exportQuery ? `&${exportQuery}` : "";
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Audit log</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Platform-wide record of super-admin and system actions.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Audit log</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Platform-wide record of super-admin and system actions.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <a
+            href={`/api/reports/export/audit-log?format=csv${exportSuffix}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-primary hover:underline"
+          >
+            Export CSV
+          </a>
+          <a
+            href={`/api/reports/export/audit-log?format=xlsx${exportSuffix}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-primary hover:underline"
+          >
+            Export Excel
+          </a>
+        </div>
       </div>
 
       <Card>

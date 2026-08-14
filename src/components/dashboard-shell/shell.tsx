@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import { LayoutGrid, Menu, Search } from "lucide-react";
+import { LayoutGrid, Menu } from "lucide-react";
 import { logout } from "@/lib/actions/auth.actions";
 import { SidebarNav } from "./sidebar-nav";
+import { NavSearch } from "./nav-search";
 import { NotificationBellServer } from "./notification-bell-server";
 import { ProfileHeaderServer } from "./profile-header-server";
-import type { NavKey } from "./nav-config";
+import { NAV_ACCENT, type NavKey } from "./nav-config";
 import { ImpersonationBanner } from "./impersonation-banner";
 
 export { formatRole } from "./profile-header";
@@ -41,7 +42,7 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background" style={{ "--sidebar-primary": NAV_ACCENT[navKey] } as React.CSSProperties}>
       <input type="checkbox" id="mobile-nav-toggle" className="peer hidden" />
 
       <nav className="shadow-sidebar fixed inset-y-0 left-0 z-50 flex w-62 shrink-0 -translate-x-full flex-col gap-1 bg-sidebar p-4 transition-transform duration-200 peer-checked:translate-x-0 lg:static lg:translate-x-0">
@@ -84,10 +85,7 @@ export function DashboardShell({
           </label>
 
           <div className="flex items-center gap-4.5">
-            <div className="shadow-hairline hidden w-[210px] items-center gap-2 rounded-lg bg-card px-3.5 py-2 sm:flex">
-              <Search className="size-[15px] text-muted-foreground" />
-              <span className="text-[13px] text-muted-foreground">Search</span>
-            </div>
+            <NavSearch navKey={navKey} />
             <Suspense fallback={<NotificationBellSkeleton />}>
               <NotificationBellServer />
             </Suspense>

@@ -1,46 +1,91 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { addMonthlyCommission } from "@/lib/actions/user.actions";
+import { addMonthlyCommissionSchema } from "@/lib/validation/user.schema";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
 
+type AddMonthlyCommissionInput = z.input<typeof addMonthlyCommissionSchema>;
+
 export function CommissionForm({ staffId }: { staffId: string }) {
   const [state, formAction, pending] = useActionState(addMonthlyCommission, {});
 
+  const form = useForm<AddMonthlyCommissionInput>({
+    resolver: zodResolver(addMonthlyCommissionSchema),
+    defaultValues: { month: MONTHS[0], amount: 0 },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not add commission", state.error);
+    if (state.success) toast.success("Commission added");
+  }, [state.error, state.success]);
+
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("staffId", staffId);
+    formData.append("month", values.month);
+    formData.append("amount", String(values.amount));
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3">
-      <input type="hidden" name="staffId" value={staffId} />
-      <div className="grid gap-2">
-        <Label htmlFor="month">Month</Label>
-        <select
-          id="month"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-3">
+        <FormField
+          control={form.control}
           name="month"
-          required
-          className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          {MONTHS.map((month) => (
-            <option key={month} value={month}>
-              {month}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="amount">Amount</Label>
-        <Input id="amount" name="amount" type="number" min="0" step="0.01" required className="w-32" />
-      </div>
-      <Button type="submit" disabled={pending}>
-        {pending ? "Adding..." : "Add commission"}
-      </Button>
-      {state.error ? <p className="w-full text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="w-full text-sm text-success">Commission added.</p> : null}
-    </form>
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Month</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectPopup>
+                  {MONTHS.map((month) => (
+                    <SelectItem key={month} value={month}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectPopup>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amount</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value as number} type="number" min="0" step="0.01" className="w-32" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Adding..." : "Add commission"}
+        </Button>
+      </form>
+    </Form>
   );
 }

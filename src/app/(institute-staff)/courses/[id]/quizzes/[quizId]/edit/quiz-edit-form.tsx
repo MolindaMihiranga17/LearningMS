@@ -1,15 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { updateQuiz, type UpdateQuizState } from "@/lib/actions/quiz.actions";
+import { updateQuizSchema } from "@/lib/validation/quiz.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const initialState: UpdateQuizState = {};
+
+type UpdateQuizInput = z.input<typeof updateQuizSchema>;
 
 export function QuizEditForm({
   quizId,
@@ -28,6 +35,15 @@ export function QuizEditForm({
 }) {
   const [state, formAction, pending] = useActionState(updateQuiz, initialState);
 
+  const form = useForm<UpdateQuizInput>({
+    resolver: zodResolver(updateQuizSchema),
+    defaultValues: { title, instructions, timeLimitMinutes, status },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not update quiz", state.error);
+  }, [state.error]);
+
   if (state.success) {
     return (
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
@@ -39,33 +55,64 @@ export function QuizEditForm({
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("id", quizId);
+    formData.append("status", status);
+    formData.append("title", values.title);
+    formData.append("instructions", values.instructions ?? "");
+    formData.append("timeLimitMinutes", String(values.timeLimitMinutes));
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="id" value={quizId} />
-      <input type="hidden" name="status" value={status} />
-      <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input id="title" name="title" required defaultValue={title} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="instructions">Instructions</Label>
-        <Textarea id="instructions" name="instructions" rows={4} defaultValue={instructions} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="timeLimitMinutes">Time limit (minutes)</Label>
-        <Input
-          id="timeLimitMinutes"
-          name="timeLimitMinutes"
-          type="number"
-          min={1}
-          defaultValue={timeLimitMinutes}
-          required
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save changes"}
-      </Button>
-    </form>
+        <FormField
+          control={form.control}
+          name="instructions"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Instructions</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={4} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="timeLimitMinutes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Time limit (minutes)</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value as number} type="number" min={1} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving..." : "Save changes"}
+        </Button>
+      </form>
+    </Form>
   );
 }

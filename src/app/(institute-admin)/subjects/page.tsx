@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 
 const COLUMNS = [
-  { key: "name", header: "Name" },
-  { key: "code", header: "Code" },
+  { key: "name", header: "Name", sortable: true },
+  { key: "code", header: "Code", sortable: true },
   { key: "teacher", header: "Teacher" },
   { key: "classes", header: "Classes" },
   { key: "actions", header: "Actions" },
@@ -30,6 +30,7 @@ export default async function SubjectsPage() {
     return {
       key: String(subject._id),
       searchValue: `${subject.name} ${subject.code} ${teacher?.name ?? ""}`,
+      sortValues: [subject.name, subject.code, null, null, null],
       cells: [
         <span className="font-medium">{subject.name}</span>,
         subject.code,

@@ -1,33 +1,60 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { updateStaffSalary } from "@/lib/actions/user.actions";
+import { updateStaffSalarySchema } from "@/lib/validation/user.schema";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+type UpdateStaffSalaryInput = z.input<typeof updateStaffSalarySchema>;
 
 export function SalaryForm({ staffId, basicSalary }: { staffId: string; basicSalary: number }) {
   const [state, formAction, pending] = useActionState(updateStaffSalary, {});
 
+  const form = useForm<UpdateStaffSalaryInput>({
+    resolver: zodResolver(updateStaffSalarySchema),
+    defaultValues: { basicSalary },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not update salary", state.error);
+    if (state.success) toast.success("Salary updated");
+  }, [state.error, state.success]);
+
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("staffId", staffId);
+    formData.append("basicSalary", String(values.basicSalary));
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="staffId" value={staffId} />
-      <div className="grid gap-2">
-        <Label htmlFor="basicSalary">Basic salary</Label>
-        <Input
-          id="basicSalary"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
           name="basicSalary"
-          type="number"
-          min="0"
-          step="0.01"
-          defaultValue={basicSalary}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Basic salary</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value as number} type="number" min="0" step="0.01" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-success">Salary updated.</p> : null}
-      <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? "Saving..." : "Update salary"}
-      </Button>
-    </form>
+        <Button type="submit" disabled={pending} className="w-fit">
+          {pending ? "Saving..." : "Update salary"}
+        </Button>
+      </form>
+    </Form>
   );
 }

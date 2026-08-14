@@ -1,10 +1,19 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { enterMarks, type EnterMarksState } from "@/lib/actions/marks.actions";
+import { enterMarksSchema } from "@/lib/validation/marks.schema";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 
 const initialState: EnterMarksState = {};
+
+type EnterMarksInput = z.input<typeof enterMarksSchema>;
 
 export function MarksGrid({
   examId,
@@ -16,74 +25,84 @@ export function MarksGrid({
   students: { id: string; name: string; rollNumber: string; marksObtained: number | null; remarks: string }[];
 }) {
   const [state, formAction, pending] = useActionState(enterMarks, initialState);
-  const [entries, setEntries] = useState<Record<string, { marksObtained: string; remarks: string }>>(
-    () =>
-      Object.fromEntries(
-        students.map((s) => [
-          s.id,
-          { marksObtained: s.marksObtained !== null ? String(s.marksObtained) : "", remarks: s.remarks },
-        ])
-      )
-  );
 
-  const entriesPayload = JSON.stringify(
-    students.map((student) => ({
-      studentId: student.id,
-      marksObtained: Number(entries[student.id]?.marksObtained || 0),
-      remarks: entries[student.id]?.remarks ?? "",
-    }))
-  );
+  const form = useForm<EnterMarksInput>({
+    resolver: zodResolver(enterMarksSchema),
+    defaultValues: {
+      examId,
+      entries: students.map((student) => ({
+        studentId: student.id,
+        marksObtained: student.marksObtained ?? 0,
+        remarks: student.remarks,
+      })),
+    },
+  });
+
+  const { fields } = useFieldArray({ control: form.control, name: "entries" });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not save marks", state.error);
+    if (state.success) toast.success("Marks saved");
+  }, [state.error, state.success]);
 
   if (students.length === 0) {
     return <p className="text-sm text-muted-foreground">No students enrolled in this class yet.</p>;
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("examId", examId);
+    formData.append("entries", JSON.stringify(values.entries));
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="examId" value={examId} />
-      <input type="hidden" name="entries" value={entriesPayload} />
-
-      <div className="flex flex-col gap-2">
-        {students.map((student) => (
-          <div
-            key={student.id}
-            className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2"
-          >
-            <div>
-              <p className="text-sm font-medium">{student.name}</p>
-              {student.rollNumber ? (
-                <p className="text-xs text-muted-foreground">Roll no. {student.rollNumber}</p>
-              ) : null}
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          {fields.map((field, index) => (
+            <div
+              key={field.id}
+              className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium">{students[index].name}</p>
+                {students[index].rollNumber ? (
+                  <p className="text-xs text-muted-foreground">Roll no. {students[index].rollNumber}</p>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <FormField
+                  control={form.control}
+                  name={`entries.${index}.marksObtained`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value as number}
+                          type="number"
+                          min="0"
+                          max={maxMarks}
+                          className="h-8 w-20"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <span className="text-xs text-muted-foreground">/ {maxMarks}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                max={maxMarks}
-                value={entries[student.id]?.marksObtained ?? ""}
-                onChange={(event) =>
-                  setEntries((current) => ({
-                    ...current,
-                    [student.id]: {
-                      ...current[student.id],
-                      marksObtained: event.target.value,
-                    },
-                  }))
-                }
-                className="h-8 w-20 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-              <span className="text-xs text-muted-foreground">/ {maxMarks}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-success">Marks saved.</p> : null}
-
-      <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Saving..." : "Save marks"}
-      </Button>
-    </form>
+        <Button type="submit" disabled={pending} className="self-start">
+          {pending ? "Saving..." : "Save marks"}
+        </Button>
+      </form>
+    </Form>
   );
 }

@@ -88,3 +88,12 @@ export const NAV_BY_ROLE = {
 } as const;
 
 export type NavKey = keyof typeof NAV_BY_ROLE;
+
+// Same lightness/chroma as the base sidebar accent, distinct hue per role so each
+// dashboard reads as its own space while staying on the shared oklch token system.
+export const NAV_ACCENT: Record<NavKey, string> = {
+  "super-admin": "oklch(0.53 0.21 264)",
+  "institute-admin": "oklch(0.53 0.19 300)",
+  "institute-staff": "oklch(0.55 0.15 190)",
+  student: "oklch(0.6 0.19 35)",
+};

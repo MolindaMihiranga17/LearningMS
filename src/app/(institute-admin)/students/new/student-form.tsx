@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createStudent, type CreateUserState } from "@/lib/actions/user.actions";
@@ -67,7 +67,9 @@ export function StudentForm() {
     Object.entries(values).forEach(([key, value]) => {
       formData.append(key, String(value ?? ""));
     });
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   return (

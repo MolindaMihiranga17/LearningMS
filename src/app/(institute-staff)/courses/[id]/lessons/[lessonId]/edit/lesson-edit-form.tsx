@@ -1,17 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { updateLesson, type UpdateLessonState } from "@/lib/actions/lesson.actions";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FileUploader } from "@/components/shared/file-uploader";
 import { cn } from "@/lib/utils";
 
 const initialState: UpdateLessonState = {};
 
 type LessonType = "video" | "pdf" | "text" | "link";
+
+// Flattened for the form's conditional-field UX; updateLessonSchema's discriminated union remains
+// the server-side source of truth in the action.
+const lessonFormSchema = z
+  .object({
+    title: z.string().trim().min(1, "Lesson title is required."),
+    type: z.enum(["video", "pdf", "text", "link"]),
+    textBody: z.string().trim().optional(),
+    contentUrl: z.string().trim().optional(),
+    durationSeconds: z.union([z.coerce.number().int().positive(), z.literal("")]).optional(),
+    isPreview: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "text" && !data.textBody?.trim()) {
+      ctx.addIssue({ code: "custom", message: "Lesson text is required.", path: ["textBody"] });
+    }
+    if (data.type === "video" && !data.contentUrl?.trim()) {
+      ctx.addIssue({ code: "custom", message: "Upload a video before saving.", path: ["contentUrl"] });
+    }
+    if (data.type === "pdf" && !data.contentUrl?.trim()) {
+      ctx.addIssue({ code: "custom", message: "Upload a PDF before saving.", path: ["contentUrl"] });
+    }
+    if (data.type === "link" && !/^https?:\/\/.+/.test(data.contentUrl ?? "")) {
+      ctx.addIssue({ code: "custom", message: "Enter a valid URL.", path: ["contentUrl"] });
+    }
+  });
+
+type LessonFormInput = z.input<typeof lessonFormSchema>;
 
 export function LessonEditForm({
   lessonId,
@@ -33,7 +69,24 @@ export function LessonEditForm({
   isPreview: boolean;
 }) {
   const [state, formAction, pending] = useActionState(updateLesson, initialState);
-  const [type, setType] = useState<LessonType>(initialType);
+
+  const form = useForm<LessonFormInput>({
+    resolver: zodResolver(lessonFormSchema),
+    defaultValues: {
+      title,
+      type: initialType,
+      textBody: initialType === "text" ? textBody : "",
+      contentUrl: initialType === "video" || initialType === "pdf" || initialType === "link" ? contentUrl : "",
+      durationSeconds: durationSeconds ?? "",
+      isPreview,
+    },
+  });
+
+  const type = form.watch("type");
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not update lesson", state.error);
+  }, [state.error]);
 
   if (state.success) {
     return (
@@ -46,98 +99,169 @@ export function LessonEditForm({
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("id", lessonId);
+    formData.append("title", values.title);
+    formData.append("type", values.type);
+    if (values.type === "text") formData.append("textBody", values.textBody ?? "");
+    if (values.type === "link" || values.type === "video" || values.type === "pdf") {
+      formData.append("contentUrl", values.contentUrl ?? "");
+    }
+    if (values.type === "video" && values.durationSeconds !== "" && values.durationSeconds !== undefined) {
+      formData.append("durationSeconds", String(values.durationSeconds));
+    }
+    if (values.isPreview) formData.append("isPreview", "on");
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="id" value={lessonId} />
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-2">
-          <Label htmlFor="title">Lesson title</Label>
-          <Input id="title" name="title" required defaultValue={title} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="type">Type</Label>
-          <select
-            id="type"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Lesson title</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="type"
-            value={type}
-            onChange={(event) => setType(event.target.value as LessonType)}
-            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <option value="text">Text</option>
-            <option value="video">Video</option>
-            <option value="pdf">PDF</option>
-            <option value="link">Link</option>
-          </select>
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectPopup>
+                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="pdf">PDF</SelectItem>
+                    <SelectItem value="link">Link</SelectItem>
+                  </SelectPopup>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-      </div>
 
-      {type === "text" ? (
-        <div className="grid gap-2">
-          <Label htmlFor="textBody">Lesson content</Label>
-          <textarea
-            id="textBody"
+        {type === "text" ? (
+          <FormField
+            control={form.control}
             name="textBody"
-            rows={6}
-            defaultValue={type === initialType ? textBody : ""}
-            className="w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Lesson content</FormLabel>
+                <FormControl>
+                  <Textarea {...field} rows={6} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      ) : null}
+        ) : null}
 
-      {type === "link" ? (
-        <div className="grid gap-2">
-          <Label htmlFor="contentUrl">URL</Label>
-          <Input
-            id="contentUrl"
+        {type === "link" ? (
+          <FormField
+            control={form.control}
             name="contentUrl"
-            defaultValue={type === initialType ? contentUrl : ""}
-            placeholder="https://..."
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>URL</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="https://..." />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      ) : null}
+        ) : null}
 
-      {type === "video" ? (
-        <>
-          <FileUploader
-            courseId={courseId}
-            name="contentUrl"
-            label="Video file"
-            accept="video/mp4,video/webm,video/quicktime"
-            defaultKey={type === initialType ? contentUrl : ""}
-          />
-          <div className="grid gap-2">
-            <Label htmlFor="durationSeconds">Duration (seconds)</Label>
-            <Input
-              id="durationSeconds"
-              name="durationSeconds"
-              type="number"
-              min={1}
-              defaultValue={durationSeconds ?? undefined}
+        {type === "video" ? (
+          <>
+            <FormField
+              control={form.control}
+              name="contentUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <FileUploader
+                      courseId={courseId}
+                      name="contentUrl"
+                      label="Video file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      defaultKey={type === initialType ? contentUrl : ""}
+                      onUploaded={(key) => field.onChange(key)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </>
-      ) : null}
+            <FormField
+              control={form.control}
+              name="durationSeconds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration (seconds)</FormLabel>
+                  <FormControl>
+                    <Input {...field} value={(field.value as number | string) ?? ""} type="number" min={1} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        ) : null}
 
-      {type === "pdf" ? (
-        <FileUploader
-          courseId={courseId}
-          name="contentUrl"
-          label="PDF file"
-          accept="application/pdf"
-          defaultKey={type === initialType ? contentUrl : ""}
-        />
-      ) : null}
+        {type === "pdf" ? (
+          <FormField
+            control={form.control}
+            name="contentUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <FileUploader
+                    courseId={courseId}
+                    name="contentUrl"
+                    label="PDF file"
+                    accept="application/pdf"
+                    defaultKey={type === initialType ? contentUrl : ""}
+                    onUploaded={(key) => field.onChange(key)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : null}
 
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="isPreview" defaultChecked={isPreview} className="h-4 w-4" />
-        Allow free preview (visible without enrollment)
-      </label>
+        <Label className="flex items-center gap-2 font-normal text-sm">
+          <Checkbox
+            checked={form.watch("isPreview")}
+            onCheckedChange={(next) => form.setValue("isPreview", Boolean(next))}
+          />
+          Allow free preview (visible without enrollment)
+        </Label>
 
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save changes"}
-      </Button>
-    </form>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving..." : "Save changes"}
+        </Button>
+      </form>
+    </Form>
   );
 }

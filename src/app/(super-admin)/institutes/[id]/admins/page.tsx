@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { ImpersonateButton } from "./impersonate-button";
 import { AddAdminForm } from "./add-admin-form";
 import { AdminRowActions } from "./admin-row-actions";
 
@@ -43,10 +42,7 @@ export default async function InstituteAdminsPage({
         {admin.status}
       </Badge>,
       admin.lastLoginAt ? new Date(admin.lastLoginAt).toLocaleString() : "Never",
-      <div key="actions" className="flex flex-wrap items-center gap-2">
-        <ImpersonateButton instituteAdminUserId={admin.id} />
-        <AdminRowActions userId={admin.id} adminName={admin.name} />
-      </div>,
+      <AdminRowActions key="actions" userId={admin.id} adminName={admin.name} />,
     ],
   }));
 

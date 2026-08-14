@@ -74,7 +74,23 @@ export default async function FeesPage() {
       <>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Fees</h1>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            <a
+              href="/api/reports/export/fees?format=csv"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-primary hover:underline"
+            >
+              Export CSV
+            </a>
+            <a
+              href="/api/reports/export/fees?format=xlsx"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-primary hover:underline"
+            >
+              Export Excel
+            </a>
             <Link href="/students" className={cn(buttonVariants({ variant: "outline" }))}>
               Record a payment
             </Link>

@@ -1,11 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createCourse, type CreateCourseState } from "@/lib/actions/course.actions";
+import { createCourseSchema, type CreateCourseInput } from "@/lib/validation/course.schema";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const initialState: CreateCourseState = {};
@@ -18,6 +26,15 @@ export function CourseForm({
   classes: { id: string; label: string }[];
 }) {
   const [state, formAction, pending] = useActionState(createCourse, initialState);
+
+  const form = useForm<CreateCourseInput>({
+    resolver: zodResolver(createCourseSchema),
+    defaultValues: { title: "", description: "", subjectId: "", classIds: [] },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not create course", state.error);
+  }, [state.error]);
 
   if (state.success) {
     return (
@@ -38,57 +55,110 @@ export function CourseForm({
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("title", values.title);
+    formData.append("description", values.description ?? "");
+    formData.append("subjectId", values.subjectId ?? "");
+    values.classIds.forEach((id) => formData.append("classIds", id));
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="title">Course title</Label>
-        <Input id="title" name="title" required placeholder="e.g. Algebra Foundations" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="description">Description</Label>
-        <textarea
-          id="description"
-          name="description"
-          rows={3}
-          className="w-full rounded-xl border border-input bg-background px-3.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          placeholder="What will students learn in this course?"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Course title</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g. Algebra Foundations" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="subjectId">Subject</Label>
-        <select
-          id="subjectId"
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={3} placeholder="What will students learn in this course?" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="subjectId"
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          defaultValue=""
-        >
-          <option value="">Not linked to a subject</option>
-          {subjects.map((subject) => (
-            <option key={subject.id} value={subject.id}>
-              {subject.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="grid gap-2">
-        <Label>Classes</Label>
-        {classes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No classes yet.</p>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {classes.map((klass) => (
-              <label key={klass.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="classIds" value={klass.id} className="h-4 w-4" />
-                {klass.label}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Creating..." : "Create course"}
-      </Button>
-    </form>
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Subject</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Not linked to a subject" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectPopup>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectPopup>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="classIds"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Classes</FormLabel>
+              <FormControl>
+                {classes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No classes yet.</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {classes.map((klass) => {
+                      const checked = field.value.includes(klass.id);
+                      return (
+                        <Label key={klass.id} className="flex items-center gap-2 font-normal">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              field.onChange(
+                                next
+                                  ? [...field.value, klass.id]
+                                  : field.value.filter((id) => id !== klass.id)
+                              );
+                            }}
+                          />
+                          {klass.label}
+                        </Label>
+                      );
+                    })}
+                  </div>
+                )}
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating..." : "Create course"}
+        </Button>
+      </form>
+    </Form>
   );
 }

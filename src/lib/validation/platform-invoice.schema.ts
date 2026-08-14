@@ -28,6 +28,8 @@ export const createPlatformInvoiceSchema = z
     path: ["discountAmount"],
   });
 
+export type CreatePlatformInvoiceInput = z.infer<typeof createPlatformInvoiceSchema>;
+
 export const markPlatformInvoicePaidSchema = z.object({
   invoiceId: objectId,
   paymentMethod: z.enum(["bank-transfer", "cash", "cheque", "card-manual", "other"]),

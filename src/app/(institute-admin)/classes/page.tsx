@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 
 const COLUMNS = [
-  { key: "name", header: "Name" },
+  { key: "name", header: "Name", sortable: true },
   { key: "section", header: "Section" },
-  { key: "year", header: "Academic year" },
+  { key: "year", header: "Academic year", sortable: true },
   { key: "teacher", header: "Class teacher" },
-  { key: "status", header: "Status" },
+  { key: "status", header: "Status", sortable: true },
   { key: "actions", header: "Actions" },
 ];
 
@@ -24,6 +24,7 @@ export default async function ClassesPage() {
     return {
       key: String(klass._id),
       searchValue: `${klass.name} ${klass.section ?? ""} ${teacher ?? ""}`,
+      sortValues: [klass.name, null, klass.academicYear, null, klass.status, null],
       cells: [
         <span key="name" className="font-medium">{klass.name}</span>,
         klass.section || "-",

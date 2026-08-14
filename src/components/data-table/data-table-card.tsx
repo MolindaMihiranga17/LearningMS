@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Inbox, Search, SearchX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,14 +19,33 @@ export type DataTableColumn = {
   key: string;
   header: string;
   headerClassName?: string;
+  /** Enables click-to-sort on this column; requires rows to provide a matching `sortValues` entry. */
+  sortable?: boolean;
 };
 
 export type DataTableRow = {
   key: string;
   /** Plain-text value to match against the search query; omit for non-searchable tables. */
   searchValue?: string;
+  /** Comparable values parallel to `cells`, used only for sortable columns. */
+  sortValues?: (string | number | null | undefined)[];
   cells: React.ReactNode[];
 };
+
+type SortState = { index: number; direction: "asc" | "desc" };
+
+function EmptyState({ title, description }: { title: string; description?: string }) {
+  const Icon = description ? Inbox : SearchX;
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+      <div className="flex size-9 items-center justify-center rounded-full bg-muted">
+        <Icon className="size-4.5 text-muted-foreground" />
+      </div>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+    </div>
+  );
+}
 
 export function DataTableCard({
   title,
@@ -53,6 +72,7 @@ export function DataTableCard({
 }) {
   const [query, setQuery] = React.useState("");
   const [page, setPage] = React.useState(1);
+  const [sort, setSort] = React.useState<SortState | null>(null);
 
   const searchable = !compact && rows.some((row) => row.searchValue !== undefined);
 
@@ -62,13 +82,38 @@ export function DataTableCard({
     return rows.filter((row) => (row.searchValue ?? "").toLowerCase().includes(q));
   }, [rows, query]);
 
-  React.useEffect(() => {
-    setPage(1);
-  }, [query]);
+  const sorted = React.useMemo(() => {
+    if (!sort) return filtered;
+    const { index, direction } = sort;
+    const factor = direction === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const av = a.sortValues?.[index];
+      const bv = b.sortValues?.[index];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * factor;
+      return String(av).localeCompare(String(bv)) * factor;
+    });
+  }, [filtered, sort]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  function handleSearchChange(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
+
+  function toggleSort(index: number) {
+    setSort((current) => {
+      if (!current || current.index !== index) return { index, direction: "asc" };
+      if (current.direction === "asc") return { index, direction: "desc" };
+      return null;
+    });
+    setPage(1);
+  }
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageRows = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const cellPadding = compact ? "px-3 py-2" : undefined;
 
@@ -87,7 +132,7 @@ export function DataTableCard({
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => handleSearchChange(event.target.value)}
                 placeholder={searchPlaceholder}
                 className="pl-9"
               />
@@ -101,28 +146,47 @@ export function DataTableCard({
           <Table>
             <TableHeader>
               <TableRow>
-                {columns.map((column) => (
-                  <TableHead
-                    key={column.key}
-                    className={cn(cellPadding, column.headerClassName)}
-                  >
-                    {column.header}
-                  </TableHead>
-                ))}
+                {columns.map((column, index) => {
+                  const isSorted = sort?.index === index;
+                  const Icon = isSorted
+                    ? sort?.direction === "asc"
+                      ? ChevronUp
+                      : ChevronDown
+                    : ChevronsUpDown;
+
+                  return (
+                    <TableHead
+                      key={column.key}
+                      className={cn(cellPadding, column.headerClassName)}
+                    >
+                      {column.sortable ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleSort(index)}
+                          className={cn(
+                            "flex items-center gap-1 text-left transition-colors hover:text-foreground",
+                            isSorted && "text-foreground"
+                          )}
+                        >
+                          {column.header}
+                          <Icon className={cn("size-3.5", !isSorted && "text-muted-foreground/50")} />
+                        </button>
+                      ) : (
+                        column.header
+                      )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="whitespace-normal">
-                    <div className="flex flex-col items-center justify-center gap-1 py-10 text-center">
-                      <p className="text-sm font-medium text-foreground">
-                        {query ? `No results for "${query}"` : emptyTitle}
-                      </p>
-                      {!query && emptyDescription ? (
-                        <p className="text-sm text-muted-foreground">{emptyDescription}</p>
-                      ) : null}
-                    </div>
+                    <EmptyState
+                      title={query ? `No results for "${query}"` : emptyTitle}
+                      description={!query ? emptyDescription : undefined}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -143,14 +207,10 @@ export function DataTableCard({
         {stackOnMobile ? (
           <div className="flex flex-col gap-3 p-4 sm:hidden">
             {pageRows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-1 py-10 text-center">
-                <p className="text-sm font-medium text-foreground">
-                  {query ? `No results for "${query}"` : emptyTitle}
-                </p>
-                {!query && emptyDescription ? (
-                  <p className="text-sm text-muted-foreground">{emptyDescription}</p>
-                ) : null}
-              </div>
+              <EmptyState
+                title={query ? `No results for "${query}"` : emptyTitle}
+                description={!query ? emptyDescription : undefined}
+              />
             ) : (
               pageRows.map((row) => {
                 const middleCells = row.cells.slice(1, -1);
@@ -184,12 +244,12 @@ export function DataTableCard({
         ) : null}
       </CardContent>
 
-      {filtered.length > pageSize ? (
+      {sorted.length > pageSize ? (
         <CardFooter>
           <Pagination
             page={safePage}
             pageSize={pageSize}
-            total={filtered.length}
+            total={sorted.length}
             onPageChange={setPage}
           />
         </CardFooter>
