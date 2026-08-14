@@ -21,14 +21,20 @@ export const updateStaffPermissionsSchema = z.object({
   income: z.coerce.boolean().optional(),
 });
 
+export type UpdateStaffPermissionsInput = z.infer<typeof updateStaffPermissionsSchema>;
+
 export const updateStaffSalarySchema = z.object({
   basicSalary: z.coerce.number().min(0, "Salary can't be negative."),
 });
+
+export type UpdateStaffSalaryInput = z.infer<typeof updateStaffSalarySchema>;
 
 export const addMonthlyCommissionSchema = z.object({
   month: z.string().trim().min(1, "Month is required."),
   amount: z.coerce.number().min(0, "Amount can't be negative."),
 });
+
+export type AddMonthlyCommissionInput = z.infer<typeof addMonthlyCommissionSchema>;
 
 export const createStudentSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters."),
