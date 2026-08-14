@@ -1,17 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { updateQuizQuestion, type UpdateQuizQuestionState } from "@/lib/actions/quiz-question.actions";
+import { toast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 const initialState: UpdateQuizQuestionState = {};
 
 type QuestionType = "mcq" | "truefalse" | "short";
+
+// Flattened for the form's conditional-field UX; updateQuizQuestionSchema's discriminated union
+// remains the server-side source of truth in the action.
+const questionFormSchema = z
+  .object({
+    prompt: z.string().trim().min(1, "Prompt is required."),
+    type: z.enum(["mcq", "truefalse", "short"]),
+    points: z.coerce.number().int().positive(),
+    options: z.array(z.object({ value: z.string().trim() })),
+    correctOptionIndex: z.union([z.coerce.number().int().nonnegative(), z.literal("")]).optional(),
+    correctBoolean: z.boolean(),
+    sampleAnswer: z.string().trim().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "mcq") {
+      const filled = data.options.filter((option) => option.value.trim().length > 0);
+      if (filled.length < 2) {
+        ctx.addIssue({ code: "custom", message: "Provide at least two options.", path: ["options"] });
+      }
+      if (data.correctOptionIndex === "" || data.correctOptionIndex === undefined) {
+        ctx.addIssue({ code: "custom", message: "Select the correct option.", path: ["correctOptionIndex"] });
+      } else if (data.correctOptionIndex >= data.options.length) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Correct option index is out of range.",
+          path: ["correctOptionIndex"],
+        });
+      }
+    }
+  });
+
+type QuestionFormInput = z.input<typeof questionFormSchema>;
 
 export function QuizQuestionEditForm({
   questionId,
@@ -37,10 +74,26 @@ export function QuizQuestionEditForm({
   sampleAnswer: string;
 }) {
   const [state, formAction, pending] = useActionState(updateQuizQuestion, initialState);
-  const [type, setType] = useState<QuestionType>(initialType);
-  const [optionValues, setOptionValues] = useState<string[]>(
-    options.length > 0 ? options : ["", ""]
-  );
+
+  const form = useForm<QuestionFormInput>({
+    resolver: zodResolver(questionFormSchema),
+    defaultValues: {
+      prompt,
+      type: initialType,
+      points,
+      options: (options.length > 0 ? options : ["", ""]).map((value) => ({ value })),
+      correctOptionIndex: correctOptionIndex ?? "",
+      correctBoolean: correctBoolean ?? true,
+      sampleAnswer,
+    },
+  });
+
+  const { fields, append } = useFieldArray({ control: form.control, name: "options" });
+  const type = form.watch("type");
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not update question", state.error);
+  }, [state.error]);
 
   if (state.success) {
     return (
@@ -56,103 +109,177 @@ export function QuizQuestionEditForm({
     );
   }
 
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("id", questionId);
+    formData.append("prompt", values.prompt);
+    formData.append("type", values.type);
+    formData.append("points", String(values.points));
+    if (values.type === "mcq") {
+      values.options.forEach((option) => formData.append("options", option.value));
+      formData.append("correctOptionIndex", String(values.correctOptionIndex));
+    }
+    if (values.type === "truefalse") {
+      formData.append("correctBoolean", values.correctBoolean ? "true" : "false");
+    }
+    if (values.type === "short") {
+      formData.append("sampleAnswer", values.sampleAnswer ?? "");
+    }
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="id" value={questionId} />
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-2">
-          <Label htmlFor="prompt">Prompt</Label>
-          <Textarea id="prompt" name="prompt" rows={2} required defaultValue={prompt} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="type">Type</Label>
-          <select
-            id="type"
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="prompt"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Prompt</FormLabel>
+                <FormControl>
+                  <Textarea {...field} rows={2} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="type"
-            value={type}
-            onChange={(event) => setType(event.target.value as QuestionType)}
-            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <option value="mcq">Multiple choice</option>
-            <option value="truefalse">True / False</option>
-            <option value="short">Short answer</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="points">Points</Label>
-        <Input id="points" name="points" type="number" min={1} defaultValue={points} className="max-w-24" />
-      </div>
-
-      {type === "mcq" ? (
-        <div className="flex flex-col gap-2">
-          <Label>Options</Label>
-          {optionValues.map((value, index) => (
-            <Input
-              key={index}
-              name="options"
-              required
-              defaultValue={type === initialType ? value : ""}
-              placeholder={`Option ${index + 1}`}
-            />
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="self-start"
-            onClick={() => setOptionValues((values) => [...values, ""])}
-          >
-            Add option
-          </Button>
-          <div className="grid gap-2">
-            <Label htmlFor="correctOptionIndex">Correct option (index, starting at 0)</Label>
-            <Input
-              id="correctOptionIndex"
-              name="correctOptionIndex"
-              type="number"
-              min={0}
-              required
-              defaultValue={type === initialType ? (correctOptionIndex ?? undefined) : undefined}
-              className="max-w-24"
-            />
-          </div>
-        </div>
-      ) : null}
-
-      {type === "truefalse" ? (
-        <div className="grid gap-2">
-          <Label htmlFor="correctBoolean">Correct answer</Label>
-          <select
-            id="correctBoolean"
-            name="correctBoolean"
-            defaultValue={type === initialType && correctBoolean === false ? "false" : "true"}
-            className="h-8 w-full max-w-32 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <option value="true">True</option>
-            <option value="false">False</option>
-          </select>
-        </div>
-      ) : null}
-
-      {type === "short" ? (
-        <div className="grid gap-2">
-          <Label htmlFor="sampleAnswer">Sample answer (reference only, not auto-graded)</Label>
-          <Textarea
-            id="sampleAnswer"
-            name="sampleAnswer"
-            rows={2}
-            defaultValue={type === initialType ? sampleAnswer : ""}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectPopup>
+                    <SelectItem value="mcq">Multiple choice</SelectItem>
+                    <SelectItem value="truefalse">True / False</SelectItem>
+                    <SelectItem value="short">Short answer</SelectItem>
+                  </SelectPopup>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-      ) : null}
 
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+        <FormField
+          control={form.control}
+          name="points"
+          render={({ field }) => (
+            <FormItem className="max-w-24">
+              <FormLabel>Points</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value as number} type="number" min={1} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save changes"}
-      </Button>
-    </form>
+        {type === "mcq" ? (
+          <div className="flex flex-col gap-2">
+            <FormLabel>Options</FormLabel>
+            {fields.map((optionField, index) => (
+              <FormField
+                key={optionField.id}
+                control={form.control}
+                name={`options.${index}.value`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input {...field} placeholder={`Option ${index + 1}`} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-start"
+              onClick={() => append({ value: "" })}
+            >
+              Add option
+            </Button>
+            <FormField
+              control={form.control}
+              name="correctOptionIndex"
+              render={({ field }) => (
+                <FormItem className="max-w-24">
+                  <FormLabel>Correct option (index, starting at 0)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={(field.value as number | string) ?? ""}
+                      type="number"
+                      min={0}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        ) : null}
+
+        {type === "truefalse" ? (
+          <FormField
+            control={form.control}
+            name="correctBoolean"
+            render={({ field }) => (
+              <FormItem className="max-w-32">
+                <FormLabel>Correct answer</FormLabel>
+                <Select
+                  value={field.value ? "true" : "false"}
+                  onValueChange={(value) => field.onChange(value === "true")}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectPopup>
+                    <SelectItem value="true">True</SelectItem>
+                    <SelectItem value="false">False</SelectItem>
+                  </SelectPopup>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : null}
+
+        {type === "short" ? (
+          <FormField
+            control={form.control}
+            name="sampleAnswer"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sample answer (reference only, not auto-graded)</FormLabel>
+                <FormControl>
+                  <Textarea {...field} rows={2} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : null}
+
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving..." : "Save changes"}
+        </Button>
+      </form>
+    </Form>
   );
 }
