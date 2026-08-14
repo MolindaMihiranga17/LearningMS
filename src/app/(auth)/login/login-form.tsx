@@ -1,36 +1,71 @@
 "use client";
 
-import { useActionState } from "react";
-import { AlertCircle } from "lucide-react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { login, type LoginState } from "@/lib/actions/auth.actions";
+import { loginSchema, type LoginInput } from "@/lib/validation/auth.schema";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const initialState: LoginState = {};
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, initialState);
 
+  const form = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Sign in failed", state.error);
+  }, [state.error]);
+
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("email", values.email);
+    formData.append("password", values.password);
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required autoComplete="email" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" required autoComplete="current-password" />
-      </div>
-      {state.error ? (
-        <p className="flex items-center gap-1.5 text-sm text-destructive">
-          <AlertCircle className="size-4 shrink-0" />
-          {state.error}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Signing in..." : "Sign in"}
-      </Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" autoComplete="email" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input {...field} type="password" autoComplete="current-password" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Signing in..." : "Sign in"}
+        </Button>
+      </form>
+    </Form>
   );
 }
