@@ -40,6 +40,7 @@ import {
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
 import { AttendanceChart } from "@/components/dashboard-shell/attendance-chart";
+import { TrendChart } from "@/components/dashboard-shell/trend-chart";
 import { ActivityFeed, type ActivityItem } from "@/components/dashboard-shell/activity-feed";
 import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
@@ -295,15 +296,26 @@ export default async function DashboardPage() {
       warning: "warning",
       info: "secondary",
     };
-    const maxTrend = Math.max(1, ...trends.map((point) => point.institutesCreated));
-    const maxRevenue = Math.max(1, ...revenueTrend.map((point) => point.totalPaid));
+    const revenueSparkline = revenueTrend.map((point) => point.totalPaid);
 
     return (
       <>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard label="Institutes" icon={Building2} value={instituteCount} tone="primary" />
-          <StatCard label="MRR" icon={CreditCard} value={`$${metrics.mrr.toFixed(2)}`} tone="success" />
-          <StatCard label="ARR" icon={CreditCard} value={`$${metrics.arr.toFixed(2)}`} tone="info" />
+          <StatCard
+            label="MRR"
+            icon={CreditCard}
+            value={`$${metrics.mrr.toFixed(2)}`}
+            tone="success"
+            trend={revenueSparkline}
+          />
+          <StatCard
+            label="ARR"
+            icon={CreditCard}
+            value={`$${metrics.arr.toFixed(2)}`}
+            tone="info"
+            trend={revenueSparkline}
+          />
           <StatCard
             label="Overdue total"
             icon={CircleAlert}
@@ -314,32 +326,13 @@ export default async function DashboardPage() {
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row">
-          <Panel
+          <TrendChart
             title="New institutes"
             sub="Signups over the last 6 months"
-            className="flex-1 p-5"
-          >
-            <div className="mt-4 flex flex-col gap-3">
-              {trends.map((point) => (
-                <div key={point.month} className="flex items-center gap-3">
-                  <span className="w-16 shrink-0 truncate text-[12.5px] text-muted-foreground">
-                    {point.month}
-                  </span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{
-                        width: `${Math.max((point.institutesCreated / maxTrend) * 100, point.institutesCreated > 0 ? 4 : 0)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="w-6 shrink-0 text-right text-[12px] font-medium text-muted-foreground">
-                    {point.institutesCreated}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Panel>
+            data={trends.map((point) => ({ label: point.month, value: point.institutesCreated }))}
+            color="var(--color-chart-2)"
+            emptyLabel="No institute signups yet."
+          />
 
           <Panel title="Welcome" sub="Manage every institute on the platform" className="flex-1 p-6">
             <Link href="/institutes" className="mt-3 inline-block text-sm font-semibold text-success">
@@ -348,37 +341,18 @@ export default async function DashboardPage() {
           </Panel>
         </div>
 
-        <Panel
+        <TrendChart
           title="Revenue trend"
           sub="Paid invoices over the last 6 months"
-          className="p-5"
+          data={revenueTrend.map((point) => ({ label: point.month, value: point.totalPaid }))}
+          format="currency"
+          emptyLabel="No paid invoices yet."
           action={
             <Link href="/billing" className="text-xs font-semibold text-success">
               View billing &rarr;
             </Link>
           }
-        >
-          <div className="mt-4 flex flex-col gap-3">
-            {revenueTrend.map((point) => (
-              <div key={point.month} className="flex items-center gap-3">
-                <span className="w-16 shrink-0 truncate text-[12.5px] text-muted-foreground">
-                  {point.month}
-                </span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{
-                      width: `${Math.max((point.totalPaid / maxRevenue) * 100, point.totalPaid > 0 ? 4 : 0)}%`,
-                    }}
-                  />
-                </div>
-                <span className="w-20 shrink-0 text-right text-[12px] font-medium text-muted-foreground">
-                  ${point.totalPaid.toFixed(2)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Panel>
+        />
 
         <Panel title="Alerts" sub="Operational signals across the platform" className="p-5">
           {alerts.length === 0 ? (
