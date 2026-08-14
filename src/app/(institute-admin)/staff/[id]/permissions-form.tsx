@@ -1,10 +1,20 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { updateStaffPermissions } from "@/lib/actions/user.actions";
+import { updateStaffPermissionsSchema } from "@/lib/validation/user.schema";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Form } from "@/components/ui/form";
 
-const PERMISSION_FIELDS: { key: string; label: string }[] = [
+type UpdateStaffPermissionsInput = z.input<typeof updateStaffPermissionsSchema>;
+
+const PERMISSION_FIELDS: { key: keyof UpdateStaffPermissionsInput; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "staff", label: "Staff" },
   { key: "students", label: "Students" },
@@ -24,27 +34,48 @@ export function PermissionsForm({
 }) {
   const [state, formAction, pending] = useActionState(updateStaffPermissions, {});
 
+  const form = useForm<UpdateStaffPermissionsInput>({
+    resolver: zodResolver(updateStaffPermissionsSchema),
+    defaultValues: PERMISSION_FIELDS.reduce(
+      (acc, { key }) => ({ ...acc, [key]: Boolean(permissions?.[key]) }),
+      {} as UpdateStaffPermissionsInput
+    ),
+  });
+
+  useEffect(() => {
+    if (state.error) toast.error("Could not update permissions", state.error);
+    if (state.success) toast.success("Permissions updated");
+  }, [state.error, state.success]);
+
+  const onSubmit = form.handleSubmit((values) => {
+    const formData = new FormData();
+    formData.append("staffId", staffId);
+    PERMISSION_FIELDS.forEach(({ key }) => {
+      if (values[key]) formData.append(key, "on");
+    });
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <input type="hidden" name="staffId" value={staffId} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {PERMISSION_FIELDS.map(({ key, label }) => (
-          <label key={key} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name={key}
-              defaultChecked={Boolean(permissions?.[key])}
-              className="size-4 rounded border-input"
-            />
-            {label}
-          </label>
-        ))}
-      </div>
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-success">Permissions updated.</p> : null}
-      <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? "Saving..." : "Save permissions"}
-      </Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {PERMISSION_FIELDS.map(({ key, label }) => (
+            <Label key={key} className="flex items-center gap-2 font-normal">
+              <Checkbox
+                checked={Boolean(form.watch(key))}
+                onCheckedChange={(next) => form.setValue(key, Boolean(next))}
+              />
+              {label}
+            </Label>
+          ))}
+        </div>
+        <Button type="submit" disabled={pending} className="w-fit">
+          {pending ? "Saving..." : "Save permissions"}
+        </Button>
+      </form>
+    </Form>
   );
 }
