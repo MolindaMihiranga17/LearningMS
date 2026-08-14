@@ -13,6 +13,7 @@ export function FileUploader({
   defaultKey,
   endpoint = "/api/uploads/sign",
   extraFields,
+  onUploaded,
 }: {
   courseId?: string;
   name: string;
@@ -21,6 +22,7 @@ export function FileUploader({
   defaultKey?: string;
   endpoint?: string;
   extraFields?: Record<string, string>;
+  onUploaded?: (key: string) => void;
 }) {
   const [status, setStatus] = useState<UploadStatus>(defaultKey ? "done" : "idle");
   const [key, setKey] = useState(defaultKey ?? "");
@@ -66,6 +68,7 @@ export function FileUploader({
 
       setKey(objectKey);
       setStatus("done");
+      onUploaded?.(objectKey);
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Upload failed.");
