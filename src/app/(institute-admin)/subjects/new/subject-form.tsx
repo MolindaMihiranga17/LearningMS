@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createSubject, type CreateSubjectState } from "@/lib/actions/subject.actions";
@@ -57,7 +57,9 @@ export function SubjectForm({
     formData.append("code", values.code);
     formData.append("teacherId", values.teacherId ?? "");
     (values.classIds ?? []).forEach((id) => formData.append("classIds", id));
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   });
 
   return (
