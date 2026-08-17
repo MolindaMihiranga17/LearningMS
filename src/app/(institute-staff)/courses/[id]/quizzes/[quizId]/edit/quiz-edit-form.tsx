@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,11 +7,10 @@ import type { z } from "zod";
 import { updateQuiz, type UpdateQuizState } from "@/lib/actions/quiz.actions";
 import { updateQuizSchema } from "@/lib/validation/quiz.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: UpdateQuizState = {};
 
@@ -20,18 +18,18 @@ type UpdateQuizInput = z.input<typeof updateQuizSchema>;
 
 export function QuizEditForm({
   quizId,
-  courseId,
   title,
   instructions,
   timeLimitMinutes,
   status,
+  onSuccess,
 }: {
   quizId: string;
-  courseId: string;
   title: string;
   instructions: string;
   timeLimitMinutes: number;
   status: "draft" | "published";
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(updateQuiz, initialState);
 
@@ -44,16 +42,12 @@ export function QuizEditForm({
     if (state.error) toast.error("Could not update quiz", state.error);
   }, [state.error]);
 
-  if (state.success) {
-    return (
-      <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-        <p className="font-medium">&ldquo;{state.success.title}&rdquo; updated.</p>
-        <Link href={`/courses/${courseId}/quizzes/${quizId}`} className={cn(buttonVariants())}>
-          Back to quiz
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (state.success) {
+      toast.success(`"${state.success.title}" updated`);
+      onSuccess?.();
+    }
+  }, [state.success, onSuccess]);
 
   const onSubmit = form.handleSubmit((values) => {
     const formData = new FormData();
