@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { listFeesForInstitute, getStudentFeeOverview } from "@/lib/data/fee.data";
+import { listClasses } from "@/lib/data/class.data";
+import { listStudents } from "@/lib/data/user.data";
 import { deleteFee } from "@/lib/actions/fee.actions";
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
@@ -16,6 +18,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { FeeFormDialog } from "./new/fee-form-dialog";
+import { FeeEditDialog } from "./[id]/edit/fee-edit-dialog";
 
 const FEE_COLUMNS = [
   { key: "title", header: "Title" },
@@ -33,7 +37,17 @@ export default async function FeesPage() {
   }
 
   if (session.role === "institute-admin") {
-    const fees = await listFeesForInstitute();
+    const [fees, classesList, studentsList] = await Promise.all([
+      listFeesForInstitute(),
+      listClasses(),
+      listStudents(),
+    ]);
+    const classes = classesList.map((klass) => ({
+      id: String(klass._id),
+      name: klass.name,
+      section: klass.section,
+    }));
+    const students = studentsList.map((student) => ({ id: String(student._id), name: student.name }));
 
     const rows: DataTableRow[] = fees.map((fee) => {
       const klass = fee.classId as unknown as { name?: string; section?: string } | null;
@@ -48,18 +62,24 @@ export default async function FeesPage() {
         key: String(fee._id),
         searchValue: `${fee.title} ${scope}`,
         cells: [
-          <span className="font-medium">{fee.title}</span>,
+          <span key="title" className="font-medium">{fee.title}</span>,
           scope,
           fee.amount.toFixed(2),
           new Date(fee.dueDate).toLocaleDateString(),
-          <span className="capitalize">{fee.frequency}</span>,
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/fees/${fee._id}/edit`}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              Edit
-            </Link>
+          <span key="frequency" className="capitalize">{fee.frequency}</span>,
+          <div key="actions" className="flex items-center gap-2">
+            <FeeEditDialog
+              feeId={String(fee._id)}
+              title={fee.title}
+              amount={fee.amount}
+              dueDate={new Date(fee.dueDate).toISOString().slice(0, 10)}
+              academicYear={fee.academicYear}
+              frequency={fee.frequency ?? "one-time"}
+              classId={fee.classId ? String(fee.classId) : ""}
+              studentId={fee.studentId ? String(fee.studentId) : ""}
+              classes={classes}
+              students={students}
+            />
             <ConfirmDeleteButton
               action={deleteFee}
               hiddenFields={{ id: String(fee._id) }}
@@ -94,9 +114,7 @@ export default async function FeesPage() {
             <Link href="/students" className={cn(buttonVariants({ variant: "outline" }))}>
               Record a payment
             </Link>
-            <Link href="/fees/new" className={cn(buttonVariants())}>
-              New fee
-            </Link>
+            <FeeFormDialog classes={classes} students={students} />
           </div>
         </div>
         <div className="mt-6">
