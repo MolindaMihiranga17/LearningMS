@@ -1,20 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createStudent, type CreateUserState } from "@/lib/actions/user.actions";
 import { createStudentSchema, type CreateStudentInput } from "@/lib/validation/user.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateUserState = {};
 
-export function StudentForm() {
+export function StudentForm({
+  onDone,
+  onCreateAnother,
+}: {
+  onDone?: () => void;
+  onCreateAnother?: () => void;
+}) {
   const [state, formAction, pending] = useActionState(createStudent, initialState);
 
   const form = useForm<CreateStudentInput>({
@@ -51,12 +55,12 @@ export function StudentForm() {
           <dd className="font-mono">{tempPassword}</dd>
         </dl>
         <div className="flex gap-2">
-          <Link href="/students" className={cn(buttonVariants())}>
-            View students
-          </Link>
-          <Link href="/students/new" className={cn(buttonVariants({ variant: "outline" }))}>
+          <Button type="button" onClick={onDone}>
+            Done
+          </Button>
+          <Button type="button" variant="outline" onClick={onCreateAnother}>
             Add another
-          </Link>
+          </Button>
         </div>
       </div>
     );
