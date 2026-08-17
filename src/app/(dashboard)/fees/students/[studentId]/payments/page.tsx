@@ -94,7 +94,7 @@ export default async function StudentPaymentsPage({
             rows={overview.fees.map((fee) => ({
               key: fee.id,
               cells: [
-                <span className="font-medium">{fee.title}</span>,
+                <span key="title" className="font-medium">{fee.title}</span>,
                 fee.amount.toFixed(2),
                 fee.paid.toFixed(2),
                 fee.balance.toFixed(2),
@@ -127,8 +127,9 @@ export default async function StudentPaymentsPage({
                 new Date(payment.paymentDate).toLocaleDateString(),
                 payment.feeTitle ?? "Ad-hoc",
                 payment.amount.toFixed(2),
-                <span className="capitalize">{payment.paymentMethod.replace("-", " ")}</span>,
+                <span key="method" className="capitalize">{payment.paymentMethod.replace("-", " ")}</span>,
                 <a
+                  key="receipt"
                   href={`/api/reports/receipt/${payment.id}`}
                   target="_blank"
                   rel="noreferrer"
