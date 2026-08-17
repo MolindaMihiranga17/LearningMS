@@ -1,20 +1,26 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createInstitute, type CreateInstituteState } from "@/lib/actions/institute.actions";
 import { createInstituteSchema, type CreateInstituteInput } from "@/lib/validation/institute.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateInstituteState = {};
 
-export function InstituteForm() {
+export function InstituteForm({
+  onDone,
+  onCreateAnother,
+}: {
+  onDone?: () => void;
+  onCreateAnother?: () => void;
+}) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(createInstitute, initialState);
 
   const form = useForm<CreateInstituteInput>({
@@ -54,15 +60,15 @@ export function InstituteForm() {
           <dd className="font-mono">{tempPassword}</dd>
         </dl>
         <div className="flex gap-2">
-          <Link href={`/institutes/${instituteId}`} className={cn(buttonVariants())}>
+          <Button type="button" onClick={() => router.push(`/institutes/${instituteId}`)}>
             View institute
-          </Link>
-          <Link
-            href="/institutes/new"
-            className={cn(buttonVariants({ variant: "outline" }))}
-          >
+          </Button>
+          <Button type="button" variant="outline" onClick={onCreateAnother}>
             Create another
-          </Link>
+          </Button>
+          <Button type="button" variant="outline" onClick={onDone}>
+            Close
+          </Button>
         </div>
       </div>
     );
