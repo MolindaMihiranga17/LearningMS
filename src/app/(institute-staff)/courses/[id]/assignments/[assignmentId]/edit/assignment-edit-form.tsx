@@ -1,18 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { updateAssignment, type UpdateAssignmentState } from "@/lib/actions/assignment.actions";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FileUploader } from "@/components/shared/file-uploader";
-import { cn } from "@/lib/utils";
 
 const initialState: UpdateAssignmentState = {};
 
@@ -37,6 +35,7 @@ export function AssignmentEditForm({
   maxScore,
   attachmentKey,
   status,
+  onSuccess,
 }: {
   assignmentId: string;
   courseId: string;
@@ -46,6 +45,7 @@ export function AssignmentEditForm({
   maxScore: number;
   attachmentKey: string;
   status: "draft" | "published";
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(updateAssignment, initialState);
 
@@ -58,19 +58,12 @@ export function AssignmentEditForm({
     if (state.error) toast.error("Could not update assignment", state.error);
   }, [state.error]);
 
-  if (state.success) {
-    return (
-      <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-        <p className="font-medium">&ldquo;{state.success.title}&rdquo; updated.</p>
-        <Link
-          href={`/courses/${courseId}/assignments/${assignmentId}`}
-          className={cn(buttonVariants())}
-        >
-          Back to assignment
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (state.success) {
+      toast.success(`"${state.success.title}" updated`);
+      onSuccess?.();
+    }
+  }, [state.success, onSuccess]);
 
   const onSubmit = form.handleSubmit((values) => {
     const formData = new FormData();
