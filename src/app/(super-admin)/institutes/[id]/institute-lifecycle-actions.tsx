@@ -1,18 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   suspendInstitute,
   reactivateInstitute,
   cancelInstitute,
-  type LifecycleActionState,
 } from "@/lib/actions/subscription.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const initialState: LifecycleActionState = {};
+import { toast } from "@/lib/toast";
 
 function ReasonAction({
   instituteId,
@@ -29,14 +27,20 @@ function ReasonAction({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [error, setError] = useState<string | undefined>();
+  const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (state.success) {
-      setOpen(false);
-      router.refresh();
-    }
-  }, [state.success, router]);
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await action({}, formData);
+      if (result.success) {
+        setOpen(false);
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    });
+  }
 
   if (!open) {
     return (
@@ -47,11 +51,11 @@ function ReasonAction({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border p-3">
+    <form action={handleSubmit} className="flex flex-col gap-2 rounded-lg border border-border p-3">
       <input type="hidden" name="instituteId" value={instituteId} />
       <Label htmlFor={`reason-${label}`}>Reason</Label>
       <Input id={`reason-${label}`} name="reason" required placeholder="Why?" />
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex gap-2">
         <Button type="submit" variant={variant} size="sm" disabled={pending}>
           {pending ? pendingLabel : `Confirm ${label.toLowerCase()}`}
@@ -66,18 +70,22 @@ function ReasonAction({
 
 function ReactivateAction({ instituteId }: { instituteId: string }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(reactivateInstitute, initialState);
+  const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (state.success) {
-      router.refresh();
-    }
-  }, [state.success, router]);
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await reactivateInstitute({}, formData);
+      if (result.success) {
+        router.refresh();
+      } else {
+        toast.error("Could not reactivate institute", result.error);
+      }
+    });
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={handleSubmit} className="flex flex-col gap-2">
       <input type="hidden" name="instituteId" value={instituteId} />
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       <Button type="submit" variant="outline" size="sm" disabled={pending}>
         {pending ? "Reactivating..." : "Reactivate"}
       </Button>
