@@ -1,19 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateSubject, type UpdateSubjectState } from "@/lib/actions/subject.actions";
 import { updateSubjectSchema, type UpdateSubjectInput } from "@/lib/validation/subject.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 const initialState: UpdateSubjectState = {};
 
@@ -25,6 +23,7 @@ export function SubjectEditForm({
   classIds,
   teachers,
   classes,
+  onSuccess,
 }: {
   subjectId: string;
   name: string;
@@ -33,6 +32,7 @@ export function SubjectEditForm({
   classIds: string[];
   teachers: { id: string; name: string }[];
   classes: { id: string; label: string }[];
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(updateSubject, initialState);
 
@@ -45,16 +45,12 @@ export function SubjectEditForm({
     if (state.error) toast.error("Could not update subject", state.error);
   }, [state.error]);
 
-  if (state.success) {
-    return (
-      <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-        <p className="font-medium">&ldquo;{state.success.name}&rdquo; updated.</p>
-        <Link href="/subjects" className={cn(buttonVariants())}>
-          View subjects
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (state.success) {
+      toast.success(`"${state.success.name}" updated`);
+      onSuccess?.();
+    }
+  }, [state.success, onSuccess]);
 
   const onSubmit = form.handleSubmit((values) => {
     const formData = new FormData();
