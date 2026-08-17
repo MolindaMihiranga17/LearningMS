@@ -1,18 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { updateQuizQuestion, type UpdateQuizQuestionState } from "@/lib/actions/quiz-question.actions";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: UpdateQuizQuestionState = {};
 
@@ -52,8 +50,6 @@ type QuestionFormInput = z.input<typeof questionFormSchema>;
 
 export function QuizQuestionEditForm({
   questionId,
-  courseId,
-  quizId,
   type: initialType,
   prompt,
   points,
@@ -61,10 +57,9 @@ export function QuizQuestionEditForm({
   correctOptionIndex,
   correctBoolean,
   sampleAnswer,
+  onSuccess,
 }: {
   questionId: string;
-  courseId: string;
-  quizId: string;
   type: QuestionType;
   prompt: string;
   points: number;
@@ -72,6 +67,7 @@ export function QuizQuestionEditForm({
   correctOptionIndex: number | null;
   correctBoolean: boolean | null;
   sampleAnswer: string;
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(updateQuizQuestion, initialState);
 
@@ -95,19 +91,12 @@ export function QuizQuestionEditForm({
     if (state.error) toast.error("Could not update question", state.error);
   }, [state.error]);
 
-  if (state.success) {
-    return (
-      <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-        <p className="font-medium">Question updated.</p>
-        <Link
-          href={`/courses/${courseId}/quizzes/${quizId}`}
-          className={cn(buttonVariants())}
-        >
-          Back to quiz
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (state.success) {
+      toast.success("Question updated");
+      onSuccess?.();
+    }
+  }, [state.success, onSuccess]);
 
   const onSubmit = form.handleSubmit((values) => {
     const formData = new FormData();
