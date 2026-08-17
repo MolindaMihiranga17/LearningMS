@@ -8,6 +8,7 @@ import type { QuizStatus } from "@/models/Quiz";
 import { QuizStatusForm } from "./quiz-status-form";
 import { QuestionList } from "./question-list";
 import { AddQuestionForm } from "./add-question-form";
+import { QuizEditDialog } from "./edit/quiz-edit-dialog";
 
 export default async function QuizDetailPage({
   params,
@@ -42,12 +43,13 @@ export default async function QuizDetailPage({
           >
             View attempts
           </Link>
-          <Link
-            href={`/courses/${id}/quizzes/${quizId}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Edit details
-          </Link>
+          <QuizEditDialog
+            quizId={quizId}
+            title={quiz.title}
+            instructions={quiz.instructions ?? ""}
+            timeLimitMinutes={quiz.timeLimitMinutes}
+            status={quiz.status as "draft" | "published"}
+          />
           <QuizStatusForm quizId={quizId} status={quiz.status as QuizStatus} />
         </div>
       </div>
@@ -57,7 +59,7 @@ export default async function QuizDetailPage({
           <CardTitle>Questions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <QuestionList courseId={id} quizId={quizId} questions={quiz.questions} />
+          <QuestionList questions={quiz.questions} />
           <AddQuestionForm quizId={quizId} />
         </CardContent>
       </Card>
