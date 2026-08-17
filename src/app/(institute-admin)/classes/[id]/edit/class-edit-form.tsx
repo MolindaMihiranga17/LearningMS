@@ -1,17 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateClass, type UpdateClassState } from "@/lib/actions/class.actions";
 import { updateClassSchema, type UpdateClassInput } from "@/lib/validation/class.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 const initialState: UpdateClassState = {};
 
@@ -23,6 +21,7 @@ export function ClassEditForm({
   classTeacherId,
   status,
   teachers,
+  onSuccess,
 }: {
   classId: string;
   name: string;
@@ -31,6 +30,7 @@ export function ClassEditForm({
   classTeacherId: string;
   status: string;
   teachers: { id: string; name: string }[];
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(updateClass, initialState);
 
@@ -49,16 +49,12 @@ export function ClassEditForm({
     if (state.error) toast.error("Could not update class", state.error);
   }, [state.error]);
 
-  if (state.success) {
-    return (
-      <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-        <p className="font-medium">&ldquo;{state.success.name}&rdquo; updated.</p>
-        <Link href="/classes" className={cn(buttonVariants())}>
-          View classes
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (state.success) {
+      toast.success(`"${state.success.name}" updated`);
+      onSuccess?.();
+    }
+  }, [state.success, onSuccess]);
 
   const onSubmit = form.handleSubmit((values) => {
     const formData = new FormData();
