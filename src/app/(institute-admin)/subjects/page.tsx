@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { listSubjects } from "@/lib/data/subject.data";
+import { listStaff } from "@/lib/data/user.data";
+import { listClasses } from "@/lib/data/class.data";
 import { deleteSubject } from "@/lib/actions/subject.actions";
-import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { SubjectFormDialog } from "./new/subject-form-dialog";
+import { SubjectEditDialog } from "./[id]/edit/subject-edit-dialog";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -15,7 +16,16 @@ const COLUMNS = [
 ];
 
 export default async function SubjectsPage() {
-  const subjects = await listSubjects();
+  const [subjects, teachersList, classesList] = await Promise.all([
+    listSubjects(),
+    listStaff(),
+    listClasses(),
+  ]);
+  const teachers = teachersList.map((teacher) => ({ id: String(teacher._id), name: teacher.name }));
+  const classOptions = classesList.map((klass) => ({
+    id: String(klass._id),
+    label: `${klass.name}${klass.section ? ` ${klass.section}` : ""}`,
+  }));
 
   const rows: DataTableRow[] = subjects.map((subject) => {
     const teacher = subject.teacherId as unknown as { name?: string } | null;
@@ -32,17 +42,20 @@ export default async function SubjectsPage() {
       searchValue: `${subject.name} ${subject.code} ${teacher?.name ?? ""}`,
       sortValues: [subject.name, subject.code, null, null, null],
       cells: [
-        <span className="font-medium">{subject.name}</span>,
+        <span key="name" className="font-medium">{subject.name}</span>,
         subject.code,
         teacher?.name || "-",
         classesLabel,
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/subjects/${subject._id}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Edit
-          </Link>
+        <div key="actions" className="flex items-center gap-2">
+          <SubjectEditDialog
+            subjectId={String(subject._id)}
+            name={subject.name}
+            code={subject.code}
+            teacherId={subject.teacherId ? String(subject.teacherId) : ""}
+            classIds={(subject.classIds ?? []).map((classId: { toString(): string }) => String(classId))}
+            teachers={teachers}
+            classes={classOptions}
+          />
           <ConfirmDeleteButton
             action={deleteSubject}
             hiddenFields={{ id: String(subject._id) }}
@@ -57,9 +70,7 @@ export default async function SubjectsPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Subjects</h1>
-        <Link href="/subjects/new" className={cn(buttonVariants())}>
-          New subject
-        </Link>
+        <SubjectFormDialog teachers={teachers} classes={classOptions} />
       </div>
       <div className="mt-6">
         <DataTableCard
