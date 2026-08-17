@@ -1,18 +1,17 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createAssignment, type CreateAssignmentState } from "@/lib/actions/assignment.actions";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FileUploader } from "@/components/shared/file-uploader";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateAssignmentState = {};
 
@@ -28,7 +27,14 @@ const assignmentFormSchema = z.object({
 
 type AssignmentFormInput = z.input<typeof assignmentFormSchema>;
 
-export function AssignmentForm({ courseId }: { courseId: string }) {
+export function AssignmentForm({
+  courseId,
+  onDone,
+}: {
+  courseId: string;
+  onDone?: () => void;
+}) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(createAssignment, initialState);
 
   const form = useForm<AssignmentFormInput>({
@@ -45,18 +51,15 @@ export function AssignmentForm({ courseId }: { courseId: string }) {
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
         <p className="font-medium">&ldquo;{state.success.title}&rdquo; created.</p>
         <div className="flex gap-2">
-          <Link
-            href={`/courses/${courseId}/assignments/${state.success.assignmentId}`}
-            className={cn(buttonVariants())}
+          <Button
+            type="button"
+            onClick={() => router.push(`/courses/${courseId}/assignments/${state.success!.assignmentId}`)}
           >
             View assignment
-          </Link>
-          <Link
-            href={`/courses/${courseId}/assignments`}
-            className={cn(buttonVariants({ variant: "outline" }))}
-          >
+          </Button>
+          <Button type="button" variant="outline" onClick={onDone}>
             Back to list
-          </Link>
+          </Button>
         </div>
       </div>
     );
