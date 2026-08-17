@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,16 +7,21 @@ import type { z } from "zod";
 import { createStaff, type CreateUserState } from "@/lib/actions/user.actions";
 import { createStaffSchema } from "@/lib/validation/user.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateUserState = {};
 
 type CreateStaffInput = z.input<typeof createStaffSchema>;
 
-export function StaffForm() {
+export function StaffForm({
+  onDone,
+  onCreateAnother,
+}: {
+  onDone?: () => void;
+  onCreateAnother?: () => void;
+}) {
   const [state, formAction, pending] = useActionState(createStaff, initialState);
 
   const form = useForm<CreateStaffInput>({
@@ -53,12 +57,12 @@ export function StaffForm() {
           <dd className="font-mono">{tempPassword}</dd>
         </dl>
         <div className="flex gap-2">
-          <Link href="/staff" className={cn(buttonVariants())}>
-            View staff
-          </Link>
-          <Link href="/staff/new" className={cn(buttonVariants({ variant: "outline" }))}>
+          <Button type="button" onClick={onDone}>
+            Done
+          </Button>
+          <Button type="button" variant="outline" onClick={onCreateAnother}>
             Add another
-          </Link>
+          </Button>
         </div>
       </div>
     );
