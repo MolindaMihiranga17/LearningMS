@@ -5,6 +5,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AssignmentStatus } from "@/models/Assignment";
 import { AssignmentStatusForm } from "./assignment-status-form";
+import { AssignmentEditDialog } from "./edit/assignment-edit-dialog";
+
+function toDatetimeLocal(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+}
 
 export default async function AssignmentDetailPage({
   params,
@@ -54,12 +62,16 @@ export default async function AssignmentDetailPage({
           >
             View submissions
           </Link>
-          <Link
-            href={`/courses/${id}/assignments/${assignmentId}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Edit details
-          </Link>
+          <AssignmentEditDialog
+            assignmentId={assignmentId}
+            courseId={id}
+            title={assignment.title}
+            instructions={assignment.instructions ?? ""}
+            dueAt={toDatetimeLocal(new Date(assignment.dueAt))}
+            maxScore={assignment.maxScore}
+            attachmentKey={assignment.attachmentKey ?? ""}
+            status={assignment.status as AssignmentStatus}
+          />
           <AssignmentStatusForm
             assignmentId={assignmentId}
             status={assignment.status as AssignmentStatus}

@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { renameModule, deleteModule, moveModule } from "@/lib/actions/module.actions";
 import { deleteLesson, moveLesson } from "@/lib/actions/lesson.actions";
-import { cn } from "@/lib/utils";
 import { AddLessonForm } from "./add-lesson-form";
+import { LessonEditDialog } from "./lessons/[lessonId]/edit/lesson-edit-dialog";
 
 const TYPE_LABEL: Record<string, string> = {
   video: "Video",
@@ -20,6 +20,9 @@ type LessonSummary = {
   title: string;
   type: string;
   isPreview?: boolean;
+  contentUrl?: string;
+  textBody?: string;
+  durationSeconds?: number | null;
 };
 
 export function ModuleCard({
@@ -116,12 +119,16 @@ export function ModuleCard({
                         ↓
                       </Button>
                     </form>
-                    <a
-                      href={`/courses/${courseId}/lessons/${lessonId}/edit`}
-                      className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
-                    >
-                      Edit
-                    </a>
+                    <LessonEditDialog
+                      lessonId={lessonId}
+                      courseId={courseId}
+                      title={lesson.title}
+                      type={lesson.type as "video" | "pdf" | "text" | "link"}
+                      contentUrl={lesson.contentUrl ?? ""}
+                      textBody={lesson.textBody ?? ""}
+                      durationSeconds={lesson.durationSeconds ?? null}
+                      isPreview={lesson.isPreview ?? false}
+                    />
                     <ConfirmDeleteButton
                       action={deleteLesson}
                       hiddenFields={{ id: lessonId }}
