@@ -1,28 +1,30 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createSubject, type CreateSubjectState } from "@/lib/actions/subject.actions";
 import { createSubjectSchema, type CreateSubjectInput } from "@/lib/validation/subject.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateSubjectState = {};
 
 export function SubjectForm({
   teachers,
   classes,
+  onDone,
+  onCreateAnother,
 }: {
   teachers: { id: string; name: string }[];
   classes: { id: string; label: string }[];
+  onDone?: () => void;
+  onCreateAnother?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createSubject, initialState);
 
@@ -40,12 +42,12 @@ export function SubjectForm({
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
         <p className="font-medium">&ldquo;{state.success.name}&rdquo; created.</p>
         <div className="flex gap-2">
-          <Link href="/subjects" className={cn(buttonVariants())}>
-            View subjects
-          </Link>
-          <Link href="/subjects/new" className={cn(buttonVariants({ variant: "outline" }))}>
+          <Button type="button" onClick={onDone}>
+            Done
+          </Button>
+          <Button type="button" variant="outline" onClick={onCreateAnother}>
             Create another
-          </Link>
+          </Button>
         </div>
       </div>
     );
