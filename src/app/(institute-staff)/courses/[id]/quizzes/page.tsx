@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { QuizFormDialog } from "./new/quiz-form-dialog";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -27,12 +28,13 @@ export default async function CourseQuizzesPage({ params }: { params: Promise<{ 
     key: String(quiz._id),
     searchValue: quiz.title,
     cells: [
-      <span className="font-medium">{quiz.title}</span>,
+      <span key="title" className="font-medium">{quiz.title}</span>,
       `${quiz.timeLimitMinutes} min`,
-      <Badge variant={quiz.status === "published" ? "success" : "secondary"} className="capitalize">
+      <Badge key="status" variant={quiz.status === "published" ? "success" : "secondary"} className="capitalize">
         {quiz.status}
       </Badge>,
       <Link
+        key="manage"
         href={`/courses/${id}/quizzes/${String(quiz._id)}`}
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
       >
@@ -55,9 +57,7 @@ export default async function CourseQuizzesPage({ params }: { params: Promise<{ 
           >
             Back to course
           </Link>
-          <Link href={`/courses/${id}/quizzes/new`} className={cn(buttonVariants())}>
-            New quiz
-          </Link>
+          <QuizFormDialog courseId={id} />
         </div>
       </div>
 
