@@ -1,15 +1,17 @@
-import Link from "next/link";
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import {
   listAnnouncementsForInstitute,
   listAnnouncementsForTeacher,
   listAnnouncementsVisibleToStudent,
+  listClassesForAnnouncementTeacher,
 } from "@/lib/data/announcement.data";
+import { listClasses } from "@/lib/data/class.data";
+import { listPublishedCoursesForInstitute, listCoursesForTeacher } from "@/lib/data/course.data";
 import { deleteAnnouncement } from "@/lib/actions/announcement.actions";
-import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
-import { cn } from "@/lib/utils";
+import { AnnouncementFormDialog } from "./new/announcement-form-dialog";
 
 type PopulatedRef = { name?: string; section?: string; title?: string } | null;
 
@@ -50,15 +52,27 @@ export default async function AnnouncementsPage() {
     redirect("/dashboard");
   }
 
+  let announcementDialog: ReactNode = null;
+  if (canPost) {
+    const [classes, courses] =
+      session.role === "institute-admin"
+        ? await Promise.all([listClasses(), listPublishedCoursesForInstitute()])
+        : await Promise.all([listClassesForAnnouncementTeacher(), listCoursesForTeacher()]);
+
+    announcementDialog = (
+      <AnnouncementFormDialog
+        allowInstitute={session.role === "institute-admin"}
+        classes={classes.map((klass) => ({ id: String(klass._id), name: klass.name, section: klass.section }))}
+        courses={courses.map((course) => ({ id: String(course._id), title: course.title }))}
+      />
+    );
+  }
+
   return (
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Announcements</h1>
-        {canPost ? (
-          <Link href="/announcements/new" className={cn(buttonVariants())}>
-            New announcement
-          </Link>
-        ) : null}
+        {announcementDialog}
       </div>
 
       <div className="mt-6 flex flex-col gap-4">
