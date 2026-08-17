@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getPlanById, getInstitutesOnPlan } from "@/lib/data/subscription.data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlanForm } from "../plan-form";
+import { PlanEditDialog } from "./plan-edit-dialog";
 
 export default async function PlanDetailPage({
   params,
@@ -19,30 +19,42 @@ export default async function PlanDetailPage({
 
   const subscriptions = await getInstitutesOnPlan(id);
 
+  const planFormData = {
+    id: String(plan._id),
+    name: plan.name,
+    slug: plan.slug,
+    description: plan.description ?? undefined,
+    price: plan.price,
+    currency: plan.currency,
+    billingInterval: plan.billingInterval,
+    limits: plan.limits ?? {},
+    features: plan.features ?? [],
+    isActive: plan.isActive,
+    isPublic: plan.isPublic,
+    sortOrder: plan.sortOrder,
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="mx-auto w-full max-w-lg">
         <Card>
-          <CardHeader>
-            <CardTitle>Edit plan</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>{plan.name}</CardTitle>
+            <PlanEditDialog plan={planFormData} />
           </CardHeader>
-          <CardContent>
-            <PlanForm
-              plan={{
-                id: String(plan._id),
-                name: plan.name,
-                slug: plan.slug,
-                description: plan.description ?? undefined,
-                price: plan.price,
-                currency: plan.currency,
-                billingInterval: plan.billingInterval,
-                limits: plan.limits ?? {},
-                features: plan.features ?? [],
-                isActive: plan.isActive,
-                isPublic: plan.isPublic,
-                sortOrder: plan.sortOrder,
-              }}
-            />
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p className="text-muted-foreground">{plan.description || "No description."}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={plan.isActive ? "success" : "secondary"}>
+                {plan.isActive ? "Active" : "Inactive"}
+              </Badge>
+              <Badge variant="secondary" className="capitalize">
+                {plan.billingInterval}
+              </Badge>
+              <span className="font-medium">
+                {plan.currency} {plan.price.toFixed(2)}
+              </span>
+            </div>
           </CardContent>
         </Card>
       </div>

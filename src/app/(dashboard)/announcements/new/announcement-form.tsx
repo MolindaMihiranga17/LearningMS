@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,12 +12,11 @@ import {
   type CreateAnnouncementInput,
 } from "@/lib/validation/announcement.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateAnnouncementState = {};
 
@@ -26,10 +24,14 @@ export function AnnouncementForm({
   allowInstitute,
   classes,
   courses,
+  onDone,
+  onCreateAnother,
 }: {
   allowInstitute: boolean;
   classes: { id: string; name: string; section?: string }[];
   courses: { id: string; title: string }[];
+  onDone?: () => void;
+  onCreateAnother?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createAnnouncement, initialState);
 
@@ -58,12 +60,12 @@ export function AnnouncementForm({
           {state.success.recipientCount === 1 ? "" : "s"}.
         </p>
         <div className="flex gap-2">
-          <Link href="/announcements" className={cn(buttonVariants())}>
-            View announcements
-          </Link>
-          <Link href="/announcements/new" className={cn(buttonVariants({ variant: "outline" }))}>
+          <Button type="button" onClick={onDone}>
+            Done
+          </Button>
+          <Button type="button" variant="outline" onClick={onCreateAnother}>
             Post another
-          </Link>
+          </Button>
         </div>
       </div>
     );

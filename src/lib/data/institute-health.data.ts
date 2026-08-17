@@ -16,7 +16,10 @@ export type InstituteHealthRow = {
   overdueFeeTotal: number;
   lastActivityAt: Date | null;
   monthsOnPlatform: number;
+  isInactive: boolean;
 };
+
+const INACTIVITY_THRESHOLD_DAYS = 30;
 
 function monthsBetween(from: Date, to: Date): number {
   const months =
@@ -103,6 +106,9 @@ export async function listInstituteHealth(): Promise<InstituteHealthRow[]> {
     const key = String(institute._id);
     const instituteStudents = studentsByInstitute.get(key) ?? [];
     const lastActivityMs = lastActivityByInstitute.get(key);
+    const daysSinceActivity = lastActivityMs
+      ? (now.getTime() - lastActivityMs) / (1000 * 60 * 60 * 24)
+      : null;
 
     return {
       id: key,
@@ -114,6 +120,7 @@ export async function listInstituteHealth(): Promise<InstituteHealthRow[]> {
       overdueFeeTotal: overdueByInstitute.get(key) ?? 0,
       lastActivityAt: lastActivityMs ? new Date(lastActivityMs) : null,
       monthsOnPlatform: institute.createdAt ? monthsBetween(new Date(institute.createdAt), now) : 0,
+      isInactive: daysSinceActivity === null || daysSinceActivity > INACTIVITY_THRESHOLD_DAYS,
     };
   });
 }

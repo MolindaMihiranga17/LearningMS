@@ -1,12 +1,10 @@
-import Link from "next/link";
 import { listExtraIncome, getIncomeStatistics } from "@/lib/data/finance.data";
 import { deleteExtraIncome } from "@/lib/actions/finance.actions";
-import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Wallet, TrendingDown, TrendingUp, PiggyBank } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { IncomeFormDialog } from "./new/income-form-dialog";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -22,10 +20,11 @@ export default async function IncomePage() {
     key: String(entry._id),
     searchValue: `${entry.title} ${entry.month} ${entry.year}`,
     cells: [
-      <span className="font-medium">{entry.title}</span>,
+      <span key="title" className="font-medium">{entry.title}</span>,
       `${entry.month} ${entry.year}`,
       entry.amount.toFixed(2),
       <ConfirmDeleteButton
+        key="delete"
         action={deleteExtraIncome}
         hiddenFields={{ id: String(entry._id) }}
         itemLabel={entry.title}
@@ -37,9 +36,7 @@ export default async function IncomePage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Income</h1>
-        <Link href="/income/new" className={cn(buttonVariants())}>
-          New income
-        </Link>
+        <IncomeFormDialog />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

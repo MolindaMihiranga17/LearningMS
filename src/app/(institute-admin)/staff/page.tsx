@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { StaffFormDialog } from "./new/staff-form-dialog";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -31,15 +32,16 @@ export default async function StaffPage() {
       null,
     ],
     cells: [
-      <span className="font-medium">{member.name}</span>,
+      <span key="name" className="font-medium">{member.name}</span>,
       member.email,
       member.staffMeta?.employeeCode || "-",
       (member.staffMeta?.basicSalary ?? 0).toFixed(2),
-      <Badge variant={member.status === "active" ? "success" : "secondary"} className="capitalize">
+      <Badge key="status" variant={member.status === "active" ? "success" : "secondary"} className="capitalize">
         {member.status}
       </Badge>,
       member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "-",
       <Link
+        key="manage"
         href={`/staff/${member._id}`}
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
       >
@@ -52,9 +54,7 @@ export default async function StaffPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Staff</h1>
-        <Link href="/staff/new" className={cn(buttonVariants())}>
-          New staff member
-        </Link>
+        <StaffFormDialog />
       </div>
       <div className="mt-6">
         <DataTableCard

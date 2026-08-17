@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { deleteQuizQuestion, moveQuizQuestion } from "@/lib/actions/quiz-question.actions";
-import { cn } from "@/lib/utils";
+import { QuizQuestionEditDialog } from "./questions/[questionId]/edit/quiz-question-edit-dialog";
 
 const TYPE_LABEL: Record<string, string> = {
   mcq: "Multiple choice",
@@ -16,15 +15,15 @@ type QuestionSummary = {
   prompt: string;
   type: string;
   points: number;
+  options?: string[];
+  correctOptionIndex?: number | null;
+  correctBoolean?: boolean | null;
+  sampleAnswer?: string;
 };
 
 export function QuestionList({
-  courseId,
-  quizId,
   questions,
 }: {
-  courseId: string;
-  quizId: string;
   questions: QuestionSummary[];
 }) {
   if (questions.length === 0) {
@@ -74,12 +73,16 @@ export function QuestionList({
                   ↓
                 </Button>
               </form>
-              <Link
-                href={`/courses/${courseId}/quizzes/${quizId}/questions/${questionId}/edit`}
-                className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
-              >
-                Edit
-              </Link>
+              <QuizQuestionEditDialog
+                questionId={questionId}
+                type={question.type as "mcq" | "truefalse" | "short"}
+                prompt={question.prompt}
+                points={question.points}
+                options={question.options ?? []}
+                correctOptionIndex={question.correctOptionIndex ?? null}
+                correctBoolean={question.correctBoolean ?? null}
+                sampleAnswer={question.sampleAnswer ?? ""}
+              />
               <ConfirmDeleteButton
                 action={deleteQuizQuestion}
                 hiddenFields={{ id: questionId }}

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { listPlans } from "@/lib/data/subscription.data";
-import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { PlanFormDialog } from "./new/plan-form-dialog";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -20,12 +19,12 @@ export default async function PlansPage() {
     searchValue: `${plan.name} ${plan.slug}`,
     sortValues: [plan.name, plan.price, null, plan.isActive ? "active" : "inactive"],
     cells: [
-      <Link href={`/plans/${plan._id}`} className="font-medium hover:underline">
+      <Link key="name" href={`/plans/${plan._id}`} className="font-medium hover:underline">
         {plan.name}
       </Link>,
       `${plan.currency} ${plan.price.toFixed(2)}`,
-      <span className="capitalize">{plan.billingInterval}</span>,
-      <Badge variant={plan.isActive ? "success" : "secondary"}>
+      <span key="interval" className="capitalize">{plan.billingInterval}</span>,
+      <Badge key="status" variant={plan.isActive ? "success" : "secondary"}>
         {plan.isActive ? "Active" : "Inactive"}
       </Badge>,
     ],
@@ -35,9 +34,7 @@ export default async function PlansPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Plans</h1>
-        <Link href="/plans/new" className={cn(buttonVariants())}>
-          New plan
-        </Link>
+        <PlanFormDialog />
       </div>
       <div className="mt-6">
         <DataTableCard

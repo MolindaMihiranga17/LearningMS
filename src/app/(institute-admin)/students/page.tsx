@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { StudentFormDialog } from "./new/student-form-dialog";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -29,14 +30,14 @@ export default async function StudentsPage() {
       null,
     ],
     cells: [
-      <span className="font-medium">{student.name}</span>,
+      <span key="name" className="font-medium">{student.name}</span>,
       student.email,
       student.studentMeta?.rollNumber || "-",
-      <Badge variant={student.status === "active" ? "success" : "secondary"} className="capitalize">
+      <Badge key="status" variant={student.status === "active" ? "success" : "secondary"} className="capitalize">
         {student.status}
       </Badge>,
       student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "-",
-      <div className="flex items-center gap-2">
+      <div key="actions" className="flex items-center gap-2">
         <Link
           href={`/fees/students/${student._id}/payments`}
           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -76,9 +77,7 @@ export default async function StudentsPage() {
           >
             Export Excel
           </a>
-          <Link href="/students/new" className={cn(buttonVariants())}>
-            New student
-          </Link>
+          <StudentFormDialog />
         </div>
       </div>
       <div className="mt-6">

@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCourseForTeacher } from "@/lib/data/course.data";
+import { listSubjectsForTeacher } from "@/lib/data/subject.data";
+import { listClassesForTeacher } from "@/lib/data/class.data";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CourseStatus } from "@/models/Course";
 import { CourseStatusForm } from "./course-status-form";
 import { ModuleCard } from "./module-card";
 import { AddModuleForm } from "./add-module-form";
+import { CourseEditDialog } from "./edit/course-edit-dialog";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const course = await getCourseForTeacher(id);
+  const [course, subjectsList, classesList] = await Promise.all([
+    getCourseForTeacher(id),
+    listSubjectsForTeacher(),
+    listClassesForTeacher(),
+  ]);
 
   if (!course) {
     notFound();
@@ -18,6 +25,13 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
 
   const subject = course.subjectId as unknown as { name?: string } | null;
   const classes = (course.classIds ?? []) as unknown as { name: string; section?: string }[];
+  const courseSubjectId = course.subjectId as unknown as { _id?: unknown } | null;
+  const courseClassIds = (course.classIds ?? []) as unknown as { _id: unknown }[];
+  const subjectOptions = subjectsList.map((s) => ({ id: String(s._id), name: s.name }));
+  const classOptions = classesList.map((klass) => ({
+    id: String(klass._id),
+    label: `${klass.name}${klass.section ? ` ${klass.section}` : ""}`,
+  }));
 
   return (
     <>
@@ -51,12 +65,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
           >
             Quizzes
           </Link>
-          <Link
-            href={`/courses/${id}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Edit details
-          </Link>
+          <CourseEditDialog
+            courseId={id}
+            title={course.title}
+            description={course.description ?? ""}
+            subjectId={courseSubjectId?._id ? String(courseSubjectId._id) : ""}
+            classIds={courseClassIds.map((c) => String(c._id))}
+            status={course.status}
+            subjects={subjectOptions}
+            classes={classOptions}
+          />
           <CourseStatusForm courseId={id} status={course.status as CourseStatus} />
         </div>
       </div>

@@ -48,7 +48,7 @@ export default async function EnrollmentsPage() {
           ) : null}
         </>,
         course?.title ?? "Unknown",
-        <Badge variant="secondary" className="capitalize">
+        <Badge key="status" variant="secondary" className="capitalize">
           {enrollment.status}
         </Badge>,
         `${enrollment.progress?.percentComplete ?? 0}%`,

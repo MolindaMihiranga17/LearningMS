@@ -1,30 +1,32 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCourse, type CreateCourseState } from "@/lib/actions/course.actions";
 import { createCourseSchema, type CreateCourseInput } from "@/lib/validation/course.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateCourseState = {};
 
 export function CourseForm({
   subjects,
   classes,
+  onDone,
 }: {
   subjects: { id: string; name: string }[];
   classes: { id: string; label: string }[];
+  onDone?: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(createCourse, initialState);
 
   const form = useForm<CreateCourseInput>({
@@ -41,15 +43,12 @@ export function CourseForm({
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
         <p className="font-medium">&ldquo;{state.success.title}&rdquo; created.</p>
         <div className="flex gap-2">
-          <Link
-            href={`/courses/${state.success.courseId}`}
-            className={cn(buttonVariants())}
-          >
+          <Button type="button" onClick={() => router.push(`/courses/${state.success!.courseId}`)}>
             Build course
-          </Link>
-          <Link href="/courses" className={cn(buttonVariants({ variant: "outline" }))}>
+          </Button>
+          <Button type="button" variant="outline" onClick={onDone}>
             View courses
-          </Link>
+          </Button>
         </div>
       </div>
     );

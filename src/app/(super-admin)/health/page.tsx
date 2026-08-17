@@ -6,8 +6,6 @@ import { DataTableCard, type DataTableRow } from "@/components/data-table/data-t
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const INACTIVITY_THRESHOLD_DAYS = 30;
-
 type SortKey = "balance" | "inactivity" | "months";
 
 const SORTERS: Record<SortKey, (a: InstituteHealthRow, b: InstituteHealthRow) => number> = {
@@ -42,12 +40,7 @@ export default async function InstituteHealthPage({
   const health = await listInstituteHealth();
 
   const totalOutstanding = health.reduce((sum, row) => sum + row.overdueFeeTotal, 0);
-  const now = Date.now();
-  const inactiveCount = health.filter((row) => {
-    if (!row.lastActivityAt) return true;
-    const daysSince = (now - row.lastActivityAt.getTime()) / (1000 * 60 * 60 * 24);
-    return daysSince > INACTIVITY_THRESHOLD_DAYS;
-  }).length;
+  const inactiveCount = health.filter((row) => row.isInactive).length;
 
   const sorted = [...health].sort(SORTERS[sortKey]);
 

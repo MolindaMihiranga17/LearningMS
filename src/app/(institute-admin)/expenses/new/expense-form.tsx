@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,11 +7,10 @@ import type { z } from "zod";
 import { createExpense, type CreateExpenseState } from "@/lib/actions/finance.actions";
 import { createExpenseSchema } from "@/lib/validation/finance.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateExpenseState = {};
 
@@ -23,7 +21,13 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-export function ExpenseForm() {
+export function ExpenseForm({
+  onDone,
+  onCreateAnother,
+}: {
+  onDone?: () => void;
+  onCreateAnother?: () => void;
+}) {
   const [state, formAction, pending] = useActionState(createExpense, initialState);
 
   const form = useForm<CreateExpenseInput>({
@@ -45,12 +49,12 @@ export function ExpenseForm() {
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
         <p className="font-medium">&ldquo;{state.success.type}&rdquo; recorded.</p>
         <div className="flex gap-2">
-          <Link href="/expenses" className={cn(buttonVariants())}>
-            View expenses
-          </Link>
-          <Link href="/expenses/new" className={cn(buttonVariants({ variant: "outline" }))}>
+          <Button type="button" onClick={onDone}>
+            Done
+          </Button>
+          <Button type="button" variant="outline" onClick={onCreateAnother}>
             Add another
-          </Link>
+          </Button>
         </div>
       </div>
     );

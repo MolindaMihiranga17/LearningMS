@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { listInstitutes } from "@/lib/data/institute.data";
-import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { InstituteFormDialog } from "./new/institute-form-dialog";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -25,11 +24,11 @@ export default async function InstitutesPage() {
       institute.createdAt ? new Date(institute.createdAt).getTime() : null,
     ],
     cells: [
-      <Link href={`/institutes/${institute._id}`} className="font-medium hover:underline">
+      <Link key="name" href={`/institutes/${institute._id}`} className="font-medium hover:underline">
         {institute.name}
       </Link>,
       institute.code,
-      <Badge variant={institute.status === "active" ? "success" : "secondary"} className="capitalize">
+      <Badge key="status" variant={institute.status === "active" ? "success" : "secondary"} className="capitalize">
         {institute.status}
       </Badge>,
       institute.createdAt ? new Date(institute.createdAt).toLocaleDateString() : "-",
@@ -40,9 +39,7 @@ export default async function InstitutesPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Institutes</h1>
-        <Link href="/institutes/new" className={cn(buttonVariants())}>
-          New institute
-        </Link>
+        <InstituteFormDialog />
       </div>
       <div className="mt-6">
         <DataTableCard

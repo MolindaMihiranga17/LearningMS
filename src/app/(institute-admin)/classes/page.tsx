@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { listClasses } from "@/lib/data/class.data";
+import { listStaff } from "@/lib/data/user.data";
 import { deleteClass } from "@/lib/actions/class.actions";
-import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { ClassFormDialog } from "./new/class-form-dialog";
+import { ClassEditDialog } from "./[id]/edit/class-edit-dialog";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -17,7 +17,8 @@ const COLUMNS = [
 ];
 
 export default async function ClassesPage() {
-  const classes = await listClasses();
+  const [classes, teachersList] = await Promise.all([listClasses(), listStaff()]);
+  const teachers = teachersList.map((teacher) => ({ id: String(teacher._id), name: teacher.name }));
 
   const rows: DataTableRow[] = classes.map((klass) => {
     const teacher = (klass.classTeacherId as unknown as { name?: string } | null)?.name;
@@ -34,12 +35,15 @@ export default async function ClassesPage() {
           {klass.status}
         </Badge>,
         <div key="actions" className="flex items-center gap-2">
-          <Link
-            href={`/classes/${klass._id}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Edit
-          </Link>
+          <ClassEditDialog
+            classId={String(klass._id)}
+            name={klass.name}
+            section={klass.section ?? ""}
+            academicYear={klass.academicYear}
+            classTeacherId={klass.classTeacherId ? String(klass.classTeacherId) : ""}
+            status={klass.status ?? "active"}
+            teachers={teachers}
+          />
           <ConfirmDeleteButton
             action={deleteClass}
             hiddenFields={{ id: String(klass._id) }}
@@ -54,9 +58,7 @@ export default async function ClassesPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Classes</h1>
-        <Link href="/classes/new" className={cn(buttonVariants())}>
-          New class
-        </Link>
+        <ClassFormDialog teachers={teachers} />
       </div>
       <div className="mt-6">
         <DataTableCard

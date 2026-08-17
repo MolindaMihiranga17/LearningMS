@@ -70,9 +70,10 @@ export default async function GradesPage() {
       key: String(course._id),
       searchValue: course.title,
       cells: [
-        <span className="font-medium">{course.title}</span>,
-        <span className="capitalize">{course.status}</span>,
+        <span key="title" className="font-medium">{course.title}</span>,
+        <span key="status" className="capitalize">{course.status}</span>,
         <Link
+          key="grades"
           href={`/courses/${course._id}/grades`}
           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
         >

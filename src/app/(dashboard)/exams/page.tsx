@@ -2,11 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { listExamsForInstitute, listExamsForTeacher } from "@/lib/data/exam.data";
+import { listSubjects } from "@/lib/data/subject.data";
+import { listClasses } from "@/lib/data/class.data";
 import { deleteExam } from "@/lib/actions/exam.actions";
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { ExamFormDialog } from "./new/exam-form-dialog";
+import { ExamEditDialog } from "./[id]/edit/exam-edit-dialog";
 
 const ADMIN_COLUMNS = [
   { key: "title", header: "Title" },
@@ -37,7 +41,17 @@ export default async function ExamsPage() {
   }
 
   if (session.role === "institute-admin") {
-    const exams = await listExamsForInstitute();
+    const [exams, subjectsList, classesList] = await Promise.all([
+      listExamsForInstitute(),
+      listSubjects(),
+      listClasses(),
+    ]);
+    const subjects = subjectsList.map((subject) => ({ id: String(subject._id), name: subject.name }));
+    const classes = classesList.map((klass) => ({
+      id: String(klass._id),
+      name: klass.name,
+      section: klass.section,
+    }));
 
     const rows: DataTableRow[] = exams.map((exam) => {
       const subject = (exam.subjectId as unknown as { name?: string } | null)?.name;
@@ -45,18 +59,24 @@ export default async function ExamsPage() {
         key: String(exam._id),
         searchValue: `${exam.title} ${subject ?? ""}`,
         cells: [
-          <span className="font-medium">{exam.title}</span>,
+          <span key="title" className="font-medium">{exam.title}</span>,
           subject ?? "-",
           classLabel(exam),
           new Date(exam.examDate).toLocaleDateString(),
           exam.maxMarks,
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/exams/${exam._id}/edit`}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              Edit
-            </Link>
+          <div key="actions" className="flex items-center gap-2">
+            <ExamEditDialog
+              examId={String(exam._id)}
+              title={exam.title}
+              subjectId={String(exam.subjectId)}
+              classId={String(exam.classId)}
+              examDate={new Date(exam.examDate).toISOString().slice(0, 10)}
+              maxMarks={exam.maxMarks}
+              term={exam.term ?? ""}
+              academicYear={exam.academicYear}
+              subjects={subjects}
+              classes={classes}
+            />
             <ConfirmDeleteButton
               action={deleteExam}
               hiddenFields={{ id: String(exam._id) }}
@@ -71,9 +91,7 @@ export default async function ExamsPage() {
       <>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Exams</h1>
-          <Link href="/exams/new" className={cn(buttonVariants())}>
-            Schedule exam
-          </Link>
+          <ExamFormDialog subjects={subjects} classes={classes} />
         </div>
         <div className="mt-6">
           <DataTableCard
@@ -96,11 +114,12 @@ export default async function ExamsPage() {
         key: String(exam._id),
         searchValue: `${exam.title} ${subject ?? ""}`,
         cells: [
-          <span className="font-medium">{exam.title}</span>,
+          <span key="title" className="font-medium">{exam.title}</span>,
           subject ?? "-",
           classLabel(exam),
           new Date(exam.examDate).toLocaleDateString(),
           <Link
+            key="marks"
             href={`/exams/${exam._id}/marks`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >

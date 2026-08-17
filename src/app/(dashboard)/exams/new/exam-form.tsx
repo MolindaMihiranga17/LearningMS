@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,12 +8,11 @@ import type { z } from "zod";
 import { createExam, type CreateExamState } from "@/lib/actions/exam.actions";
 import { createExamSchema } from "@/lib/validation/exam.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateExamState = {};
 
@@ -23,9 +21,13 @@ type CreateExamInput = z.input<typeof createExamSchema>;
 export function ExamForm({
   subjects,
   classes,
+  onDone,
+  onCreateAnother,
 }: {
   subjects: { id: string; name: string }[];
   classes: { id: string; name: string; section?: string }[];
+  onDone?: () => void;
+  onCreateAnother?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createExam, initialState);
 
@@ -51,12 +53,12 @@ export function ExamForm({
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
         <p className="font-medium">&ldquo;{state.success.title}&rdquo; scheduled.</p>
         <div className="flex gap-2">
-          <Link href="/exams" className={cn(buttonVariants())}>
-            View exams
-          </Link>
-          <Link href="/exams/new" className={cn(buttonVariants({ variant: "outline" }))}>
+          <Button type="button" onClick={onDone}>
+            Done
+          </Button>
+          <Button type="button" variant="outline" onClick={onCreateAnother}>
             Schedule another
-          </Link>
+          </Button>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,19 +9,25 @@ import type { z } from "zod";
 import { createInvoice, type InvoiceActionState } from "@/lib/actions/platform-invoice.actions";
 import { createPlatformInvoiceSchema } from "@/lib/validation/platform-invoice.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: InvoiceActionState = {};
 
 type CreatePlatformInvoiceInput = z.input<typeof createPlatformInvoiceSchema>;
 
-export function InvoiceForm({ institutes }: { institutes: { id: string; name: string; code: string }[] }) {
+export function InvoiceForm({
+  institutes,
+  onDone,
+}: {
+  institutes: { id: string; name: string; code: string }[];
+  onDone?: () => void;
+}) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(createInvoice, initialState);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -49,9 +55,14 @@ export function InvoiceForm({ institutes }: { institutes: { id: string; name: st
     return (
       <div className="flex flex-col gap-4">
         <p className="font-medium">Invoice {state.success.invoiceNumber} created.</p>
-        <Link href={`/billing/invoices/${state.success.invoiceId}`} className={cn(buttonVariants())}>
-          View invoice
-        </Link>
+        <div className="flex gap-2">
+          <Button type="button" onClick={() => router.push(`/billing/invoices/${state.success!.invoiceId}`)}>
+            View invoice
+          </Button>
+          <Button type="button" variant="outline" onClick={onDone}>
+            Close
+          </Button>
+        </div>
       </div>
     );
   }

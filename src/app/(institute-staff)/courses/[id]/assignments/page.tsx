@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { AssignmentFormDialog } from "./new/assignment-form-dialog";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -32,13 +33,14 @@ export default async function CourseAssignmentsPage({
     key: String(assignment._id),
     searchValue: assignment.title,
     cells: [
-      <span className="font-medium">{assignment.title}</span>,
+      <span key="title" className="font-medium">{assignment.title}</span>,
       assignment.dueAt ? new Date(assignment.dueAt).toLocaleString() : "-",
       assignment.maxScore,
-      <Badge variant={assignment.status === "published" ? "success" : "secondary"} className="capitalize">
+      <Badge key="status" variant={assignment.status === "published" ? "success" : "secondary"} className="capitalize">
         {assignment.status}
       </Badge>,
       <Link
+        key="manage"
         href={`/courses/${id}/assignments/${String(assignment._id)}`}
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
       >
@@ -61,9 +63,7 @@ export default async function CourseAssignmentsPage({
           >
             Back to course
           </Link>
-          <Link href={`/courses/${id}/assignments/new`} className={cn(buttonVariants())}>
-            New assignment
-          </Link>
+          <AssignmentFormDialog courseId={id} />
         </div>
       </div>
 

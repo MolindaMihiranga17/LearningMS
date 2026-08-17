@@ -65,9 +65,10 @@ type PlanFormProps = {
     isPublic: boolean;
     sortOrder: number;
   };
+  onSuccess?: () => void;
 };
 
-export function PlanForm({ plan }: PlanFormProps) {
+export function PlanForm({ plan, onSuccess }: PlanFormProps) {
   const router = useRouter();
   const action = plan ? updatePlan : createPlan;
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -99,9 +100,14 @@ export function PlanForm({ plan }: PlanFormProps) {
 
   useEffect(() => {
     if (state.success) {
-      router.push(plan ? `/plans/${plan.id}` : `/plans/${state.planId}`);
+      if (plan) {
+        toast.success(`"${plan.name}" updated`);
+        onSuccess?.();
+      } else {
+        router.push(`/plans/${state.planId}`);
+      }
     }
-  }, [state.success, state.planId, plan, router]);
+  }, [state.success, state.planId, plan, onSuccess, router]);
 
   const onSubmit = form.handleSubmit((values) => {
     const formData = new FormData();

@@ -36,6 +36,14 @@ function DialogBackdrop({ className, ...props }: DialogPrimitive.Backdrop.Props)
 }
 
 export type DialogTone = "default" | "danger" | "assign" | "edit" | "create";
+export type DialogSize = "sm" | "default" | "lg" | "xl";
+
+const DIALOG_SIZE_CLASS: Record<DialogSize, string> = {
+  sm: "sm:max-w-sm",
+  default: "sm:max-w-md",
+  lg: "sm:max-w-lg",
+  xl: "sm:max-w-2xl",
+};
 
 const DIALOG_TONE_HEADER: Record<DialogTone, string> = {
   default: "",
@@ -65,8 +73,9 @@ function DialogPopup({
   children,
   showClose = true,
   tone = "default",
+  size = "default",
   ...props
-}: DialogPrimitive.Popup.Props & { showClose?: boolean; tone?: DialogTone }) {
+}: DialogPrimitive.Popup.Props & { showClose?: boolean; tone?: DialogTone; size?: DialogSize }) {
   return (
     <DialogPortal>
       <DialogBackdrop />
@@ -74,7 +83,8 @@ function DialogPopup({
         data-slot="dialog-popup"
         className={cn(
           "shadow-modal fixed inset-x-0 bottom-0 top-auto z-50 max-h-[85vh] w-full translate-x-0 translate-y-0 overflow-y-auto rounded-t-(--radius-4xl) rounded-b-none border-t border-border bg-card p-6 text-card-foreground outline-none transition-all data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full",
-          "sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-none sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-(--radius-4xl) sm:border sm:data-[ending-style]:translate-y-0 sm:data-[ending-style]:scale-95 sm:data-[ending-style]:opacity-0 sm:data-[starting-style]:translate-y-0 sm:data-[starting-style]:scale-95 sm:data-[starting-style]:opacity-0",
+          "sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-none sm:w-full sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-(--radius-4xl) sm:border sm:data-[ending-style]:translate-y-0 sm:data-[ending-style]:scale-95 sm:data-[ending-style]:opacity-0 sm:data-[starting-style]:translate-y-0 sm:data-[starting-style]:scale-95 sm:data-[starting-style]:opacity-0",
+          DIALOG_SIZE_CLASS[size],
           className
         )}
         {...props}

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,17 +8,17 @@ import type { z } from "zod";
 import { createQuiz, type CreateQuizState } from "@/lib/actions/quiz.actions";
 import { createQuizSchema } from "@/lib/validation/quiz.schema";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 
 const initialState: CreateQuizState = {};
 
 type CreateQuizInput = z.input<typeof createQuizSchema>;
 
-export function QuizForm({ courseId }: { courseId: string }) {
+export function QuizForm({ courseId, onDone }: { courseId: string; onDone?: () => void }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(createQuiz, initialState);
 
   const form = useForm<CreateQuizInput>({
@@ -35,18 +35,15 @@ export function QuizForm({ courseId }: { courseId: string }) {
       <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
         <p className="font-medium">&ldquo;{state.success.title}&rdquo; created.</p>
         <div className="flex gap-2">
-          <Link
-            href={`/courses/${courseId}/quizzes/${state.success.quizId}`}
-            className={cn(buttonVariants())}
+          <Button
+            type="button"
+            onClick={() => router.push(`/courses/${courseId}/quizzes/${state.success!.quizId}`)}
           >
             View quiz
-          </Link>
-          <Link
-            href={`/courses/${courseId}/quizzes`}
-            className={cn(buttonVariants({ variant: "outline" }))}
-          >
+          </Button>
+          <Button type="button" variant="outline" onClick={onDone}>
             Back to list
-          </Link>
+          </Button>
         </div>
       </div>
     );

@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { updateLesson, type UpdateLessonState } from "@/lib/actions/lesson.actions";
 import { toast } from "@/lib/toast";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FileUploader } from "@/components/shared/file-uploader";
-import { cn } from "@/lib/utils";
 
 const initialState: UpdateLessonState = {};
 
@@ -58,6 +56,7 @@ export function LessonEditForm({
   textBody,
   durationSeconds,
   isPreview,
+  onSuccess,
 }: {
   lessonId: string;
   courseId: string;
@@ -67,6 +66,7 @@ export function LessonEditForm({
   textBody: string;
   durationSeconds: number | null;
   isPreview: boolean;
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(updateLesson, initialState);
 
@@ -88,16 +88,12 @@ export function LessonEditForm({
     if (state.error) toast.error("Could not update lesson", state.error);
   }, [state.error]);
 
-  if (state.success) {
-    return (
-      <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
-        <p className="font-medium">&ldquo;{state.success.title}&rdquo; updated.</p>
-        <Link href={`/courses/${courseId}`} className={cn(buttonVariants())}>
-          Back to course
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (state.success) {
+      toast.success(`"${state.success.title}" updated`);
+      onSuccess?.();
+    }
+  }, [state.success, onSuccess]);
 
   const onSubmit = form.handleSubmit((values) => {
     const formData = new FormData();

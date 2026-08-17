@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { listExpenses } from "@/lib/data/finance.data";
 import { deleteExpense } from "@/lib/actions/finance.actions";
-import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { ExpenseFormDialog } from "./new/expense-form-dialog";
 
 const COLUMNS = [
   { key: "type", header: "Type" },
@@ -20,10 +18,11 @@ export default async function ExpensesPage() {
     key: String(expense._id),
     searchValue: `${expense.type} ${expense.month} ${expense.year}`,
     cells: [
-      <span className="font-medium">{expense.type}</span>,
+      <span key="type" className="font-medium">{expense.type}</span>,
       `${expense.month} ${expense.year}`,
       expense.price.toFixed(2),
       <ConfirmDeleteButton
+        key="delete"
         action={deleteExpense}
         hiddenFields={{ id: String(expense._id) }}
         itemLabel={expense.type}
@@ -35,9 +34,7 @@ export default async function ExpensesPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Expenses</h1>
-        <Link href="/expenses/new" className={cn(buttonVariants())}>
-          New expense
-        </Link>
+        <ExpenseFormDialog />
       </div>
       <div className="mt-6">
         <DataTableCard
