@@ -4,6 +4,7 @@ import { getLessonForStudent } from "@/lib/data/enrollment.data";
 import { markLessonComplete } from "@/lib/actions/enrollment.actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 export default async function StudentLessonPlayerPage({
   params,
@@ -19,14 +20,9 @@ export default async function StudentLessonPlayerPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link href={`/my-courses/${id}`} className="text-sm text-muted-foreground hover:underline">
-          &larr; {lesson.courseTitle}
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{lesson.title}</h1>
-      </div>
+      <StudentWorkspaceHeader eyebrow={lesson.courseTitle} title={lesson.title} description="Work through this lesson at your own pace, then mark it complete when you are ready to continue." actions={<Link href={`/my-courses/${id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Back to course</Link>} metrics={[{ label: "Lesson type", value: lesson.type.toUpperCase(), detail: "Learning resource format", tone: "primary" }, { label: "Status", value: lesson.isComplete ? "Done" : "Now", detail: lesson.isComplete ? "Lesson completed" : "Ready to learn", tone: lesson.isComplete ? "success" : "info" }]} />
 
-      <div className="rounded-xl border border-border p-4">
+      <div className="surface-subtle overflow-hidden rounded-2xl border border-border/70 p-4 sm:p-5">
         {lesson.type === "video" && lesson.contentUrl ? (
           <video controls className="w-full rounded-lg" src={lesson.contentUrl} />
         ) : null}
