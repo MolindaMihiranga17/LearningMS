@@ -30,7 +30,7 @@ async function resolveRecipientIds(
   session: SessionPayload
 ): Promise<string[]> {
   if (audience === "institute") {
-    const users = await UserModel.find(withTenantScope({}, session)).select("_id");
+    const users = await UserModel.find(withTenantScope({ "notificationPreferences.announcements": { $ne: false } }, session)).select("_id");
     return users.map((user) => user._id.toString());
   }
 
@@ -39,6 +39,7 @@ async function resolveRecipientIds(
       instituteId: session.instituteId,
       role: "student",
       "studentMeta.classId": classId,
+      "notificationPreferences.announcements": { $ne: false },
     }).select("_id");
     const klass = await ClassModel.findById(classId).select("classTeacherId").lean();
     const ids = students.map((student) => student._id.toString());
@@ -48,10 +49,10 @@ async function resolveRecipientIds(
     return [...new Set(ids)];
   }
 
-  const enrollments = await EnrollmentModel.find({ courseId, status: "active" }).select(
-    "studentId"
-  );
-  return enrollments.map((enrollment) => enrollment.studentId.toString());
+  const enrollments = await EnrollmentModel.find({ courseId, status: "active" }).select("studentId");
+  const candidates = enrollments.map((enrollment) => enrollment.studentId);
+  const users = await UserModel.find({ _id: { $in: candidates }, "notificationPreferences.announcements": { $ne: false } }).select("_id");
+  return users.map((user) => user._id.toString());
 }
 
 export async function createAnnouncement(
