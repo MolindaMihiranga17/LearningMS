@@ -20,6 +20,8 @@ import {
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { FeeFormDialog } from "./new/fee-form-dialog";
 import { FeeEditDialog } from "./[id]/edit/fee-edit-dialog";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 const FEE_COLUMNS = [
   { key: "title", header: "Title" },
@@ -48,6 +50,10 @@ export default async function FeesPage() {
       section: klass.section,
     }));
     const students = studentsList.map((student) => ({ id: String(student._id), name: student.name }));
+    const today = new Date();
+    const overdueFees = fees.filter((fee) => new Date(fee.dueDate) < today).length;
+    const upcomingFees = fees.filter((fee) => new Date(fee.dueDate) >= today).length;
+    const configuredValue = fees.reduce((total, fee) => total + fee.amount, 0);
 
     const rows: DataTableRow[] = fees.map((fee) => {
       const klass = fee.classId as unknown as { name?: string; section?: string } | null;
@@ -91,10 +97,8 @@ export default async function FeesPage() {
     });
 
     return (
-      <>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Fees</h1>
-          <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-6">
+          <InstituteWorkspaceHeader eyebrow="Finance operations" title="Fee schedule" description="Define what learners owe, when it is due, and where collection follow-up should begin." metrics={[{ label: "Fee definitions", value: fees.length, detail: "Across institute and class scopes", tone: "primary" }, { label: "Configured value", value: configuredValue.toFixed(2), detail: "Sum of listed fee amounts", tone: "info" }, { label: "Past due schedules", value: overdueFees, detail: `${upcomingFees} future due dates`, tone: "warning" }]} actions={<div className="flex flex-wrap items-center gap-4">
             <a
               href="/api/reports/export/fees?format=csv"
               target="_blank"
@@ -115,27 +119,37 @@ export default async function FeesPage() {
               Record a payment
             </Link>
             <FeeFormDialog classes={classes} students={students} />
-          </div>
-        </div>
-        <div className="mt-6">
+          </div>} />
           <DataTableCard
+            title="Fee definitions"
+            sub="Create fee rules, target an institute, class, or learner, and keep due dates visible."
             columns={FEE_COLUMNS}
             rows={rows}
             searchPlaceholder="Search fees..."
             emptyTitle="No fees defined yet."
           />
-        </div>
-      </>
+      </div>
     );
   }
 
   if (session.role === "student") {
     const overview = await getStudentFeeOverview(session.userId);
+    const currentTime = new Date().getTime();
+    const overdueFees = overview?.fees.filter((fee) => fee.balance > 0 && new Date(fee.dueDate).getTime() < currentTime).length ?? 0;
 
     return (
       <>
         <div className="flex flex-col gap-6">
-          <h1 className="text-2xl font-semibold">Fees</h1>
+          <StudentWorkspaceHeader
+            eyebrow="Student finance"
+            title="Fees and payments"
+            description="Understand what is due, follow every payment, and keep your academic documents within reach."
+            metrics={[
+              { label: "Total due", value: overview?.totalDue.toFixed(2) ?? "0.00", detail: "Applicable fee schedules", tone: "primary" },
+              { label: "Outstanding balance", value: overview?.balance.toFixed(2) ?? "0.00", detail: overdueFees > 0 ? `${overdueFees} overdue item${overdueFees === 1 ? "" : "s"}` : "No overdue payments", tone: overdueFees > 0 ? "warning" : "success" },
+              { label: "Payments made", value: overview?.payments.length ?? 0, detail: "Recorded payment receipts", tone: "info" },
+            ]}
+          />
 
           {!overview ? (
             <p className="text-sm text-muted-foreground">No fee information available.</p>
@@ -168,9 +182,41 @@ export default async function FeesPage() {
                 </Card>
               </div>
 
-              <Card>
+              <Card className="surface-subtle">
                 <CardHeader>
-                  <CardTitle>Applicable fees</CardTitle>
+                  <CardTitle>Documents</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  <a
+                    href={`/api/reports/report-card/${session.userId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    Download report card
+                  </a>
+                  <a
+                    href={`/api/reports/enrollment-confirmation/${session.userId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    Download enrollment confirmation
+                  </a>
+                  <a
+                    href={`/api/reports/fee-statement/${session.userId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    Download fee statement
+                  </a>
+                </CardContent>
+              </Card>
+
+              <Card className="overflow-hidden">
+                <CardHeader>
+                  <CardTitle>Applicable fees and due dates</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -178,6 +224,7 @@ export default async function FeesPage() {
                       <TableRow>
                         <TableHead>Fee</TableHead>
                         <TableHead>Amount</TableHead>
+                        <TableHead>Discount</TableHead>
                         <TableHead>Paid</TableHead>
                         <TableHead>Balance</TableHead>
                         <TableHead>Due date</TableHead>
@@ -186,7 +233,7 @@ export default async function FeesPage() {
                     <TableBody>
                       {overview.fees.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
                             No fees apply to you.
                           </TableCell>
                         </TableRow>
@@ -195,9 +242,25 @@ export default async function FeesPage() {
                           <TableRow key={fee.id}>
                             <TableCell className="font-medium">{fee.title}</TableCell>
                             <TableCell>{fee.amount.toFixed(2)}</TableCell>
+                            <TableCell>{fee.discount.toFixed(2)}</TableCell>
                             <TableCell>{fee.paid.toFixed(2)}</TableCell>
-                            <TableCell>{fee.balance.toFixed(2)}</TableCell>
-                            <TableCell>{new Date(fee.dueDate).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <span className={fee.balance > 0 ? "font-medium text-warning" : "text-success"}>
+                                {fee.balance.toFixed(2)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span>{new Date(fee.dueDate).toLocaleDateString()}</span>
+                                {fee.balance > 0 && new Date(fee.dueDate).getTime() < currentTime ? (
+                                  <span className="text-xs font-medium text-destructive">Overdue</span>
+                                ) : fee.balance > 0 ? (
+                                  <span className="text-xs text-muted-foreground">Payment due</span>
+                                ) : (
+                                  <span className="text-xs text-success">Paid</span>
+                                )}
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))
                       )}
@@ -206,7 +269,7 @@ export default async function FeesPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="overflow-hidden">
                 <CardHeader>
                   <CardTitle>Payment history</CardTitle>
                 </CardHeader>

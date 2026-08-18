@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { getSession } from "@/lib/auth/session";
 import { listSubjectsForTeacher, listSubjectsForStudent } from "@/lib/data/subject.data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,10 @@ export default async function MySubjectsPage() {
 
   if (session.role !== "institute-staff" && session.role !== "student") {
     redirect("/dashboard");
+  }
+
+  if (session.role === "institute-staff") {
+    await requireStaffModuleAccess("subjects");
   }
 
   const subjects =
