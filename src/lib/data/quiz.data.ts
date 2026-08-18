@@ -1,6 +1,7 @@
 import "server-only";
 import { connectToDatabase } from "@/lib/db/connect";
 import QuizModel from "@/models/Quiz";
+import QuizAttemptModel from "@/models/QuizAttempt";
 import QuizQuestionModel from "@/models/QuizQuestion";
 import CourseModel from "@/models/Course";
 import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
@@ -103,8 +104,24 @@ export async function listQuizzesForStudent(courseId: string) {
   const quizzes = await QuizModel.find({ courseId, status: "published" })
     .sort({ createdAt: -1 })
     .lean();
+  const attempts = await QuizAttemptModel.find({
+    courseId,
+    studentId: session.userId,
+  })
+    .select("quizId status totalScore maxScore submittedAt")
+    .sort({ createdAt: -1 })
+    .lean();
+  const attemptByQuizId = new Map(
+    attempts.map((attempt) => [attempt.quizId.toString(), attempt])
+  );
 
-  return { course, quizzes };
+  return {
+    course,
+    quizzes: quizzes.map((quiz) => ({
+      ...quiz,
+      attempt: attemptByQuizId.get(quiz._id.toString()) ?? null,
+    })),
+  };
 }
 
 export async function getQuizForStudent(quizId: string) {
