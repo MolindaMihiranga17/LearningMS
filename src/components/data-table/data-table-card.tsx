@@ -6,6 +6,10 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/lib/toast";
 import {
   Table,
   TableBody,
@@ -29,10 +33,29 @@ export type DataTableRow = {
   searchValue?: string;
   /** Comparable values parallel to `cells`, used only for sortable columns. */
   sortValues?: (string | number | null | undefined)[];
+  /** String-valued tags used by toolbar filters. */
+  filterValues?: Record<string, string | null | undefined>;
+  /** Value submitted when a bulk action is invoked. Defaults to `key`. */
+  bulkValue?: string;
   cells: React.ReactNode[];
 };
 
 type SortState = { index: number; direction: "asc" | "desc" };
+const ALL_FILTER_VALUE = "__all__";
+
+export type DataTableFilter = {
+  key: string;
+  label: string;
+  allLabel?: string;
+  options: { value: string; label: string }[];
+};
+
+export type DataTableBulkAction = {
+  label: string;
+  action: (formData: FormData) => void | Promise<void>;
+  buttonVariant?: "default" | "outline" | "destructive";
+  hiddenFields?: Record<string, string>;
+};
 
 function EmptyState({ title, description }: { title: string; description?: string }) {
   const Icon = description ? Inbox : SearchX;
@@ -58,6 +81,8 @@ export function DataTableCard({
   pageSize = 10,
   compact = false,
   stackOnMobile = true,
+  filters = [],
+  bulkActions = [],
 }: {
   title?: string;
   sub?: string;
@@ -69,18 +94,35 @@ export function DataTableCard({
   pageSize?: number;
   compact?: boolean;
   stackOnMobile?: boolean;
+  filters?: DataTableFilter[];
+  bulkActions?: DataTableBulkAction[];
 }) {
   const [query, setQuery] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [sort, setSort] = React.useState<SortState | null>(null);
+  const [selected, setSelected] = React.useState<string[]>([]);
+  const [filterState, setFilterState] = React.useState<Record<string, string>>(
+    () => Object.fromEntries(filters.map((filter) => [filter.key, ALL_FILTER_VALUE]))
+  );
 
   const searchable = !compact && rows.some((row) => row.searchValue !== undefined);
+  const selectionEnabled = bulkActions.length > 0;
 
-  const filtered = React.useMemo(() => {
+  const filteredBySearch = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((row) => (row.searchValue ?? "").toLowerCase().includes(q));
   }, [rows, query]);
+
+  const filtered = React.useMemo(() => {
+    return filteredBySearch.filter((row) =>
+      filters.every((filter) => {
+        const selectedValue = filterState[filter.key] ?? ALL_FILTER_VALUE;
+        if (selectedValue === ALL_FILTER_VALUE) return true;
+        return (row.filterValues?.[filter.key] ?? "") === selectedValue;
+      })
+    );
+  }, [filteredBySearch, filters, filterState]);
 
   const sorted = React.useMemo(() => {
     if (!sort) return filtered;
@@ -102,6 +144,11 @@ export function DataTableCard({
     setPage(1);
   }
 
+  function handleFilterChange(key: string, value: string | null) {
+    setFilterState((current) => ({ ...current, [key]: value ?? ALL_FILTER_VALUE }));
+    setPage(1);
+  }
+
   function toggleSort(index: number) {
     setSort((current) => {
       if (!current || current.index !== index) return { index, direction: "asc" };
@@ -115,6 +162,54 @@ export function DataTableCard({
   const safePage = Math.min(page, pageCount);
   const pageRows = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
+  const activeSelected = React.useMemo(
+    () => selected.filter((value) => sorted.some((row) => (row.bulkValue ?? row.key) === value)),
+    [selected, sorted]
+  );
+  const selectedSet = React.useMemo(() => new Set(activeSelected), [activeSelected]);
+  const allVisibleSelected =
+    selectionEnabled &&
+    pageRows.length > 0 &&
+    pageRows.every((row) => selectedSet.has(row.bulkValue ?? row.key));
+
+  function toggleAllVisible(next: boolean) {
+    const visibleValues = pageRows.map((row) => row.bulkValue ?? row.key);
+    setSelected(() => {
+      const base = new Set(activeSelected);
+      for (const value of visibleValues) {
+        if (next) base.add(value);
+        else base.delete(value);
+      }
+      return [...base];
+    });
+  }
+
+  function toggleOne(value: string, next: boolean) {
+    setSelected(() => {
+      const base = new Set(activeSelected);
+      if (next) base.add(value);
+      else base.delete(value);
+      return [...base];
+    });
+  }
+
+  async function runBulkAction(actionConfig: DataTableBulkAction) {
+    const formData = new FormData();
+    for (const value of activeSelected) {
+      formData.append("ids", value);
+    }
+    for (const [key, value] of Object.entries(actionConfig.hiddenFields ?? {})) {
+      formData.append(key, value);
+    }
+    try {
+      await actionConfig.action(formData);
+      setSelected([]);
+      toast.success(actionConfig.label);
+    } catch {
+      toast.error("Bulk action failed", "Please try again.");
+    }
+  }
+
   const cellPadding = compact ? "px-3 py-2" : undefined;
 
   return (
@@ -127,15 +222,61 @@ export function DataTableCard({
               {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}
             </div>
           ) : null}
-          {searchable ? (
-            <div className="relative max-w-xs">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => handleSearchChange(event.target.value)}
-                placeholder={searchPlaceholder}
-                className="pl-9"
-              />
+          {searchable || filters.length > 0 || (selectionEnabled && selected.length > 0) ? (
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
+                {searchable ? (
+                  <div className="relative max-w-xs">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={query}
+                      onChange={(event) => handleSearchChange(event.target.value)}
+                      placeholder={searchPlaceholder}
+                      className="pl-9"
+                    />
+                  </div>
+                ) : null}
+                {filters.map((filter) => (
+                  <div key={filter.key} className="w-full sm:w-52">
+                      <Select
+                      value={filterState[filter.key] ?? ALL_FILTER_VALUE}
+                      onValueChange={(value) => handleFilterChange(filter.key, value)}
+                    >
+                      <SelectTrigger size="sm">
+                        <SelectValue placeholder={filter.label} />
+                      </SelectTrigger>
+                      <SelectPopup>
+                        <SelectItem value={ALL_FILTER_VALUE}>
+                          {filter.allLabel ?? `All ${filter.label.toLowerCase()}`}
+                        </SelectItem>
+                        {filter.options.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectPopup>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+              {selectionEnabled && activeSelected.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {activeSelected.length} selected
+                  </span>
+                  {bulkActions.map((actionConfig) => (
+                    <Button
+                      key={actionConfig.label}
+                      type="button"
+                      size="sm"
+                      variant={actionConfig.buttonVariant ?? "outline"}
+                      onClick={() => void runBulkAction(actionConfig)}
+                    >
+                      {actionConfig.label}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </CardHeader>
@@ -146,6 +287,15 @@ export function DataTableCard({
           <Table>
             <TableHeader>
               <TableRow>
+                {selectionEnabled ? (
+                  <TableHead className={cellPadding}>
+                    <Checkbox
+                      checked={allVisibleSelected}
+                      onCheckedChange={(next) => toggleAllVisible(Boolean(next))}
+                      aria-label="Select all visible rows"
+                    />
+                  </TableHead>
+                ) : null}
                 {columns.map((column, index) => {
                   const isSorted = sort?.index === index;
                   const Icon = isSorted
@@ -182,7 +332,7 @@ export function DataTableCard({
             <TableBody>
               {pageRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="whitespace-normal">
+                  <TableCell colSpan={columns.length + (selectionEnabled ? 1 : 0)} className="whitespace-normal">
                     <EmptyState
                       title={query ? `No results for "${query}"` : emptyTitle}
                       description={!query ? emptyDescription : undefined}
@@ -192,6 +342,15 @@ export function DataTableCard({
               ) : (
                 pageRows.map((row) => (
                   <TableRow key={row.key}>
+                    {selectionEnabled ? (
+                      <TableCell className={cellPadding}>
+                        <Checkbox
+                          checked={selectedSet.has(row.bulkValue ?? row.key)}
+                          onCheckedChange={(next) => toggleOne(row.bulkValue ?? row.key, Boolean(next))}
+                          aria-label={`Select row ${row.key}`}
+                        />
+                      </TableCell>
+                    ) : null}
                     {row.cells.map((cell, index) => (
                       <TableCell key={index} className={cellPadding}>
                         {cell}
@@ -218,24 +377,35 @@ export function DataTableCard({
 
                 return (
                   <div key={row.key} className="rounded-xl border border-border/60 p-3.5">
-                    <div className="text-[13.5px] font-semibold text-foreground">
-                      {row.cells[0]}
-                    </div>
-                    {middleCells.length > 0 ? (
-                      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-2.5">
-                        {middleCells.map((cell, index) => (
-                          <div key={index} className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground/70 uppercase">
-                              {columns[index + 1]?.header}
-                            </span>
-                            <span className="text-[13px] text-foreground">{cell}</span>
+                    <div className="flex items-start gap-3">
+                      {selectionEnabled ? (
+                        <Checkbox
+                          checked={selectedSet.has(row.bulkValue ?? row.key)}
+                          onCheckedChange={(next) => toggleOne(row.bulkValue ?? row.key, Boolean(next))}
+                          aria-label={`Select row ${row.key}`}
+                        />
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13.5px] font-semibold text-foreground">
+                          {row.cells[0]}
+                        </div>
+                        {middleCells.length > 0 ? (
+                          <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-2.5">
+                            {middleCells.map((cell, index) => (
+                              <div key={index} className="flex flex-col gap-0.5">
+                                <span className="text-[10px] font-semibold tracking-wide text-muted-foreground/70 uppercase">
+                                  {columns[index + 1]?.header}
+                                </span>
+                                <span className="text-[13px] text-foreground">{cell}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : null}
+                        {lastCell !== null ? (
+                          <div className="mt-2.5 border-t border-border/60 pt-2.5">{lastCell}</div>
+                        ) : null}
                       </div>
-                    ) : null}
-                    {lastCell !== null ? (
-                      <div className="mt-2.5 border-t border-border/60 pt-2.5">{lastCell}</div>
-                    ) : null}
+                    </div>
                   </div>
                 );
               })
