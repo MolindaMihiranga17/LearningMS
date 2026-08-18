@@ -3,6 +3,7 @@ import { deleteExpense } from "@/lib/actions/finance.actions";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { ExpenseFormDialog } from "./new/expense-form-dialog";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
 
 const COLUMNS = [
   { key: "type", header: "Type" },
@@ -13,6 +14,9 @@ const COLUMNS = [
 
 export default async function ExpensesPage() {
   const expenses = await listExpenses();
+  const totalExpenses = expenses.reduce((total, expense) => total + expense.price, 0);
+  const latestPeriod = expenses[0] ? `${expenses[0].month} ${expenses[0].year}` : "No expenses yet";
+  const uniqueTypes = new Set(expenses.map((expense) => expense.type)).size;
 
   const rows: DataTableRow[] = expenses.map((expense) => ({
     key: String(expense._id),
@@ -31,13 +35,12 @@ export default async function ExpensesPage() {
   }));
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Expenses</h1>
-        <ExpenseFormDialog />
-      </div>
-      <div className="mt-6">
+    <div className="flex flex-col gap-6">
+      <InstituteWorkspaceHeader eyebrow="Finance operations" title="Expense register" description="Record operating costs by period so financial reporting stays current and decisions have a reliable baseline." actions={<ExpenseFormDialog />} metrics={[{ label: "Expense entries", value: expenses.length, detail: "Recorded operating costs", tone: "primary" }, { label: "Total expenses", value: totalExpenses.toFixed(2), detail: "Across all recorded periods", tone: "warning" }, { label: "Expense types", value: uniqueTypes, detail: latestPeriod, tone: "info" }]} />
+      <div>
         <DataTableCard
+          title="Expense activity"
+          sub="Search cost types or periods to review and correct the institute’s operating register."
           columns={COLUMNS}
           rows={rows}
           searchPlaceholder="Search expenses..."

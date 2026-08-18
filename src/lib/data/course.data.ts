@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import CourseModel from "@/models/Course";
 import ModuleModel from "@/models/Module";
 import LessonModel from "@/models/Lesson";
+import UserModel from "@/models/User";
 import { requireSession, requireRole, assertSameInstitute, withTenantScope } from "@/lib/tenant/scope";
 
 export async function listPublishedCoursesForInstitute() {
@@ -13,6 +14,22 @@ export async function listPublishedCoursesForInstitute() {
   return CourseModel.find(withTenantScope({ status: "published" }, session))
     .select("title teacherId")
     .populate("teacherId", "name")
+    .sort({ title: 1 })
+    .lean();
+}
+
+export async function listPublishedCoursesForStudentCatalog() {
+  const session = await requireSession();
+  requireRole(session, ["student"]);
+
+  await connectToDatabase();
+  const student = await UserModel.findById(session.userId).select("studentMeta.classId").lean();
+  const classId = student?.studentMeta?.classId;
+  if (!classId) return [];
+
+  return CourseModel.find(withTenantScope({ status: "published", classIds: classId }, session))
+    .populate("teacherId", "name")
+    .populate("subjectId", "name code")
     .sort({ title: 1 })
     .lean();
 }

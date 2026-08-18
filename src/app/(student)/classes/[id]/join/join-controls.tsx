@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { joinClass, type ClassSessionState } from "@/lib/actions/class-session.actions";
+import { joinClass, leaveClass, type ClassSessionState } from "@/lib/actions/class-session.actions";
 import type { ClassSessionStatus } from "@/models/Class";
 
 const initialState: ClassSessionState = {};
@@ -26,6 +26,7 @@ export function JoinControls({
   attempt: { status: string; attendance: string; joinedAt: Date | null; leftAt: Date | null } | null;
 }) {
   const [state, formAction, pending] = useActionState(joinClass, initialState);
+  const [leaveState, leaveAction, leaving] = useActionState(leaveClass, initialState);
   const isOngoing = sessionStatus === "ongoing";
   const hasJoined = attempt?.status === "active";
 
@@ -37,7 +38,13 @@ export function JoinControls({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {hasJoined ? (
-          <p className="text-sm text-success">You have joined this session.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-success">You have joined this session.</p>
+            <form action={leaveAction}>
+              <input type="hidden" name="classId" value={classId} />
+              <Button type="submit" variant="outline" size="sm" disabled={leaving}>{leaving ? "Leaving..." : "Leave class"}</Button>
+            </form>
+          </div>
         ) : (
           <form action={formAction}>
             <input type="hidden" name="classId" value={classId} />
@@ -51,7 +58,7 @@ export function JoinControls({
             The session isn&apos;t live yet — check back once your teacher starts it.
           </p>
         ) : null}
-        {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+        {state.error || leaveState.error ? <p className="text-sm text-destructive">{state.error ?? leaveState.error}</p> : null}
         {attempt ? (
           <p className="text-sm text-muted-foreground">
             Attendance: <span className="font-medium text-foreground">{attempt.attendance}</span>

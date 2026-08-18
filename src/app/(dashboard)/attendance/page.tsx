@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { getSession } from "@/lib/auth/session";
 import {
   getInstituteAttendanceSummary,
@@ -10,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 const ADMIN_COLUMNS = [
   { key: "class", header: "Class" },
@@ -38,6 +41,8 @@ export default async function AttendancePage() {
 
   if (session.role === "institute-admin") {
     const summary = await getInstituteAttendanceSummary();
+    const recordedClasses = summary.filter((klass) => klass.percentPresent !== null);
+    const instituteAverage = recordedClasses.length ? Math.round(recordedClasses.reduce((total, klass) => total + (klass.percentPresent ?? 0), 0) / recordedClasses.length) : 0;
 
     const rows: DataTableRow[] = summary.map((klass) => ({
       key: klass.id,
@@ -58,16 +63,12 @@ export default async function AttendancePage() {
     }));
 
     return (
-      <>
-        <h1 className="text-2xl font-semibold">Attendance</h1>
-        <div className="mt-6">
-          <DataTableCard columns={ADMIN_COLUMNS} rows={rows} emptyTitle="No classes yet." />
-        </div>
-      </>
+      <div className="flex flex-col gap-6"><InstituteWorkspaceHeader eyebrow="Academic monitoring" title="Attendance overview" description="Compare attendance across classes and identify groups that need follow-up before trends become problems." metrics={[{ label: "Institute average", value: `${instituteAverage}%`, detail: "Across recorded classes", tone: "primary" }, { label: "Classes tracked", value: recordedClasses.length, detail: "With attendance records", tone: "success" }, { label: "No records yet", value: summary.length - recordedClasses.length, detail: "Classes awaiting their first register", tone: "warning" }]} /><DataTableCard title="Class attendance" sub="Search a class to review its current attendance percentage." columns={ADMIN_COLUMNS} rows={rows} searchPlaceholder="Search classes..." emptyTitle="No classes yet." /></div>
     );
   }
 
   if (session.role === "institute-staff") {
+    await requireStaffModuleAccess("classes");
     const classes = await listClassesForAttendanceTeacher();
 
     const rows: DataTableRow[] = classes.map((klass) => ({
@@ -108,6 +109,7 @@ export default async function AttendancePage() {
 
   // student
   const { history, percentPresent } = await getMyAttendanceHistory();
+  const absentDays = history.filter((entry) => entry.status === "absent").length;
 
   const rows: DataTableRow[] = history.map((entry, index) => ({
     key: String(index),
@@ -123,9 +125,18 @@ export default async function AttendancePage() {
 
   return (
     <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">My Attendance</h1>
+        <StudentWorkspaceHeader
+          eyebrow="Academic insight"
+          title="My attendance"
+          description="Review your attendance record and spot patterns early, before they affect your academic progress."
+          metrics={[
+            { label: "Overall attendance", value: `${percentPresent}%`, detail: "Across recorded days", tone: percentPresent >= 75 ? "success" : "warning" },
+            { label: "Days recorded", value: history.length, detail: "Class attendance entries", tone: "primary" },
+            { label: "Absences", value: absentDays, detail: "Recorded as absent", tone: absentDays > 0 ? "warning" : "info" },
+          ]}
+        />
 
-        <Card size="sm">
+        <Card size="sm" className="border-primary/15 bg-primary-subtle/25">
           <CardHeader>
             <CardTitle>Overall attendance</CardTitle>
           </CardHeader>
@@ -138,6 +149,8 @@ export default async function AttendancePage() {
         </Card>
 
         <DataTableCard
+          title="Attendance history"
+          sub="Your recorded attendance by class and subject."
           columns={STUDENT_COLUMNS}
           rows={rows}
           emptyTitle="No attendance recorded yet."

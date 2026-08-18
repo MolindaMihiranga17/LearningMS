@@ -5,6 +5,7 @@ import { getActiveAttemptForStudent } from "@/lib/data/quiz-attempt.data";
 import { startQuizAttempt } from "@/lib/actions/quiz-attempt.actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 export default async function StudentQuizPreStartPage({
   params,
@@ -27,18 +28,9 @@ export default async function StudentQuizPreStartPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href={`/my-courses/${id}/quizzes`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          &larr; Quizzes
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{quiz.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{quiz.courseTitle}</p>
-      </div>
+      <StudentWorkspaceHeader eyebrow={quiz.courseTitle} title={quiz.title} description="Review the quiz requirements before starting. Your attempt is timed once you begin." actions={<Link href={`/my-courses/${id}/quizzes`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Back to quizzes</Link>} metrics={[{ label: "Time limit", value: `${quiz.timeLimitMinutes}m`, detail: "Complete within this window", tone: "warning" }, { label: "Questions", value: quiz.questionCount, detail: "Knowledge checks included", tone: "primary" }, { label: "Attempt", value: attempt ? "Used" : "Ready", detail: attempt ? "Result available below" : "Start when prepared", tone: attempt ? "success" : "info" }]} />
 
-      <div className="rounded-xl border border-border p-4">
+      <div className="surface-subtle rounded-2xl border border-border/70 p-5">
         {quiz.instructions ? (
           <p className="mb-3 whitespace-pre-wrap text-sm leading-relaxed">{quiz.instructions}</p>
         ) : null}

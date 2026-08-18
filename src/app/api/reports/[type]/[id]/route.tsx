@@ -5,11 +5,18 @@ import PaymentModel from "@/models/Payment";
 import InstituteModel from "@/models/Institute";
 import UserModel from "@/models/User";
 import ClassModel from "@/models/Class";
+import EnrollmentModel from "@/models/Enrollment";
 import GradeModel from "@/models/Grade";
 import AttendanceModel, { type AttendanceRecord } from "@/models/Attendance";
 import { getSession, assertSameInstitute } from "@/lib/tenant/scope";
 import { FeeReceiptDocument, type FeeReceiptData } from "@/lib/reports/fee-receipt";
 import { ReportCardDocument, type ReportCardData, type ReportCardGradeRow } from "@/lib/reports/report-card";
+import {
+  EnrollmentConfirmationDocument,
+  type EnrollmentConfirmationData,
+} from "@/lib/reports/enrollment-confirmation";
+import { FeeStatementDocument, type FeeStatementData } from "@/lib/reports/fee-statement";
+import { getStudentFeeOverview } from "@/lib/data/fee.data";
 
 async function buildReceipt(id: string, session: NonNullable<Awaited<ReturnType<typeof getSession>>>) {
   const payment = await PaymentModel.findById(id).populate("feeId", "title");
@@ -135,6 +142,88 @@ async function buildReportCard(
   return data;
 }
 
+async function buildEnrollmentConfirmation(
+  studentId: string,
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>
+) {
+  const student = await UserModel.findById(studentId)
+    .select("name role instituteId studentMeta.classId studentMeta.rollNumber")
+    .lean();
+  if (!student || student.role !== "student") return null;
+
+  assertSameInstitute(student, session);
+
+  if (session.role === "student" && session.userId !== studentId) {
+    throw new Error("Resource not found");
+  }
+  if (!["institute-admin", "student"].includes(session.role)) {
+    throw new Error("Resource not found");
+  }
+
+  const [institute, klass, activeCourseCount] = await Promise.all([
+    InstituteModel.findById(student.instituteId).select("name").lean(),
+    student.studentMeta?.classId
+      ? ClassModel.findById(student.studentMeta.classId)
+          .select("name section academicYear")
+          .lean()
+      : null,
+    EnrollmentModel.countDocuments({
+      instituteId: student.instituteId,
+      studentId,
+      status: "active",
+    }),
+  ]);
+
+  const data: EnrollmentConfirmationData = {
+    instituteName: institute?.name ?? "Institute",
+    studentName: student.name,
+    rollNumber: student.studentMeta?.rollNumber ?? "",
+    className: klass ? `${klass.name}${klass.section ? ` - ${klass.section}` : ""}` : "-",
+    academicYear: klass?.academicYear ?? "",
+    activeCourseCount,
+    generatedDate: new Date().toLocaleDateString(),
+  };
+
+  return data;
+}
+
+async function buildFeeStatement(
+  studentId: string,
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>
+) {
+  if (session.role === "student" && session.userId !== studentId) {
+    throw new Error("Resource not found");
+  }
+  if (!["institute-admin", "student"].includes(session.role)) {
+    throw new Error("Resource not found");
+  }
+
+  const overview = await getStudentFeeOverview(studentId);
+  if (!overview) return null;
+
+  const institute = await InstituteModel.findById(session.instituteId).select("name").lean();
+
+  const data: FeeStatementData = {
+    instituteName: institute?.name ?? "Institute",
+    studentName: overview.student.name,
+    rollNumber: overview.student.rollNumber,
+    generatedDate: new Date().toLocaleDateString(),
+    totalDue: overview.totalDue,
+    totalPaid: overview.totalPaid,
+    balance: overview.balance,
+    fees: overview.fees.map((fee) => ({
+      title: fee.title,
+      amount: fee.amount,
+      discount: fee.discount,
+      paid: fee.paid,
+      balance: fee.balance,
+      dueDate: new Date(fee.dueDate).toLocaleDateString(),
+    })),
+  };
+
+  return data;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ type: string; id: string }> }
@@ -188,6 +277,50 @@ export async function GET(
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="report-card-${data.studentName.replace(/\s+/g, "-")}.pdf"`,
+      },
+    });
+  }
+
+  if (type === "enrollment-confirmation") {
+    let data: EnrollmentConfirmationData | null;
+    try {
+      data = await buildEnrollmentConfirmation(id, session);
+    } catch {
+      return NextResponse.json({ error: "Enrollment confirmation not found." }, { status: 404 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "Enrollment confirmation not found." }, { status: 404 });
+    }
+
+    const buffer = await renderToBuffer(<EnrollmentConfirmationDocument data={data} />);
+
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="enrollment-confirmation-${data.studentName.replace(/\s+/g, "-")}.pdf"`,
+      },
+    });
+  }
+
+  if (type === "fee-statement") {
+    let data: FeeStatementData | null;
+    try {
+      data = await buildFeeStatement(id, session);
+    } catch {
+      return NextResponse.json({ error: "Fee statement not found." }, { status: 404 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "Fee statement not found." }, { status: 404 });
+    }
+
+    const buffer = await renderToBuffer(<FeeStatementDocument data={data} />);
+
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="fee-statement-${data.studentName.replace(/\s+/g, "-")}.pdf"`,
       },
     });
   }

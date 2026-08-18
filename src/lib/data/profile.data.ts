@@ -8,7 +8,7 @@ export async function getMyProfile() {
 
   await connectToDatabase();
   const user = await UserModel.findById(session.userId)
-    .select("name email phone avatarUrl role employeeCode staffMeta studentMeta")
+    .select("name email phone avatarUrl role notificationPreferences employeeCode staffMeta studentMeta")
     .lean();
 
   if (!user) return null;
@@ -19,6 +19,11 @@ export async function getMyProfile() {
     phone: user.phone ?? "",
     avatarUrl: user.avatarUrl ?? "",
     role: user.role,
+    notificationPreferences: {
+      announcements: user.notificationPreferences?.announcements ?? true,
+      billing: user.notificationPreferences?.billing ?? true,
+      academic: user.notificationPreferences?.academic ?? true,
+    },
     staffMeta: user.staffMeta ?? null,
     studentMeta: user.studentMeta ?? null,
   };

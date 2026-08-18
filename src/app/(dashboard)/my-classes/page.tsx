@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { getSession } from "@/lib/auth/session";
 import { getMyClassForStudent } from "@/lib/data/class.data";
 import { listClassesForAttendanceTeacher } from "@/lib/data/attendance.data";
@@ -7,6 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
+
+type TimetableSlot = {
+  day?: string;
+  startTime?: string;
+  endTime?: string;
+  room?: string;
+};
 
 export default async function MyClassesPage() {
   const session = await getSession();
@@ -15,6 +24,7 @@ export default async function MyClassesPage() {
   }
 
   if (session.role === "institute-staff") {
+    await requireStaffModuleAccess("classes");
     const classes = await listClassesForAttendanceTeacher();
 
     return (
@@ -68,15 +78,24 @@ export default async function MyClassesPage() {
 
   if (session.role === "student") {
     const klass = await getMyClassForStudent();
+    const timetable = (klass?.timetable ?? []) as TimetableSlot[];
 
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">My Classes</h1>
+        <StudentWorkspaceHeader
+          eyebrow="Classroom hub"
+          title="My class"
+          description="Find your class details, teaching team, timetable, and live session access in one place."
+          metrics={[
+            { label: "Class assignment", value: klass ? "1" : "0", detail: klass ? `${klass.name}${klass.section ? ` - ${klass.section}` : ""}` : "Awaiting assignment", tone: klass ? "success" : "warning" },
+            { label: "Timetable slots", value: timetable.length, detail: "Scheduled class periods", tone: "primary" },
+          ]}
+        />
 
         {!klass ? (
           <p className="text-sm text-muted-foreground">You are not assigned to a class yet.</p>
         ) : (
-          <Card className="max-w-sm">
+          <Card className="max-w-2xl overflow-hidden">
             <CardHeader>
               <CardTitle>
                 {klass.name}
@@ -89,6 +108,16 @@ export default async function MyClassesPage() {
                 Class teacher:{" "}
                 {(klass.classTeacherId as unknown as { name?: string } | null)?.name ?? "Unassigned"}
               </p>
+              {timetable.length ? (
+                <div className="rounded-xl border border-border/60 bg-muted/35 px-3 py-3 text-sm text-muted-foreground">
+                  {timetable
+                    .map(
+                      (slot) =>
+                        `${slot.day?.slice(0, 1).toUpperCase()}${slot.day?.slice(1)} ${slot.startTime}–${slot.endTime}${slot.room ? ` · ${slot.room}` : ""}`
+                    )
+                    .join(" · ")}
+                </div>
+              ) : null}
               <Link
                 href={`/classes/${klass._id.toString()}/join`}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }), "self-start")}

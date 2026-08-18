@@ -1,11 +1,12 @@
 import { listSubjects } from "@/lib/data/subject.data";
 import { listStaff } from "@/lib/data/user.data";
 import { listClasses } from "@/lib/data/class.data";
-import { deleteSubject } from "@/lib/actions/subject.actions";
+import { bulkDeleteSubjects, deleteSubject } from "@/lib/actions/subject.actions";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { SubjectFormDialog } from "./new/subject-form-dialog";
 import { SubjectEditDialog } from "./[id]/edit/subject-edit-dialog";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -26,6 +27,8 @@ export default async function SubjectsPage() {
     id: String(klass._id),
     label: `${klass.name}${klass.section ? ` ${klass.section}` : ""}`,
   }));
+  const subjectsWithoutTeacher = subjects.filter((subject) => !subject.teacherId).length;
+  const subjectsWithoutClasses = subjects.filter((subject) => !subject.classIds?.length).length;
 
   const rows: DataTableRow[] = subjects.map((subject) => {
     const teacher = subject.teacherId as unknown as { name?: string } | null;
@@ -39,8 +42,13 @@ export default async function SubjectsPage() {
 
     return {
       key: String(subject._id),
+      bulkValue: String(subject._id),
       searchValue: `${subject.name} ${subject.code} ${teacher?.name ?? ""}`,
       sortValues: [subject.name, subject.code, null, null, null],
+      filterValues: {
+        teacherAssigned: teacher?.name ? "assigned" : "unassigned",
+        classAssigned: classes && classes.length > 0 ? "assigned" : "unassigned",
+      },
       cells: [
         <span key="name" className="font-medium">{subject.name}</span>,
         subject.code,
@@ -67,17 +75,39 @@ export default async function SubjectsPage() {
   });
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Subjects</h1>
-        <SubjectFormDialog teachers={teachers} classes={classOptions} />
-      </div>
-      <div className="mt-6">
+    <div className="flex flex-col gap-6">
+      <InstituteWorkspaceHeader title="Subject map" description="Connect subjects to the right teachers and classes before courses, exams, and attendance rely on them." actions={<SubjectFormDialog teachers={teachers} classes={classOptions} />} metrics={[{ label: "Subjects", value: subjects.length, detail: "Academic subject records", tone: "primary" }, { label: "Need a teacher", value: subjectsWithoutTeacher, detail: "Unassigned subject owners", tone: "warning" }, { label: "Need a class link", value: subjectsWithoutClasses, detail: "Not yet scheduled for a class", tone: "info" }]} />
+      <div>
         <DataTableCard
           columns={COLUMNS}
           rows={rows}
           searchPlaceholder="Search subjects..."
           emptyTitle="No subjects yet."
+          filters={[
+            {
+              key: "teacherAssigned",
+              label: "Teacher",
+              options: [
+                { value: "assigned", label: "Assigned" },
+                { value: "unassigned", label: "Unassigned" },
+              ],
+            },
+            {
+              key: "classAssigned",
+              label: "Class link",
+              options: [
+                { value: "assigned", label: "Assigned" },
+                { value: "unassigned", label: "Unassigned" },
+              ],
+            },
+          ]}
+          bulkActions={[
+            {
+              label: "Delete selected",
+              action: bulkDeleteSubjects,
+              buttonVariant: "destructive",
+            },
+          ]}
         />
       </div>
     </div>

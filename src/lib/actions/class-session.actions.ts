@@ -6,6 +6,7 @@ import ClassModel from "@/models/Class";
 import UserModel from "@/models/User";
 import AttendanceModel, { type AttendanceStatus } from "@/models/Attendance";
 import ClassAttemptModel from "@/models/ClassAttempt";
+import NotificationModel from "@/models/Notification";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { startOfToday } from "@/lib/data/class-session.data";
@@ -244,6 +245,57 @@ export async function endClass(
   return { success: true };
 }
 
+export async function cancelClassSession(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  requireRole(session, ["institute-staff"]);
+
+  const parsed = classSessionIdSchema.safeParse({ classId: formData.get("classId") });
+  if (!parsed.success) return;
+
+  await connectToDatabase();
+
+  const klass = await loadOwnedClass(parsed.data.classId, session);
+  if (!klass) return;
+
+  klass.sessionStatus = "cancelled";
+  klass.breakStatus = "none";
+  await klass.save();
+
+  const students = await UserModel.find({
+    instituteId: session.instituteId,
+    role: "student",
+    "studentMeta.classId": klass._id,
+    "notificationPreferences.academic": { $ne: false },
+  }).select("_id");
+
+  await NotificationModel.insertMany(
+    students.map((student) => ({
+      instituteId: session.instituteId,
+      userId: student._id,
+      type: "academic",
+      title: `Class cancelled: ${klass.name}`,
+      body: "Your class session has been cancelled. Check your calendar for updates.",
+      link: "/calendar",
+    })),
+    { ordered: false }
+  ).catch(() => null);
+
+  const actor = await UserModel.findById(session.userId).select("name");
+  await recordAuditEntry({
+    session,
+    actorName: actor?.name ?? "Unknown",
+    action: "class_session.cancel",
+    targetType: "Class",
+    targetId: klass._id.toString(),
+    targetName: klass.name,
+    summary: `Cancelled class session for "${klass.name}"`,
+    metadata: { notifiedStudents: students.length },
+  });
+
+  revalidatePath("/workspace");
+  revalidatePath(`/classes/${klass._id.toString()}/session`);
+}
+
 export async function joinClass(
   _prevState: ClassSessionState,
   formData: FormData
@@ -294,6 +346,31 @@ export async function joinClass(
   }
 
   revalidatePath(`/classes/${classId}/join`);
+  return { success: true };
+}
+
+export async function leaveClass(
+  _prevState: ClassSessionState,
+  formData: FormData
+): Promise<ClassSessionState> {
+  const session = await requireSession();
+  requireRole(session, ["student"]);
+  const parsed = classSessionIdSchema.safeParse({ classId: formData.get("classId") });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+
+  await connectToDatabase();
+  const attempt = await ClassAttemptModel.findOne({
+    classId: parsed.data.classId,
+    studentId: session.userId,
+    date: startOfToday(),
+    status: "active",
+  });
+  if (!attempt) return { error: "You have not joined this live session." };
+
+  attempt.status = "left";
+  attempt.leftAt = new Date();
+  await attempt.save();
+  revalidatePath(`/classes/${parsed.data.classId}/join`);
   return { success: true };
 }
 

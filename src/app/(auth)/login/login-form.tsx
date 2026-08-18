@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect } from "react";
+import { ArrowRight, KeyRound, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { login, type LoginState } from "@/lib/actions/auth.actions";
@@ -43,7 +44,16 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input {...field} type="email" autoComplete="email" />
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    {...field}
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@institute.edu"
+                    className="pl-10"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -56,14 +66,24 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input {...field} type="password" autoComplete="current-password" />
+                <div className="relative">
+                  <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    {...field}
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    className="pl-10"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={pending}>
-          {pending ? "Signing in..." : "Sign in"}
+        <Button type="submit" disabled={pending} className="mt-2">
+          <span>{pending ? "Signing in..." : "Sign in"}</span>
+          {!pending ? <ArrowRight className="size-4" /> : null}
         </Button>
       </form>
     </Form>

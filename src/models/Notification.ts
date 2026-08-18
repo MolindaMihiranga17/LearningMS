@@ -1,6 +1,6 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
-export const NOTIFICATION_TYPES = ["announcement", "billing", "trial"] as const;
+export const NOTIFICATION_TYPES = ["announcement", "academic", "billing", "trial"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 const notificationSchema = new Schema(

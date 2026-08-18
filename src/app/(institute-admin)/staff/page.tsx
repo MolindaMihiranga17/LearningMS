@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { StaffFormDialog } from "./new/staff-form-dialog";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -18,6 +19,8 @@ const COLUMNS = [
 
 export default async function StaffPage() {
   const staff = await listStaff();
+  const activeStaff = staff.filter((member) => member.status === "active").length;
+  const monthlyPayroll = staff.reduce((total, member) => total + (member.staffMeta?.basicSalary ?? 0), 0);
 
   const rows: DataTableRow[] = staff.map((member) => ({
     key: String(member._id),
@@ -51,12 +54,9 @@ export default async function StaffPage() {
   }));
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Staff</h1>
-        <StaffFormDialog />
-      </div>
-      <div className="mt-6">
+    <div className="flex flex-col gap-6">
+      <InstituteWorkspaceHeader title="Staff directory" description="Keep your teaching team, employment records, and payroll baseline organized in one workspace." actions={<StaffFormDialog />} metrics={[{ label: "Team members", value: staff.length, detail: "All staff records", tone: "primary" }, { label: "Active staff", value: activeStaff, detail: "Available for assignment", tone: "success" }, { label: "Payroll baseline", value: monthlyPayroll.toFixed(2), detail: "Basic salary per month", tone: "info" }]} />
+      <div>
         <DataTableCard
           columns={COLUMNS}
           rows={rows}

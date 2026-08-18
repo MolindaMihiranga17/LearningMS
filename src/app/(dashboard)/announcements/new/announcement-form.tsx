@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createAnnouncement,
@@ -46,7 +46,7 @@ export function AnnouncementForm({
     },
   });
 
-  const audience = form.watch("audience");
+  const audience = useWatch({ control: form.control, name: "audience" });
 
   useEffect(() => {
     if (state.error) toast.error("Could not post announcement", state.error);

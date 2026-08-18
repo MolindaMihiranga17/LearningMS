@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createPlan, updatePlan, type PlanFormState } from "@/lib/actions/subscription.actions";
@@ -92,6 +92,10 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
       isPublic: plan?.isPublic ?? true,
       sortOrder: plan?.sortOrder ?? 0,
     },
+  });
+  const [isActive, isPublic] = useWatch({
+    control: form.control,
+    name: ["isActive", "isPublic"],
   });
 
   useEffect(() => {
@@ -321,14 +325,14 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
         <div className="flex gap-4">
           <Label className="flex items-center gap-2 font-normal">
             <Checkbox
-              checked={form.watch("isActive")}
+              checked={Boolean(isActive)}
               onCheckedChange={(next) => form.setValue("isActive", Boolean(next))}
             />
             Active
           </Label>
           <Label className="flex items-center gap-2 font-normal">
             <Checkbox
-              checked={form.watch("isPublic")}
+              checked={Boolean(isPublic)}
               onCheckedChange={(next) => form.setValue("isPublic", Boolean(next))}
             />
             Public

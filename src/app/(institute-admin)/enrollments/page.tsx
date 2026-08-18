@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { BulkEnrollForm } from "./bulk-enroll-form";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
 
 const COLUMNS = [
   { key: "student", header: "Student" },
@@ -33,6 +34,8 @@ export default async function EnrollmentsPage() {
       label: teacher?.name ? `${course.title} (${teacher.name})` : course.title,
     };
   });
+  const activeEnrollments = enrollments.filter((enrollment) => enrollment.status === "active").length;
+  const averageProgress = enrollments.length ? Math.round(enrollments.reduce((total, enrollment) => total + (enrollment.progress?.percentComplete ?? 0), 0) / enrollments.length) : 0;
 
   const rows: DataTableRow[] = enrollments.map((enrollment) => {
     const student = enrollment.studentId as unknown as { name?: string; email?: string } | null;
@@ -59,11 +62,12 @@ export default async function EnrollmentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Enrollments</h1>
+      <InstituteWorkspaceHeader title="Course enrollments" description="Place whole classes into published courses and keep an eye on learning participation and progress." metrics={[{ label: "Enrollments", value: enrollments.length, detail: "Across published courses", tone: "primary" }, { label: "Active learners", value: activeEnrollments, detail: "Currently enrolled", tone: "success" }, { label: "Average progress", value: `${averageProgress}%`, detail: "Across all enrollments", tone: "info" }]} />
 
       <Card>
         <CardHeader>
           <CardTitle>Bulk enroll a class</CardTitle>
+          <p className="text-sm text-muted-foreground">Choose a class and course to add every eligible learner at once.</p>
         </CardHeader>
         <CardContent>
           <BulkEnrollForm classes={classOptions} courses={courseOptions} />
@@ -71,8 +75,9 @@ export default async function EnrollmentsPage() {
       </Card>
 
       <div>
-        <h2 className="mb-3 text-lg font-medium">Recent enrollments</h2>
         <DataTableCard
+          title="Enrollment activity"
+          sub="Search learners or courses to review the latest learning access records."
           columns={COLUMNS}
           rows={rows}
           searchPlaceholder="Search enrollments..."

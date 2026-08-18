@@ -7,6 +7,8 @@ import { NotificationBellServer } from "./notification-bell-server";
 import { ProfileHeaderServer } from "./profile-header-server";
 import { NAV_ACCENT, type NavKey } from "./nav-config";
 import { ImpersonationBanner } from "./impersonation-banner";
+import { connectToDatabase } from "@/lib/db/connect";
+import UserModel from "@/models/User";
 
 export { formatRole } from "./profile-header";
 
@@ -26,7 +28,7 @@ function ProfileHeaderSkeleton() {
   );
 }
 
-export function DashboardShell({
+export async function DashboardShell({
   navKey,
   userId,
   role,
@@ -41,28 +43,42 @@ export function DashboardShell({
   impersonatedByEmail?: string;
   children: React.ReactNode;
 }) {
+  let staffPermissions: Record<string, boolean> | undefined;
+  if (navKey === "institute-staff") {
+    await connectToDatabase();
+    const user = await UserModel.findById(userId).select("staffMeta.permissions").lean();
+    staffPermissions = user?.staffMeta?.permissions;
+  }
+
   return (
-    <div className="flex min-h-screen bg-background" style={{ "--sidebar-primary": NAV_ACCENT[navKey] } as React.CSSProperties}>
+    <div
+      className="relative flex min-h-screen overflow-hidden"
+      style={{ "--sidebar-primary": NAV_ACCENT[navKey] } as React.CSSProperties}
+    >
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_30%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_22%)]" />
       <input type="checkbox" id="mobile-nav-toggle" className="peer hidden" />
 
-      <nav className="shadow-sidebar fixed inset-y-0 left-0 z-50 flex w-62 shrink-0 -translate-x-full flex-col gap-1 bg-sidebar p-4 transition-transform duration-200 peer-checked:translate-x-0 lg:static lg:translate-x-0">
-        <div className="flex items-center gap-2.5 px-2 pb-5 pt-1.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-(--radius-icon) bg-sidebar-primary">
+      <nav className="sidebar-gradient shadow-sidebar fixed inset-y-0 left-0 z-50 m-3 flex w-[17rem] shrink-0 -translate-x-[calc(100%+1rem)] flex-col gap-1 rounded-[28px] border border-sidebar-border/80 p-4 transition-transform duration-200 peer-checked:translate-x-0 lg:relative lg:inset-y-auto lg:left-auto lg:h-auto lg:min-h-[calc(100vh-1.5rem)] lg:self-stretch lg:translate-x-0">
+        <div className="flex items-center gap-3 px-2 pb-5 pt-2">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-[1.1rem] bg-sidebar-primary shadow-button">
             <LayoutGrid className="size-[17px] text-sidebar-primary-foreground" />
           </div>
-          <span className="text-[16.5px] font-bold tracking-tight text-sidebar-foreground">
-            {brandName}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-[16.5px] font-bold tracking-tight text-sidebar-foreground">{brandName}</span>
+            <span className="text-[11px] font-semibold tracking-[0.1em] text-sidebar-foreground/45 uppercase">
+              Learning workspace
+            </span>
+          </div>
         </div>
 
-        <SidebarNav navKey={navKey} />
+        <SidebarNav navKey={navKey} staffPermissions={staffPermissions} />
 
         <div className="flex-1" />
 
         <form action={logout}>
           <button
             type="submit"
-            className="w-full rounded-lg px-3 py-2 text-left text-[13.5px] font-medium text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground/80"
+            className="w-full rounded-xl border border-transparent px-3 py-2.5 text-left text-[13.5px] font-medium text-sidebar-foreground/55 transition-colors hover:border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-foreground/90"
           >
             Log out
           </button>
@@ -75,16 +91,17 @@ export function DashboardShell({
         className="fixed inset-0 z-40 hidden bg-foreground/40 backdrop-blur-sm peer-checked:block lg:!hidden"
       />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
-        <div className="flex items-center justify-between lg:justify-end">
+      <div className="relative flex min-w-0 flex-1 flex-col gap-6 lg:pl-3">
+        <div className="sticky top-0 z-30 px-3 pt-3 sm:px-4 lg:px-0">
+          <div className="surface-subtle shadow-hairline flex h-16 items-center justify-between rounded-[24px] border border-border/70 px-4 backdrop-blur-xl sm:px-6 lg:justify-end">
           <label
             htmlFor="mobile-nav-toggle"
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted lg:hidden"
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-muted lg:hidden"
           >
             <Menu className="size-[18px]" />
           </label>
 
-          <div className="flex items-center gap-4.5">
+          <div className="flex items-center gap-3 sm:gap-4.5">
             <NavSearch navKey={navKey} />
             <Suspense fallback={<NotificationBellSkeleton />}>
               <NotificationBellServer />
@@ -94,9 +111,12 @@ export function DashboardShell({
             </Suspense>
           </div>
         </div>
+        </div>
 
-        {impersonatedByEmail !== undefined ? <ImpersonationBanner email={impersonatedByEmail} /> : null}
-        <main className="flex flex-col gap-6">{children}</main>
+        <div className="flex flex-1 flex-col gap-6 px-3 pb-4 sm:px-4 sm:pb-6 lg:px-0 lg:pb-8">
+          {impersonatedByEmail !== undefined ? <ImpersonationBanner email={impersonatedByEmail} /> : null}
+          <main className="mx-auto flex w-full max-w-[1520px] flex-col gap-6">{children}</main>
+        </div>
       </div>
     </div>
   );

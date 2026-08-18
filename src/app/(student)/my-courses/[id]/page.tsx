@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 const TYPE_LABEL: Record<string, string> = {
   video: "Video",
@@ -34,19 +35,20 @@ export default async function StudentCourseOverviewPage({
   const allLessons = course.modules.flatMap((courseModule: CourseModule) => courseModule.lessons);
   const nextLesson =
     allLessons.find((lesson: ModuleLesson) => !lesson.isComplete) ?? allLessons[0];
+  const completedLessons = allLessons.filter((lesson: ModuleLesson) => lesson.isComplete).length;
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{course.title}</h1>
-        {course.description ? (
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{course.description}</p>
-        ) : null}
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          {teacher?.name ? <span>Teacher: {teacher.name}</span> : null}
-          {subject?.name ? <span>Subject: {subject.name}</span> : null}
-        </div>
-      </div>
+      <StudentWorkspaceHeader
+        eyebrow={subject?.name ?? "My learning"}
+        title={course.title}
+        description={course.description ?? "Your course materials, assessments, and learning progress are all organised here."}
+        metrics={[
+          { label: "Course progress", value: `${course.percentComplete}%`, detail: "Lessons marked complete", tone: course.percentComplete === 100 ? "success" : "primary" },
+          { label: "Lessons complete", value: `${completedLessons}/${allLessons.length}`, detail: "Across all modules", tone: "info" },
+          { label: "Teaching team", value: teacher?.name ? "1" : "-", detail: teacher?.name ?? "Teacher not assigned", tone: "success" },
+        ]}
+      />
 
       <div className="flex items-center gap-4">
         <div className="h-2 w-64 overflow-hidden rounded-full bg-muted">

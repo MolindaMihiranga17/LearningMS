@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import UserModel from "@/models/User";
 import { requireSession } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
-import { updateProfileSchema } from "@/lib/validation/profile.schema";
+import { notificationPreferencesSchema, updateProfileSchema } from "@/lib/validation/profile.schema";
 
 export type UpdateProfileState = {
   error?: string;
@@ -58,5 +58,27 @@ export async function updateProfile(
 
   revalidatePath("/settings");
 
+  return { success: true };
+}
+
+export async function updateNotificationPreferences(
+  _previous: UpdateProfileState,
+  formData: FormData
+): Promise<UpdateProfileState> {
+  const session = await requireSession();
+  const parsed = notificationPreferencesSchema.safeParse({
+    announcements: formData.get("announcements") === "on",
+    billing: formData.get("billing") === "on",
+    academic: formData.get("academic") === "on",
+  });
+  if (!parsed.success) return { error: "Invalid notification preferences." };
+  await connectToDatabase();
+  const user = await UserModel.findById(session.userId);
+  if (!user) return { error: "User not found." };
+  const before = user.notificationPreferences?.toObject?.() ?? user.notificationPreferences;
+  user.notificationPreferences = parsed.data;
+  await user.save();
+  await recordAuditEntry({ session, actorName: user.name, action: "profile.notification_preferences", targetType: "User", targetId: String(user._id), targetName: user.name, summary: "Updated notification preferences", before, after: parsed.data });
+  revalidatePath("/settings");
   return { success: true };
 }

@@ -15,6 +15,10 @@ export const createClassSchema = z.object({
     .regex(OBJECT_ID_RE, "Invalid teacher selection.")
     .optional()
     .or(z.literal("")),
+  timetableDay: z.string().optional().or(z.literal("")),
+  timetableStart: z.string().optional().or(z.literal("")),
+  timetableEnd: z.string().optional().or(z.literal("")),
+  timetableRoom: z.string().trim().optional().or(z.literal("")),
 });
 
 export type CreateClassInput = z.infer<typeof createClassSchema>;

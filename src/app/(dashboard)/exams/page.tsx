@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { getSession } from "@/lib/auth/session";
 import { listExamsForInstitute, listExamsForTeacher } from "@/lib/data/exam.data";
 import { listSubjects } from "@/lib/data/subject.data";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { ExamFormDialog } from "./new/exam-form-dialog";
 import { ExamEditDialog } from "./[id]/edit/exam-edit-dialog";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
 
 const ADMIN_COLUMNS = [
   { key: "title", header: "Title" },
@@ -52,6 +54,8 @@ export default async function ExamsPage() {
       name: klass.name,
       section: klass.section,
     }));
+    const upcomingExams = exams.filter((exam) => new Date(exam.examDate) >= new Date()).length;
+    const scheduledClasses = new Set(exams.map((exam) => String(exam.classId))).size;
 
     const rows: DataTableRow[] = exams.map((exam) => {
       const subject = (exam.subjectId as unknown as { name?: string } | null)?.name;
@@ -88,24 +92,22 @@ export default async function ExamsPage() {
     });
 
     return (
-      <>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Exams</h1>
-          <ExamFormDialog subjects={subjects} classes={classes} />
-        </div>
-        <div className="mt-6">
+      <div className="flex flex-col gap-6">
+          <InstituteWorkspaceHeader eyebrow="Academic assessment" title="Exam schedule" description="Build a reliable assessment calendar, then keep every class and subject ready for marks entry." actions={<ExamFormDialog subjects={subjects} classes={classes} />} metrics={[{ label: "Scheduled exams", value: exams.length, detail: "All assessment records", tone: "primary" }, { label: "Upcoming exams", value: upcomingExams, detail: "Still ahead on the calendar", tone: "success" }, { label: "Classes covered", value: scheduledClasses, detail: "With a scheduled assessment", tone: "info" }]} />
           <DataTableCard
+            title="Exam calendar"
+            sub="Search by exam or subject and keep dates, marks, and ownership accurate."
             columns={ADMIN_COLUMNS}
             rows={rows}
             searchPlaceholder="Search exams..."
             emptyTitle="No exams scheduled yet."
           />
-        </div>
-      </>
+      </div>
     );
   }
 
   if (session.role === "institute-staff") {
+    await requireStaffModuleAccess("subjects");
     const exams = await listExamsForTeacher();
 
     const rows: DataTableRow[] = exams.map((exam) => {

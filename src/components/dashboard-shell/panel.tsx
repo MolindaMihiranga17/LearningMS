@@ -15,10 +15,13 @@ export function Panel({
 }) {
   return (
     <div
-      className={cn("shadow-panel rounded-2xl bg-card", className)}
+      className={cn(
+        "surface-subtle shadow-panel rounded-[26px] border border-border/70 bg-card/95 backdrop-blur-sm",
+        className
+      )}
     >
       {title ? (
-        <div className="flex items-start justify-between gap-4 px-6 pt-5">
+        <div className="flex items-start justify-between gap-4 px-6 pt-5.5">
           <div>
             <div className="text-heading text-[15px] text-foreground">{title}</div>
             {sub ? <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div> : null}

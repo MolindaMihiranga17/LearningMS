@@ -25,7 +25,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "shadow-hairline flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3.5 py-2 text-base text-foreground transition-colors outline-none data-[size=default]:h-11 data-[size=sm]:h-9 data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/15 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30",
+        "shadow-hairline flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-background/92 px-3.5 py-2 text-base text-foreground transition-[border-color,box-shadow,background-color] outline-none data-[size=default]:h-11 data-[size=sm]:h-9 data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:bg-background focus-visible:ring-4 focus-visible:ring-ring/15 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30",
         className
       )}
       {...props}
@@ -84,7 +84,7 @@ function SelectPopup({ className, children, ...props }: SelectPrimitive.Popup.Pr
         <SelectPrimitive.Popup
           data-slot="select-popup"
           className={cn(
-            "shadow-panel max-h-[min(24rem,var(--available-height))] min-w-[var(--anchor-width)] origin-[var(--transform-origin)] overflow-y-auto rounded-xl border border-border bg-card p-1 text-card-foreground outline-none transition-[transform,scale,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
+            "shadow-panel max-h-[min(24rem,var(--available-height))] min-w-[var(--anchor-width)] origin-[var(--transform-origin)] overflow-y-auto rounded-2xl border border-border bg-card/95 p-1 text-card-foreground outline-none backdrop-blur-sm transition-[transform,scale,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
             className
           )}
           {...props}

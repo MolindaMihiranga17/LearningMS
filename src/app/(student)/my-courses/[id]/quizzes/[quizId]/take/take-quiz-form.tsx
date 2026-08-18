@@ -36,10 +36,7 @@ export function TakeQuizForm({
       <input type="hidden" name="attemptId" value={attemptId} />
       <input type="hidden" name="answers" value={answersPayload} />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{quizTitle}</h1>
-        <CountdownTimer expiresAt={expiresAt} onExpire={handleExpire} />
-      </div>
+      <div className="surface-subtle rounded-[28px] border border-border/70 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-eyebrow text-primary">Assessment in progress</p><h1 className="text-heading mt-2 text-2xl">{quizTitle}</h1><p className="mt-1 text-sm text-muted-foreground">Answer every question, then submit when you are ready.</p></div><CountdownTimer expiresAt={expiresAt} onExpire={handleExpire} /></div><p className="mt-4 text-xs font-medium text-muted-foreground">{questions.length} question{questions.length === 1 ? "" : "s"} in this quiz</p></div>
 
       <div className="flex flex-col gap-4">
         {questions.map((question, index) => (

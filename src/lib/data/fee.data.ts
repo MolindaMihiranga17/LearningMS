@@ -1,6 +1,7 @@
 import "server-only";
 import { connectToDatabase } from "@/lib/db/connect";
 import FeeModel from "@/models/Fee";
+import FeeConcessionModel from "@/models/FeeConcession";
 import PaymentModel from "@/models/Payment";
 import UserModel from "@/models/User";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
@@ -62,6 +63,12 @@ export async function getStudentFeeOverview(studentId: string) {
     .populate("feeId", "title")
     .sort({ paymentDate: -1 })
     .lean();
+  const concessions = await FeeConcessionModel.find({
+    instituteId: session.instituteId,
+    studentId: student._id,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
 
   const paidByFee = new Map<string, number>();
   for (const payment of payments) {
@@ -76,19 +83,28 @@ export async function getStudentFeeOverview(studentId: string) {
 
   const feesWithBalance = fees.map((fee) => {
     const paid = paidByFee.get(fee._id.toString()) ?? 0;
+    const discount = concessions
+      .filter((concession) => !concession.feeId || concession.feeId.toString() === fee._id.toString())
+      .reduce((sum, concession) => {
+        const amount = concession.type === "percent" ? fee.amount * (concession.value / 100) : concession.value;
+        return sum + Math.min(fee.amount, amount);
+      }, 0);
+    const netAmount = Math.max(0, fee.amount - discount);
     return {
       id: fee._id.toString(),
       title: fee.title,
       amount: fee.amount,
+      discount,
+      netAmount,
       dueDate: fee.dueDate,
       academicYear: fee.academicYear,
       frequency: fee.frequency,
       paid,
-      balance: fee.amount - paid,
+      balance: netAmount - paid,
     };
   });
 
-  const totalDue = fees.reduce((sum, fee) => sum + fee.amount, 0);
+  const totalDue = feesWithBalance.reduce((sum, fee) => sum + fee.netAmount, 0);
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   return {
@@ -108,6 +124,14 @@ export async function getStudentFeeOverview(studentId: string) {
         payment.feeId && typeof payment.feeId === "object" && "title" in payment.feeId
           ? (payment.feeId as { title: string }).title
           : null,
+    })),
+    concessions: concessions.map((concession) => ({
+      id: concession._id.toString(),
+      title: concession.title,
+      type: concession.type,
+      value: concession.value,
+      reason: concession.reason ?? "",
+      feeId: concession.feeId?.toString() ?? null,
     })),
     totalDue,
     totalPaid,

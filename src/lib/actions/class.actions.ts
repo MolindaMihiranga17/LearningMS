@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import ClassModel from "@/models/Class";
 import UserModel from "@/models/User";
@@ -28,13 +29,17 @@ export async function createClass(
     section: formData.get("section"),
     academicYear: formData.get("academicYear"),
     classTeacherId: formData.get("classTeacherId"),
+    timetableDay: formData.get("timetableDay"),
+    timetableStart: formData.get("timetableStart"),
+    timetableEnd: formData.get("timetableEnd"),
+    timetableRoom: formData.get("timetableRoom"),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { name, section, academicYear, classTeacherId } = parsed.data;
+  const { name, section, academicYear, classTeacherId, timetableDay, timetableStart, timetableEnd, timetableRoom } = parsed.data;
 
   await connectToDatabase();
 
@@ -55,6 +60,7 @@ export async function createClass(
     section: section || undefined,
     academicYear,
     classTeacherId: classTeacherId || undefined,
+    timetable: timetableDay && timetableStart && timetableEnd ? [{ day: timetableDay, startTime: timetableStart, endTime: timetableEnd, room: timetableRoom || undefined }] : [],
     createdBy: session.userId,
   });
 
@@ -191,6 +197,44 @@ export async function deleteClass(formData: FormData): Promise<void> {
     targetName: klass.name,
     summary: `Deleted class "${klass.name}"`,
     before: { name: klass.name, section: klass.section, academicYear: klass.academicYear },
+  });
+
+  revalidatePath("/classes");
+}
+
+export async function bulkDeleteClasses(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  const ids = formData
+    .getAll("ids")
+    .map((value) => String(value).trim())
+    .filter((value) => mongoose.isValidObjectId(value));
+
+  if (ids.length === 0) return;
+
+  await connectToDatabase();
+
+  const classes = await ClassModel.find(
+    withTenantScope({ _id: { $in: ids } }, session)
+  ).select("name section academicYear");
+  if (classes.length === 0) return;
+
+  await ClassModel.deleteMany({ _id: { $in: classes.map((klass) => klass._id) } });
+
+  const actor = await UserModel.findById(session.userId).select("name");
+  await recordAuditEntry({
+    session,
+    actorName: actor?.name ?? "Unknown",
+    action: "class.bulk-delete",
+    targetType: "Class",
+    summary: `Deleted ${classes.length} classes`,
+    before: classes.map((klass) => ({
+      id: String(klass._id),
+      name: klass.name,
+      section: klass.section,
+      academicYear: klass.academicYear,
+    })),
   });
 
   revalidatePath("/classes");

@@ -5,6 +5,7 @@ import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Wallet, TrendingDown, TrendingUp, PiggyBank } from "lucide-react";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { IncomeFormDialog } from "./new/income-form-dialog";
+import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -34,10 +35,7 @@ export default async function IncomePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Income</h1>
-        <IncomeFormDialog />
-      </div>
+      <InstituteWorkspaceHeader eyebrow="Finance operations" title="Income overview" description="Capture income beyond student payments and see how revenue, operating costs, and payroll shape institute health." actions={<IncomeFormDialog />} metrics={[{ label: "Revenue collected", value: stats.totalRevenue.toFixed(2), detail: "Student fee payments", tone: "success" }, { label: "Extra income", value: stats.totalExtraIncome.toFixed(2), detail: "Non-fee income recorded", tone: "info" }, { label: "Net position", value: stats.netIncome.toFixed(2), detail: "After expenses and salary", tone: stats.netIncome >= 0 ? "primary" : "warning" }]} />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
@@ -67,6 +65,8 @@ export default async function IncomePage() {
       </div>
 
       <DataTableCard
+        title="Additional income"
+        sub="Keep one-off and supplementary income visible alongside core fee revenue."
         columns={COLUMNS}
         rows={rows}
         searchPlaceholder="Search income..."

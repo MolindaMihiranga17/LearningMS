@@ -7,6 +7,7 @@ import SubjectModel from "@/models/Subject";
 import PaymentModel from "@/models/Payment";
 import ExpenseModel from "@/models/Expense";
 import ExtraIncomeModel from "@/models/ExtraIncome";
+import SubscriptionModel from "@/models/Subscription";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
 import { sweepExpiredTrials, sweepTrialsExpiringSoon, notifyOverdueInvoices } from "@/lib/subscription/lifecycle";
 
@@ -19,6 +20,120 @@ export async function listInstitutes() {
   await sweepTrialsExpiringSoon();
   await notifyOverdueInvoices();
   return InstituteModel.find().sort({ createdAt: -1 }).lean();
+}
+
+export type InstituteDirectoryItem = {
+  id: string;
+  name: string;
+  code: string;
+  status: "trial" | "active" | "past_due" | "suspended" | "cancelled";
+  contactEmail?: string;
+  phone?: string;
+  createdAt?: Date;
+  students: number;
+  staff: number;
+  admins: number;
+  classes: number;
+  planId?: string;
+  planName?: string;
+  subscriptionStatus?: string;
+  trialEndsAt?: Date;
+  currentPeriodEnd?: Date;
+  attention: "healthy" | "trial-ending" | "needs-admin" | "past-due" | "suspended" | "unconfigured";
+};
+
+export type InstituteDirectorySummary = {
+  total: number;
+  active: number;
+  trial: number;
+  needsAttention: number;
+  totalStudents: number;
+};
+
+/** Builds the super-admin directory without requiring a per-institute query for usage. */
+export async function getInstituteDirectory(): Promise<{
+  institutes: InstituteDirectoryItem[];
+  summary: InstituteDirectorySummary;
+}> {
+  const session = await requireSession();
+  requireRole(session, ["super-admin"]);
+
+  await connectToDatabase();
+  await sweepExpiredTrials();
+  await sweepTrialsExpiringSoon();
+  await notifyOverdueInvoices();
+
+  const [institutes, userCounts, classCounts, subscriptions] = await Promise.all([
+    InstituteModel.find().sort({ createdAt: -1 }).lean(),
+    UserModel.aggregate<{ _id: { instituteId: unknown; role: string }; count: number }>([
+      { $match: { instituteId: { $ne: null }, role: { $in: ["student", "institute-staff", "institute-admin"] } } },
+      { $group: { _id: { instituteId: "$instituteId", role: "$role" }, count: { $sum: 1 } } },
+    ]),
+    ClassModel.aggregate<{ _id: unknown; count: number }>([
+      { $group: { _id: "$instituteId", count: { $sum: 1 } } },
+    ]),
+    SubscriptionModel.find().populate("planId", "name").lean(),
+  ]);
+
+  const peopleByInstitute = new Map<string, { students: number; staff: number; admins: number }>();
+  for (const record of userCounts) {
+    const id = String(record._id.instituteId);
+    const current = peopleByInstitute.get(id) ?? { students: 0, staff: 0, admins: 0 };
+    if (record._id.role === "student") current.students = record.count;
+    if (record._id.role === "institute-staff") current.staff = record.count;
+    if (record._id.role === "institute-admin") current.admins = record.count;
+    peopleByInstitute.set(id, current);
+  }
+  const classesByInstitute = new Map(classCounts.map((record) => [String(record._id), record.count]));
+  const subscriptionsByInstitute = new Map(subscriptions.map((subscription) => [String(subscription.instituteId), subscription]));
+  const now = new Date();
+  const soon = new Date(now);
+  soon.setDate(soon.getDate() + 7);
+
+  const directory = institutes.map((institute) => {
+    const id = String(institute._id);
+    const people = peopleByInstitute.get(id) ?? { students: 0, staff: 0, admins: 0 };
+    const subscription = subscriptionsByInstitute.get(id);
+    const plan = subscription?.planId as unknown as { _id?: unknown; name?: string } | null | undefined;
+    const trialEnding = subscription?.status === "trialing" && subscription.trialEndsAt && subscription.trialEndsAt <= soon;
+    let attention: InstituteDirectoryItem["attention"] = "healthy";
+    if (institute.status === "suspended" || institute.status === "cancelled") attention = "suspended";
+    else if (institute.status === "past_due" || subscription?.status === "past_due") attention = "past-due";
+    else if (people.admins === 0) attention = "needs-admin";
+    else if (trialEnding) attention = "trial-ending";
+    else if (!subscription) attention = "unconfigured";
+
+    return {
+      id,
+      name: institute.name,
+      code: institute.code,
+      status: institute.status,
+      contactEmail: institute.contactEmail ?? undefined,
+      phone: institute.phone ?? undefined,
+      createdAt: institute.createdAt ?? undefined,
+      students: people.students,
+      staff: people.staff,
+      admins: people.admins,
+      classes: classesByInstitute.get(id) ?? 0,
+      planId: plan?._id ? String(plan._id) : undefined,
+      planName: plan?.name,
+      subscriptionStatus: subscription?.status,
+      trialEndsAt: subscription?.trialEndsAt ?? undefined,
+      currentPeriodEnd: subscription?.currentPeriodEnd ?? undefined,
+      attention,
+    };
+  });
+
+  return {
+    institutes: directory,
+    summary: {
+      total: directory.length,
+      active: directory.filter((institute) => institute.status === "active").length,
+      trial: directory.filter((institute) => institute.status === "trial").length,
+      needsAttention: directory.filter((institute) => institute.attention !== "healthy").length,
+      totalStudents: directory.reduce((total, institute) => total + institute.students, 0),
+    },
+  };
 }
 
 export async function getInstituteById(id: string) {

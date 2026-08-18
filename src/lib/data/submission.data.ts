@@ -38,6 +38,22 @@ export async function listSubmissionsForAssignment(assignmentId: string) {
   return { assignment, course, submissions: submissionsWithUrls };
 }
 
+export async function listUngradedSubmissionsForTeacher(limit = 50) {
+  const session = await requireSession();
+  requireRole(session, ["institute-staff"]);
+  await connectToDatabase();
+  const submissions = await SubmissionModel.find({ instituteId: session.instituteId, status: "submitted" })
+    .populate("assignmentId", "title maxScore teacherId courseId")
+    .populate("studentId", "name email")
+    .sort({ submittedAt: 1 })
+    .limit(limit)
+    .lean();
+  return submissions.filter((submission) => {
+    const assignment = submission.assignmentId as unknown as { teacherId?: { toString(): string } } | null;
+    return assignment?.teacherId?.toString() === session.userId;
+  });
+}
+
 export async function getSubmissionForStudent(assignmentId: string) {
   const session = await requireSession();
   requireRole(session, ["student"]);

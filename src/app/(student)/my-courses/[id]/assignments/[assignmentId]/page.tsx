@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAssignmentForStudent } from "@/lib/data/assignment.data";
 import { getSubmissionForStudent } from "@/lib/data/submission.data";
 import { SubmissionForm } from "./submission-form";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 export default async function StudentAssignmentDetailPage({
   params,
@@ -21,18 +22,9 @@ export default async function StudentAssignmentDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href={`/my-courses/${id}/assignments`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          &larr; Assignments
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{assignment.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{assignment.courseTitle}</p>
-      </div>
+      <StudentWorkspaceHeader eyebrow={assignment.courseTitle} title={assignment.title} description="Read the brief, submit your work, and return here for feedback once it has been reviewed." actions={<Link href={`/my-courses/${id}/assignments`} className="text-sm font-medium text-primary hover:underline">Back to assignments</Link>} metrics={[{ label: "Due", value: new Date(assignment.dueAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }), detail: "Submission deadline", tone: "warning" }, { label: "Max score", value: assignment.maxScore, detail: "Points available", tone: "primary" }, { label: "Status", value: submission?.status === "graded" ? "Graded" : submission ? "Sent" : "Open", detail: submission?.status === "graded" ? "Feedback available" : "Submit when ready", tone: submission?.status === "graded" ? "success" : "info" }]} />
 
-      <div className="rounded-xl border border-border p-4">
+      <div className="surface-subtle rounded-2xl border border-border/70 p-5">
         {assignment.instructions ? (
           <p className="mb-3 whitespace-pre-wrap text-sm leading-relaxed">
             {assignment.instructions}
@@ -50,7 +42,7 @@ export default async function StudentAssignmentDetailPage({
       </div>
 
       {submission?.status === "graded" ? (
-        <div className="rounded-xl border border-border p-4">
+        <div className="rounded-2xl border border-success/25 bg-success-subtle/25 p-5">
           <p className="text-sm text-muted-foreground">Grade</p>
           <p className="text-3xl font-semibold">
             {submission.grade?.score} / {assignment.maxScore}
