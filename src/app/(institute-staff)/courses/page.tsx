@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { listCoursesForTeacher } from "@/lib/data/course.data";
 import { listSubjectsForTeacher } from "@/lib/data/subject.data";
 import { listClassesForTeacher } from "@/lib/data/class.data";
@@ -23,6 +24,8 @@ const COLUMNS = [
 ];
 
 export default async function CoursesPage() {
+  await requireStaffModuleAccess("subjects");
+
   const [courses, subjectsList, classesList] = await Promise.all([
     listCoursesForTeacher(),
     listSubjectsForTeacher(),
