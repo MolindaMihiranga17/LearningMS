@@ -10,7 +10,6 @@ import {
   Wallet,
   FileText,
   Megaphone,
-  Bell,
   TrendingDown,
   PiggyBank,
   CreditCard,
@@ -37,13 +36,21 @@ import {
   getRecentFeeCollectionSummary,
   listRecentPaymentsForInstitute,
 } from "@/lib/data/payment.data";
+import {
+  getAdminFeatureSnapshot,
+  getStudentFeatureSnapshot,
+  getTeacherFeatureSnapshot,
+} from "@/lib/data/feature-plan.data";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
 import { AttendanceChart } from "@/components/dashboard-shell/attendance-chart";
 import { TrendChart } from "@/components/dashboard-shell/trend-chart";
 import { ActivityFeed, type ActivityItem } from "@/components/dashboard-shell/activity-feed";
+import { AttentionList } from "@/components/dashboard-shell/attention-list";
 import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { StudentHome } from "@/components/student/student-home";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 
 function formatRelativeTime(date: Date) {
   const seconds = Math.round((Date.now() - new Date(date).getTime()) / 1000);
@@ -54,6 +61,27 @@ function formatRelativeTime(date: Date) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.round(hours / 24);
   return `${days}d ago`;
+}
+
+function formatDate(date: Date) {
+  return new Date(date).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(date: Date) {
+  return new Date(date).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatWeekday(day: string) {
+  return day ? `${day.slice(0, 1).toUpperCase()}${day.slice(1)}` : "Day";
 }
 
 const ACTIVITY_ICON = {
@@ -86,6 +114,7 @@ export default async function DashboardPage() {
       feeSummary,
       recentPayments,
       financeSummary,
+      featureSnapshot,
     ] = await Promise.all([
       getInstituteDashboardCounts(),
       getInstituteRecentActivity(),
@@ -94,6 +123,7 @@ export default async function DashboardPage() {
       getRecentFeeCollectionSummary(),
       listRecentPaymentsForInstitute(5),
       getInstituteFinanceSummary(),
+      getAdminFeatureSnapshot(),
     ]);
 
     const activityItems: ActivityItem[] = activity.map((entry) => {
@@ -131,6 +161,58 @@ export default async function DashboardPage() {
         new Date(payment.paymentDate).toLocaleDateString(),
       ],
     }));
+
+    const coverageRows: DataTableRow[] = featureSnapshot.timetableCoverage.map((row) => ({
+      key: row.id,
+      cells: [row.className, row.classTeacher, row.academicYear, row.slotCount],
+    }));
+    const adminAttentionItems = [
+      featureSnapshot.financeSignals.overdueFees > 0
+        ? {
+            id: "overdue-fees",
+            title: "Overdue fee collection needs action",
+            detail: `${featureSnapshot.financeSignals.overdueFees} fee item${
+              featureSnapshot.financeSignals.overdueFees === 1 ? "" : "s"
+            } remain overdue across the institute.`,
+            badge: featureSnapshot.financeSignals.overdueAmount.toFixed(2),
+            href: "/fees",
+          }
+        : null,
+      featureSnapshot.financeSignals.unassignedSubjects > 0
+        ? {
+            id: "unassigned-subjects",
+            title: "Subjects are missing teacher owners",
+            detail: `${featureSnapshot.financeSignals.unassignedSubjects} subject${
+              featureSnapshot.financeSignals.unassignedSubjects === 1 ? "" : "s"
+            } still need a teacher assignment.`,
+            badge: String(featureSnapshot.financeSignals.unassignedSubjects),
+            href: "/subjects",
+          }
+        : null,
+      featureSnapshot.financeSignals.unassignedClasses > 0
+        ? {
+            id: "unassigned-classes",
+            title: "Classes are missing class teachers",
+            detail: `${featureSnapshot.financeSignals.unassignedClasses} class${
+              featureSnapshot.financeSignals.unassignedClasses === 1 ? "" : "es"
+            } need a class teacher.`,
+            badge: String(featureSnapshot.financeSignals.unassignedClasses),
+            href: "/classes",
+          }
+        : null,
+      featureSnapshot.upcomingExams.length > 0
+        ? {
+            id: "upcoming-exams",
+            title: "Upcoming exams should be reviewed",
+            detail: `${featureSnapshot.upcomingExams.length} exam${
+              featureSnapshot.upcomingExams.length === 1 ? "" : "s"
+            } are on the near-term calendar.`,
+            badge: formatDate(featureSnapshot.upcomingExams[0].examDate),
+            badgeVariant: "secondary" as const,
+            href: "/exams",
+          }
+        : null,
+    ].filter((value): value is NonNullable<typeof value> => Boolean(value));
 
     return (
       <>
@@ -200,6 +282,138 @@ export default async function DashboardPage() {
           rows={classRows}
         />
 
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <AttentionList
+            title="Needs attention"
+            sub="Operational and academic issues to resolve next"
+            items={adminAttentionItems}
+            emptyLabel="No urgent admin issues are active right now."
+          />
+
+          <Panel
+            title="Academic control center"
+            sub="Upcoming term activity, holidays, exams, and deadlines"
+            className="p-5"
+            action={
+              <Link href="/calendar" className="text-xs font-semibold text-success">
+                Open calendar &rarr;
+              </Link>
+            }
+          >
+            <div className="mt-4 flex flex-col gap-3">
+              {featureSnapshot.academicEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No upcoming academic events scheduled.</p>
+              ) : (
+                featureSnapshot.academicEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">{formatDateTime(event.startsAt)}</p>
+                    </div>
+                    <Badge
+                      variant={
+                        event.type === "exam"
+                          ? "warning"
+                          : event.type === "holiday"
+                            ? "secondary"
+                            : "default"
+                      }
+                      className="capitalize"
+                    >
+                      {event.type}
+                    </Badge>
+                  </div>
+                ))
+              )}
+            </div>
+          </Panel>
+
+          <Panel title="Operations signals" sub="Coverage and finance items that need attention" className="p-5">
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border/60 p-3">
+                <p className="text-xs text-muted-foreground">Overdue fees</p>
+                <p className="mt-1 text-xl font-semibold">{featureSnapshot.financeSignals.overdueFees}</p>
+                <p className="text-xs text-muted-foreground">
+                  {featureSnapshot.financeSignals.overdueAmount.toFixed(2)} outstanding
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 p-3">
+                <p className="text-xs text-muted-foreground">Subjects without teacher</p>
+                <p className="mt-1 text-xl font-semibold">{featureSnapshot.financeSignals.unassignedSubjects}</p>
+              </div>
+              <div className="rounded-xl border border-border/60 p-3">
+                <p className="text-xs text-muted-foreground">Classes without teacher</p>
+                <p className="mt-1 text-xl font-semibold">{featureSnapshot.financeSignals.unassignedClasses}</p>
+              </div>
+              <div className="rounded-xl border border-border/60 p-3">
+                <p className="text-xs text-muted-foreground">Upcoming exams</p>
+                <p className="mt-1 text-xl font-semibold">{featureSnapshot.upcomingExams.length}</p>
+              </div>
+            </div>
+          </Panel>
+        </div>
+
+        <DataTableCard
+          title="Timetable coverage"
+          sub="Classes, assigned teachers, and configured schedule slots"
+          compact
+          columns={[
+            { key: "class", header: "Class" },
+            { key: "teacher", header: "Teacher" },
+            { key: "year", header: "Academic Year" },
+            { key: "slots", header: "Slots" },
+          ]}
+          rows={coverageRows}
+          emptyTitle="No classes configured yet."
+        />
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <Panel title="Upcoming exams" sub="Scheduled institute assessments" className="p-5">
+            <div className="mt-4 flex flex-col gap-3">
+              {featureSnapshot.upcomingExams.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No exams scheduled.</p>
+              ) : (
+                featureSnapshot.upcomingExams.map((exam) => (
+                  <div key={exam.id} className="rounded-xl border border-border/60 px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">{exam.title}</p>
+                      <span className="text-xs text-muted-foreground">{formatDate(exam.examDate)}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {exam.subjectName} Â· {exam.className}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </Panel>
+
+          <Panel title="Recent announcements" sub="Latest published institute communication" className="p-5">
+            <div className="mt-4 flex flex-col gap-3">
+              {featureSnapshot.recentAnnouncements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No announcements published yet.</p>
+              ) : (
+                featureSnapshot.recentAnnouncements.map((announcement) => (
+                  <div key={announcement.id} className="rounded-xl border border-border/60 px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">{announcement.title}</p>
+                      <Badge variant="outline" className="capitalize">
+                        {announcement.audience}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Published {formatDateTime(announcement.publishedAt)}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </Panel>
+        </div>
+
         <DataTableCard
           title="Recent payments"
           sub="Latest fee payments recorded across your institute"
@@ -217,10 +431,13 @@ export default async function DashboardPage() {
   }
 
   if (session.role === "institute-staff") {
-    const [data, activity, attendanceSummary] = await Promise.all([
+    await requireStaffModuleAccess("dashboard");
+
+    const [data, activity, attendanceSummary, featureSnapshot] = await Promise.all([
       getTeacherDashboardData(),
       getTeacherRecentActivity(),
       getAttendanceSummaryForTeacherClasses(),
+      getTeacherFeatureSnapshot(),
     ]);
 
     const rows: DataTableRow[] = data.rows.map((row) => ({
@@ -245,6 +462,66 @@ export default async function DashboardPage() {
       };
     });
 
+    const gradingRows: DataTableRow[] = featureSnapshot.gradingQueue.map((row) => ({
+      key: row.id,
+      cells: [
+        row.assignmentTitle,
+        row.studentName,
+        formatDateTime(row.submittedAt),
+        <Link
+          key="action"
+          href={`/courses/${row.courseId}/assignments/${row.assignmentId}/submissions`}
+          className="text-xs font-semibold text-success"
+        >
+          Review
+        </Link>,
+      ],
+    }));
+    const teacherAttentionItems = [
+      featureSnapshot.gradingQueue.length > 0
+        ? {
+            id: "grading-queue",
+            title: "Submissions are waiting for feedback",
+            detail: `${featureSnapshot.gradingQueue.length} submission${
+              featureSnapshot.gradingQueue.length === 1 ? "" : "s"
+            } are still ungraded.`,
+            badge: String(featureSnapshot.gradingQueue.length),
+            href: "/grading",
+          }
+        : null,
+      featureSnapshot.atRiskStudents.length > 0
+        ? {
+            id: "at-risk-students",
+            title: "Attendance follow-up is needed",
+            detail: `${featureSnapshot.atRiskStudents.length} student${
+              featureSnapshot.atRiskStudents.length === 1 ? "" : "s"
+            } are below the attendance target.`,
+            badge: `${featureSnapshot.atRiskStudents[0].attendancePercent}%`,
+            href: "/student-followups",
+          }
+        : null,
+      featureSnapshot.upcomingAssessments.length > 0
+        ? {
+            id: "upcoming-assessments",
+            title: "Assessments are approaching",
+            detail: `${featureSnapshot.upcomingAssessments.length} assessment${
+              featureSnapshot.upcomingAssessments.length === 1 ? "" : "s"
+            } are coming up soon.`,
+            badge: formatDate(featureSnapshot.upcomingAssessments[0].date),
+            badgeVariant: "secondary" as const,
+            href: "/courses",
+          }
+        : null,
+      featureSnapshot.teachingPlanner.length === 0
+        ? {
+            id: "no-planner",
+            title: "No timetable slots are assigned yet",
+            detail: "Review class and subject assignments so your weekly teaching planner is populated.",
+            href: "/my-classes",
+          }
+        : null,
+    ].filter((value): value is NonNullable<typeof value> => Boolean(value));
+
     return (
       <>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -267,6 +544,13 @@ export default async function DashboardPage() {
           />
         </div>
 
+        <AttentionList
+          title="Needs attention"
+          sub="Teaching work that is ready for your next action"
+          items={teacherAttentionItems}
+          emptyLabel="Your queue is under control right now."
+        />
+
         <DataTableCard
           title="My classes & subjects"
           sub="Everywhere you teach or act as class teacher"
@@ -278,6 +562,119 @@ export default async function DashboardPage() {
           ]}
           rows={rows}
         />
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <Panel
+            title="Weekly teaching planner"
+            sub="Your assigned timetable across classes and subjects"
+            className="p-5"
+            action={
+              <Link href="/my-classes" className="text-xs font-semibold text-success">
+                Open classes &rarr;
+              </Link>
+            }
+          >
+            <div className="mt-4 flex flex-col gap-3">
+              {featureSnapshot.teachingPlanner.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No timetable slots assigned yet.</p>
+              ) : (
+                featureSnapshot.teachingPlanner.slice(0, 8).map((slot, index) => (
+                  <div
+                    key={`${slot.className}-${slot.subjectName}-${slot.day}-${index}`}
+                    className="rounded-xl border border-border/60 px-3 py-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">{slot.className}</p>
+                      <span className="text-xs text-muted-foreground">
+                        {formatWeekday(slot.day)} Â· {slot.startTime}-{slot.endTime}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {slot.subjectName ?? "Lesson"}{slot.room ? ` Â· Room ${slot.room}` : ""}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </Panel>
+
+          <Panel title="Students needing follow-up" sub="Low attendance signals across your classes" className="p-5">
+            <div className="mt-4 flex flex-col gap-3">
+              {featureSnapshot.atRiskStudents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No students are currently below the attendance target.</p>
+              ) : (
+                featureSnapshot.atRiskStudents.map((student) => (
+                  <div key={student.studentId} className="rounded-xl border border-border/60 px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">{student.name}</p>
+                      <Badge variant="warning">{student.attendancePercent}% attendance</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{student.className}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </Panel>
+        </div>
+
+        <DataTableCard
+          title="Central grading queue"
+          sub="Ungraded submissions waiting for your review"
+          compact
+          columns={[
+            { key: "assignment", header: "Assignment" },
+            { key: "student", header: "Student" },
+            { key: "submitted", header: "Submitted" },
+            { key: "action", header: "Action" },
+          ]}
+          rows={gradingRows}
+          emptyTitle="No submissions waiting for grading."
+        />
+
+        <Panel title="Upcoming assessments" sub="Exams and assignment deadlines coming up next" className="p-5">
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {featureSnapshot.upcomingAssessments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No upcoming assessments.</p>
+            ) : (
+              featureSnapshot.upcomingAssessments.map((item) => (
+                <div key={`${item.kind}-${item.id}`} className="rounded-xl border border-border/60 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">{item.title}</p>
+                    <Badge variant={item.kind === "exam" ? "warning" : "default"} className="capitalize">
+                      {item.kind}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.subjectName} Â· {item.className}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.date)}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </Panel>
+
+        <Panel title="Recent announcements" sub="Communication you published recently" className="p-5">
+          <div className="mt-4 flex flex-col gap-3">
+            {featureSnapshot.recentAnnouncements.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No announcements created yet.</p>
+            ) : (
+              featureSnapshot.recentAnnouncements.map((announcement) => (
+                <div key={announcement.id} className="rounded-xl border border-border/60 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">{announcement.title}</p>
+                    <Badge variant="outline" className="capitalize">
+                      {announcement.audience}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Published {formatDateTime(announcement.publishedAt)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </Panel>
       </>
     );
   }
@@ -296,11 +693,21 @@ export default async function DashboardPage() {
       warning: "warning",
       info: "secondary",
     };
+    const criticalAlertCount = alerts.filter((alert) => alert.severity === "critical").length;
+    const warningAlertCount = alerts.filter((alert) => alert.severity === "warning").length;
     const revenueSparkline = revenueTrend.map((point) => point.totalPaid);
+    const platformAttentionItems = alerts.slice(0, 5).map((alert) => ({
+      id: alert.id,
+      title: alert.title,
+      detail: alert.description,
+      badge: alert.severity,
+      badgeVariant: ALERT_BADGE_VARIANT[alert.severity],
+      href: alert.href,
+    }));
 
     return (
       <>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <StatCard label="Institutes" icon={Building2} value={instituteCount} tone="primary" />
           <StatCard
             label="MRR"
@@ -322,6 +729,13 @@ export default async function DashboardPage() {
             value={`$${overdueTotal.totalAmount.toFixed(2)}`}
             sub={`${overdueTotal.count} invoice${overdueTotal.count === 1 ? "" : "s"}`}
             tone="warning"
+          />
+          <StatCard
+            label="Critical alerts"
+            icon={CircleAlert}
+            value={criticalAlertCount}
+            sub={`${warningAlertCount} warning${warningAlertCount === 1 ? "" : "s"}`}
+            tone={criticalAlertCount > 0 ? "warning" : "success"}
           />
         </div>
 
@@ -354,6 +768,13 @@ export default async function DashboardPage() {
           }
         />
 
+        <AttentionList
+          title="Needs attention"
+          sub="The platform issues most likely to need intervention next"
+          items={platformAttentionItems}
+          emptyLabel="No platform alerts are active."
+        />
+
         <Panel title="Alerts" sub="Operational signals across the platform" className="p-5">
           {alerts.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">No active alerts.</p>
@@ -381,77 +802,10 @@ export default async function DashboardPage() {
     );
   }
 
-  const studentData = await getStudentDashboardData();
+  const [studentData, featureSnapshot] = await Promise.all([
+    getStudentDashboardData(),
+    getStudentFeatureSnapshot(),
+  ]);
 
-  const dueRows: DataTableRow[] = studentData.upcomingAssignments.map((assignment) => ({
-    key: assignment.id,
-    cells: [
-      assignment.title,
-      assignment.courseTitle,
-      new Date(assignment.dueAt).toLocaleDateString(),
-    ],
-  }));
-
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard
-          label="Attendance"
-          icon={ClipboardCheck}
-          value={`${studentData.attendancePercent}%`}
-          tone="success"
-        />
-        <StatCard
-          label="Fee balance"
-          icon={Wallet}
-          value={studentData.feeBalance.toFixed(2)}
-          tone="warning"
-        />
-        <StatCard
-          label="Unread notifications"
-          icon={Bell}
-          value={studentData.unreadNotificationCount}
-          tone="info"
-        />
-        <StatCard
-          label="Courses graded"
-          icon={GraduationCap}
-          value={studentData.gradeGroups.length}
-          tone="primary"
-        />
-      </div>
-
-      <div className="flex flex-col gap-6 lg:flex-row">
-        <Panel title="Recent grades" sub="Your latest graded courses" className="flex-1 p-5">
-          {studentData.gradeGroups.length === 0 ? (
-            <p className="mt-4 text-[13px] text-muted-foreground">No grades yet.</p>
-          ) : (
-            <div className="mt-4 flex flex-col gap-3">
-              {studentData.gradeGroups.slice(0, 5).map((group) => (
-                <div key={group.courseId || group.courseTitle} className="flex items-center justify-between">
-                  <span className="text-[13px] text-foreground">{group.courseTitle}</span>
-                  <span className="text-[13px] font-medium text-muted-foreground">
-                    {group.percent !== null ? `${group.percent.toFixed(1)}%` : "-"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
-
-        <DataTableCard
-          title="Upcoming assignments"
-          sub="Due soon across your enrolled courses"
-          compact
-          columns={[
-            { key: "title", header: "Assignment" },
-            { key: "course", header: "Course" },
-            { key: "due", header: "Due date" },
-          ]}
-          rows={dueRows}
-          emptyTitle="Nothing due soon."
-        />
-      </div>
-    </>
-  );
+  return <StudentHome dashboard={studentData} snapshot={featureSnapshot} />;
 }
