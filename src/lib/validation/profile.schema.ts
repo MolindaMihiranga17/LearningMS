@@ -7,3 +7,9 @@ export const updateProfileSchema = z.object({
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const notificationPreferencesSchema = z.object({
+  announcements: z.boolean(),
+  billing: z.boolean(),
+  academic: z.boolean(),
+});
