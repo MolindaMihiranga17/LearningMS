@@ -86,7 +86,9 @@ export function PlatformSettingsForm({ settings }: { settings: SystemSettingsDat
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} className="flex flex-col gap-7">
+        <section className="grid gap-4 rounded-2xl border border-border/70 p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><p className="font-medium">Brand identity</p><p className="mt-1 text-sm text-muted-foreground">The name and visual cue shown across your platform.</p></div>
         <FormField
           control={form.control}
           name="systemName"
@@ -126,6 +128,9 @@ export function PlatformSettingsForm({ settings }: { settings: SystemSettingsDat
             </FormItem>
           )}
         />
+        </section>
+        <section className="grid gap-4 rounded-2xl border border-border/70 p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><p className="font-medium">Onboarding & support</p><p className="mt-1 text-sm text-muted-foreground">Set the default trial window and the place customers can reach you.</p></div>
         <FormField
           control={form.control}
           name="supportEmail"
@@ -165,6 +170,9 @@ export function PlatformSettingsForm({ settings }: { settings: SystemSettingsDat
             </FormItem>
           )}
         />
+        </section>
+        <section className="grid gap-4 rounded-2xl border border-border/70 p-4">
+          <div><p className="font-medium">Public policies</p><p className="mt-1 text-sm text-muted-foreground">This copy is ready for public-facing policy and support pages.</p></div>
         <FormField
           control={form.control}
           name="privacyPolicy"
@@ -204,6 +212,7 @@ export function PlatformSettingsForm({ settings }: { settings: SystemSettingsDat
             </FormItem>
           )}
         />
+        </section>
         <Button type="submit" disabled={pending} className="self-start">
           {pending ? "Saving..." : "Save changes"}
         </Button>
