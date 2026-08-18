@@ -9,6 +9,8 @@
     "lint": "eslint",
     "seed:superadmin": "tsx scripts/bootstrapSuperAdmin.ts",
     "seed:demo": "tsx scripts/seedDemoData.ts",
+    "seed:fill-current": "tsx scripts/fillCurrentUsersDemoData.ts",
+    "seed:student-demo": "tsx scripts/fillStudentDemoData.ts",
     "seed:phase2": "tsx scripts/seedPhase2DemoData.ts",
     "backfill:subscriptions": "tsx scripts/backfillSubscriptions.ts"
   },
