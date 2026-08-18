@@ -8,7 +8,6 @@ import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validation/p
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const initialState: UpdateProfileState = {};
@@ -48,11 +47,9 @@ export function ProfileForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" value={email} disabled />
-        </div>
+      <form onSubmit={onSubmit} className="flex flex-col gap-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-2"><FormLabel>Email address</FormLabel><Input value={email} disabled /><p className="text-xs text-muted-foreground">Email changes must be made by your institute administrator.</p></div>
         <FormField
           control={form.control}
           name="name"
@@ -65,7 +62,8 @@ export function ProfileForm({
               <FormMessage />
             </FormItem>
           )}
-        />
+        /></div>
+        <div className="grid gap-5 sm:grid-cols-2">
         <FormField
           control={form.control}
           name="phone"
@@ -84,17 +82,20 @@ export function ProfileForm({
           name="avatarUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Avatar URL</FormLabel>
+              <FormLabel>Profile photo URL</FormLabel>
               <FormControl>
                 <Input {...field} placeholder="https://..." />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
-        />
-        <Button type="submit" disabled={pending} className="self-start">
+        /></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-5">
+          <p className="text-xs text-muted-foreground">Changes are saved only to your personal account.</p>
+          <Button type="submit" disabled={pending}>
           {pending ? "Saving..." : "Save changes"}
-        </Button>
+          </Button>
+        </div>
       </form>
     </Form>
   );
