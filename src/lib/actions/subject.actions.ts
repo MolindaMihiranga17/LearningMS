@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import SubjectModel from "@/models/Subject";
 import UserModel from "@/models/User";
@@ -227,6 +228,43 @@ export async function deleteSubject(formData: FormData): Promise<void> {
     targetName: subject.name,
     summary: `Deleted subject "${subject.name}" (${subject.code})`,
     before: { name: subject.name, code: subject.code },
+  });
+
+  revalidatePath("/subjects");
+}
+
+export async function bulkDeleteSubjects(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  const ids = formData
+    .getAll("ids")
+    .map((value) => String(value).trim())
+    .filter((value) => mongoose.isValidObjectId(value));
+
+  if (ids.length === 0) return;
+
+  await connectToDatabase();
+
+  const subjects = await SubjectModel.find(
+    withTenantScope({ _id: { $in: ids } }, session)
+  ).select("name code");
+  if (subjects.length === 0) return;
+
+  await SubjectModel.deleteMany({ _id: { $in: subjects.map((subject) => subject._id) } });
+
+  const actor = await UserModel.findById(session.userId).select("name");
+  await recordAuditEntry({
+    session,
+    actorName: actor?.name ?? "Unknown",
+    action: "subject.bulk-delete",
+    targetType: "Subject",
+    summary: `Deleted ${subjects.length} subjects`,
+    before: subjects.map((subject) => ({
+      id: String(subject._id),
+      name: subject.name,
+      code: subject.code,
+    })),
   });
 
   revalidatePath("/subjects");
