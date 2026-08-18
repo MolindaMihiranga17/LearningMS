@@ -26,7 +26,7 @@ export function ClassForm({
 
   const form = useForm<CreateClassInput>({
     resolver: zodResolver(createClassSchema),
-    defaultValues: { name: "", section: "", academicYear: "", classTeacherId: "" },
+    defaultValues: { name: "", section: "", academicYear: "", classTeacherId: "", timetableDay: "", timetableStart: "", timetableEnd: "", timetableRoom: "" },
   });
 
   useEffect(() => {
@@ -75,6 +75,13 @@ export function ClassForm({
             </FormItem>
           )}
         />
+        <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/25 p-4 sm:grid-cols-2">
+          <p className="sm:col-span-2 text-sm font-semibold">Weekly timetable <span className="font-normal text-muted-foreground">(optional)</span></p>
+          <FormField control={form.control} name="timetableDay" render={({ field }) => <FormItem><FormLabel>Day</FormLabel><FormControl><select {...field} className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm"><option value="">No schedule yet</option>{["monday","tuesday","wednesday","thursday","friday","saturday","sunday"].map((day) => <option key={day} value={day}>{day[0].toUpperCase() + day.slice(1)}</option>)}</select></FormControl></FormItem>} />
+          <FormField control={form.control} name="timetableRoom" render={({ field }) => <FormItem><FormLabel>Room</FormLabel><FormControl><Input {...field} placeholder="e.g. Room 12" /></FormControl></FormItem>} />
+          <FormField control={form.control} name="timetableStart" render={({ field }) => <FormItem><FormLabel>Starts</FormLabel><FormControl><Input {...field} type="time" /></FormControl></FormItem>} />
+          <FormField control={form.control} name="timetableEnd" render={({ field }) => <FormItem><FormLabel>Ends</FormLabel><FormControl><Input {...field} type="time" /></FormControl></FormItem>} />
+        </div>
         <FormField
           control={form.control}
           name="section"
