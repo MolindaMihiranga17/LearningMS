@@ -21,6 +21,14 @@ const classSchema = new Schema(
     name: { type: String, required: true, trim: true },
     section: { type: String, trim: true },
     academicYear: { type: String, required: true, trim: true },
+    timetable: [
+      {
+        day: { type: String, enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+        startTime: { type: String, trim: true },
+        endTime: { type: String, trim: true },
+        room: { type: String, trim: true },
+      },
+    ],
     classTeacherId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     status: { type: String, enum: ["active", "archived"], default: "active" },
     sessionStatus: { type: String, enum: CLASS_SESSION_STATUSES, default: "scheduled" },
