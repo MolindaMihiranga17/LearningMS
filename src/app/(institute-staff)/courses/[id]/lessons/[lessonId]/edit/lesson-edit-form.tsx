@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { updateLesson, type UpdateLessonState } from "@/lib/actions/lesson.actions";
@@ -82,7 +82,10 @@ export function LessonEditForm({
     },
   });
 
-  const type = form.watch("type");
+  const [type, previewEnabled] = useWatch({
+    control: form.control,
+    name: ["type", "isPreview"],
+  });
 
   useEffect(() => {
     if (state.error) toast.error("Could not update lesson", state.error);
@@ -248,7 +251,7 @@ export function LessonEditForm({
 
         <Label className="flex items-center gap-2 font-normal text-sm">
           <Checkbox
-            checked={form.watch("isPreview")}
+            checked={Boolean(previewEnabled)}
             onCheckedChange={(next) => form.setValue("isPreview", Boolean(next))}
           />
           Allow free preview (visible without enrollment)

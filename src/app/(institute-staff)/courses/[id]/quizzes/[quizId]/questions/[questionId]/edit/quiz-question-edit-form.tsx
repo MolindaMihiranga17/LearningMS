@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { updateQuizQuestion, type UpdateQuizQuestionState } from "@/lib/actions/quiz-question.actions";
@@ -85,7 +85,7 @@ export function QuizQuestionEditForm({
   });
 
   const { fields, append } = useFieldArray({ control: form.control, name: "options" });
-  const type = form.watch("type");
+  const type = useWatch({ control: form.control, name: "type" });
 
   useEffect(() => {
     if (state.error) toast.error("Could not update question", state.error);
