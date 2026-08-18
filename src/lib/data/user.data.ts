@@ -30,3 +30,13 @@ export async function listStudents() {
     .sort({ createdAt: -1 })
     .lean();
 }
+
+export async function getStudentById(id: string) {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  await connectToDatabase();
+  return UserModel.findOne(withTenantScope({ _id: id, role: "student" }, session))
+    .populate("studentMeta.classId", "name section academicYear")
+    .lean();
+}

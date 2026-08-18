@@ -64,6 +64,17 @@ export async function getStudentDashboardData() {
     }));
 
   return {
+    courseCount: enrollments.length,
+    activeCourseCount: enrollments.filter((enrollment) => enrollment.status === "active").length,
+    averageCourseProgress:
+      enrollments.length > 0
+        ? Math.round(
+            enrollments.reduce(
+              (sum, enrollment) => sum + (enrollment.progress?.percentComplete ?? 0),
+              0
+            ) / enrollments.length
+          )
+        : 0,
     upcomingAssignments,
     gradeGroups,
     attendancePercent: attendance.percentPresent,
