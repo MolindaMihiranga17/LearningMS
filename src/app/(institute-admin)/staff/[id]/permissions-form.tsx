@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { updateStaffPermissions } from "@/lib/actions/user.actions";
@@ -41,6 +41,7 @@ export function PermissionsForm({
       {} as UpdateStaffPermissionsInput
     ),
   });
+  const watchedPermissions = useWatch({ control: form.control });
 
   useEffect(() => {
     if (state.error) toast.error("Could not update permissions", state.error);
@@ -65,7 +66,8 @@ export function PermissionsForm({
           {PERMISSION_FIELDS.map(({ key, label }) => (
             <Label key={key} className="flex items-center gap-2 font-normal">
               <Checkbox
-                checked={Boolean(form.watch(key))}
+                checked={Boolean(watchedPermissions?.[key])}
+                disabled={key === "dashboard"}
                 onCheckedChange={(next) => form.setValue(key, Boolean(next))}
               />
               {label}
