@@ -6,7 +6,7 @@ import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { SubjectFormDialog } from "./new/subject-form-dialog";
 import { SubjectEditDialog } from "./[id]/edit/subject-edit-dialog";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -76,7 +76,7 @@ export default async function SubjectsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader title="Subject map" description="Connect subjects to the right teachers and classes before courses, exams, and attendance rely on them." actions={<SubjectFormDialog teachers={teachers} classes={classOptions} />} metrics={[{ label: "Subjects", value: subjects.length, detail: "Academic subject records", tone: "primary" }, { label: "Need a teacher", value: subjectsWithoutTeacher, detail: "Unassigned subject owners", tone: "warning" }, { label: "Need a class link", value: subjectsWithoutClasses, detail: "Not yet scheduled for a class", tone: "info" }]} />
+      <WorkspaceHeader title="Subject map" description="Connect subjects to the right teachers and classes before courses, exams, and attendance rely on them." actions={<SubjectFormDialog teachers={teachers} classes={classOptions} />} metrics={[{ label: "Subjects", value: subjects.length, detail: "Academic subject records", tone: "primary" }, { label: "Need a teacher", value: subjectsWithoutTeacher, detail: "Unassigned subject owners", tone: "warning" }, { label: "Need a class link", value: subjectsWithoutClasses, detail: "Not yet scheduled for a class", tone: "info" }]} />
       <div>
         <DataTableCard
           columns={COLUMNS}

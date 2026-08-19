@@ -27,10 +27,10 @@ export default async function AssignmentDetailPage({
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">{assignment.title}</h2>
+          <h1 className="text-2xl font-semibold">{assignment.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{assignment.courseTitle}</p>
           {assignment.instructions ? (
             <p className="mt-2 max-w-2xl whitespace-pre-wrap text-sm text-muted-foreground">
@@ -81,10 +81,10 @@ export default async function AssignmentDetailPage({
 
       <Link
         href={`/courses/${id}/assignments`}
-        className="mt-6 inline-block text-sm text-muted-foreground hover:underline"
+        className="inline-block text-sm text-muted-foreground hover:underline"
       >
         &larr; Back to assignments
       </Link>
-    </>
+    </div>
   );
 }
