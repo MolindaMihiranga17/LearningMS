@@ -1,7 +1,7 @@
 import { getCommissionLedger } from "@/lib/data/finance.data";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { Badge } from "@/components/ui/badge";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "staff", header: "Staff", sortable: true },
@@ -49,7 +49,7 @@ export default async function CommissionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader eyebrow="Finance & payroll" title="Commission ledger" description="Review earned commissions by staff member and month before payroll is finalized." metrics={[{ label: "Commission entries", value: entries.length, detail: "Recorded staff earnings", tone: "primary" }, { label: "Active staff entries", value: activeEntries, detail: "From enabled staff", tone: "success" }, { label: "Latest period", value: currentMonth?.total.toFixed(2) ?? "0.00", detail: currentMonth?.month ?? "No months recorded", tone: "info" }]} />
+      <WorkspaceHeader eyebrow="Finance & payroll" title="Commission ledger" description="Review earned commissions by staff member and month before payroll is finalized." metrics={[{ label: "Commission entries", value: entries.length, detail: "Recorded staff earnings", tone: "primary" }, { label: "Active staff entries", value: activeEntries, detail: "From enabled staff", tone: "success" }, { label: "Latest period", value: currentMonth?.total.toFixed(2) ?? "0.00", detail: currentMonth?.month ?? "No months recorded", tone: "info" }]} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {monthlyTotals.slice(-3).map((month) => (
