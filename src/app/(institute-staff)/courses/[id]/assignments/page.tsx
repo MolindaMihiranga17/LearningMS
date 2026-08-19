@@ -50,10 +50,10 @@ export default async function CourseAssignmentsPage({
   }));
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Assignments</h2>
+          <h1 className="text-2xl font-semibold">Assignments</h1>
           <p className="mt-1 text-sm text-muted-foreground">{course.title}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -67,9 +67,7 @@ export default async function CourseAssignmentsPage({
         </div>
       </div>
 
-      <div className="mt-6">
-        <DataTableCard columns={COLUMNS} rows={rows} emptyTitle="No assignments yet." />
-      </div>
-    </>
+      <DataTableCard columns={COLUMNS} rows={rows} emptyTitle="No assignments yet." />
+    </div>
   );
 }
