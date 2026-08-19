@@ -45,20 +45,29 @@ export async function DashboardShell({
 }) {
   let staffPermissions: Record<string, boolean> | undefined;
   if (navKey === "institute-staff") {
-    await connectToDatabase();
-    const user = await UserModel.findById(userId).select("staffMeta.permissions").lean();
-    staffPermissions = user?.staffMeta?.permissions;
+    try {
+      await connectToDatabase();
+      const user = await UserModel.findById(userId).select("staffMeta.permissions").lean();
+      staffPermissions = user?.staffMeta?.permissions;
+    } catch {
+      // A DB hiccup here shouldn't take down the whole layout (which no
+      // error.tsx can catch) — degrade to no gated nav items instead.
+      staffPermissions = undefined;
+    }
   }
 
   return (
     <div
-      className="relative flex min-h-screen overflow-hidden"
+      className="relative flex h-dvh overflow-hidden"
       style={{ "--sidebar-primary": NAV_ACCENT[navKey] } as React.CSSProperties}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_30%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_22%)]" />
       <input type="checkbox" id="mobile-nav-toggle" className="peer hidden" />
 
-      <nav className="sidebar-gradient shadow-sidebar fixed inset-y-0 left-0 z-50 m-3 flex w-[17rem] shrink-0 -translate-x-[calc(100%+1rem)] flex-col gap-1 rounded-[28px] border border-sidebar-border/80 p-4 transition-transform duration-200 peer-checked:translate-x-0 lg:relative lg:inset-y-auto lg:left-auto lg:h-auto lg:min-h-[calc(100vh-1.5rem)] lg:self-stretch lg:translate-x-0">
+      <nav
+        id="dashboard-sidebar"
+        className="sidebar-gradient shadow-sidebar no-scrollbar fixed inset-y-0 left-0 z-50 m-3 flex w-[17rem] shrink-0 -translate-x-[calc(100%+1rem)] flex-col gap-1 overflow-y-auto overscroll-contain rounded-[28px] border border-sidebar-border/80 p-4 transition-transform duration-200 peer-checked:translate-x-0 lg:static lg:inset-y-auto lg:left-auto lg:h-auto lg:translate-x-0 lg:self-stretch"
+      >
         <div className="flex items-center gap-3 px-2 pb-5 pt-2">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-[1.1rem] bg-sidebar-primary shadow-button">
             <LayoutGrid className="size-[17px] text-sidebar-primary-foreground" />
@@ -91,7 +100,7 @@ export async function DashboardShell({
         className="fixed inset-0 z-40 hidden bg-foreground/40 backdrop-blur-sm peer-checked:block lg:!hidden"
       />
 
-      <div className="relative flex min-w-0 flex-1 flex-col gap-6 lg:pl-3">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto overscroll-contain lg:pl-3">
         <div className="sticky top-0 z-30 px-3 pt-3 sm:px-4 lg:px-0">
           <div className="surface-subtle shadow-hairline flex h-16 items-center justify-between rounded-[24px] border border-border/70 px-4 backdrop-blur-xl sm:px-6 lg:justify-end">
           <label
