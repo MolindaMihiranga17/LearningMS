@@ -1,6 +1,8 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
+import fs from "node:fs";
+import path from "node:path";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import { hashPassword } from "@/lib/auth/password";
@@ -39,7 +41,6 @@ import SubscriptionModel from "@/models/Subscription";
 import PlatformInvoiceModel from "@/models/PlatformInvoice";
 import SystemSettingsModel from "@/models/SystemSettings";
 
-const DEMO_PREFIX = "[DEMO]";
 const DEMO_PASSWORD = "Password123!";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TODAY = new Date();
@@ -47,7 +48,43 @@ const CURRENT_YEAR = TODAY.getFullYear();
 const CURRENT_MONTH_INDEX = TODAY.getMonth();
 const CURRENT_MONTH = TODAY.toLocaleString("en-US", { month: "long" });
 const ACADEMIC_YEAR = `${CURRENT_YEAR}/${CURRENT_YEAR + 1}`;
-const RECEIPT_PREFIX = `DEMO-${CURRENT_YEAR}`;
+const RECEIPT_PREFIX = `RCPT-${CURRENT_YEAR}`;
+
+// Tracks the record ids this script creates per institute so a re-run can
+// cleanly replace last run's rows without relying on any marker text stored
+// in the data itself (which would otherwise leak into the UI).
+const MANIFEST_PATH = path.join(__dirname, ".seed-manifest.json");
+
+type SeedManifestEntry = {
+  classIds: string[];
+  subjectIds: string[];
+  courseIds: string[];
+  examIds: string[];
+  feeIds: string[];
+  userIds: string[];
+  extraIncomeIds: string[];
+  expenseIds: string[];
+  academicTermIds: string[];
+  academicEventIds: string[];
+  announcementIds: string[];
+  notificationIds: string[];
+  studentFollowUpIds: string[];
+  auditLogIds: string[];
+};
+
+type SeedManifest = Record<string, SeedManifestEntry>;
+
+function loadManifest(): SeedManifest {
+  try {
+    return JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8")) as SeedManifest;
+  } catch {
+    return {};
+  }
+}
+
+function saveManifest(manifest: SeedManifest) {
+  fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+}
 
 type ObjectId = mongoose.Types.ObjectId;
 
@@ -148,9 +185,12 @@ async function ensureSystemSettings() {
         supportEmail: "support@learningms.test",
         defaultTrialDays: 14,
         primaryColor: "#0f766e",
-        privacyPolicy: `${DEMO_PREFIX} Privacy policy placeholder for demo viewing.`,
-        termsOfUse: `${DEMO_PREFIX} Terms of use placeholder for demo viewing.`,
-        helpCenterContent: `${DEMO_PREFIX} Help center placeholder content for seeded environments.`,
+        privacyPolicy:
+          "We collect only the information needed to run your institute's classes, attendance, and billing. Data is never sold or shared with third parties outside of processing your payments and communications.",
+        termsOfUse:
+          "By using this platform you agree to keep your account credentials secure and to use the system in line with your institute's policies. Accounts found in violation of these terms may be suspended.",
+        helpCenterContent:
+          "Need help? Start with the Settings page for account and billing questions, or reach out to your institute administrator for access requests.",
       },
     },
     { upsert: true }
@@ -190,7 +230,7 @@ async function ensurePlans() {
       {
         $set: {
           name: def.name,
-          description: `${DEMO_PREFIX} Demo plan used to populate billing pages.`,
+          description: `${def.name} plan for growing institutes.`,
           price: def.price,
           currency: "USD",
           billingInterval: def.billingInterval,
@@ -216,30 +256,72 @@ async function ensurePlans() {
   return plans;
 }
 
-async function cleanupDemoData(instituteId: ObjectId) {
-  const classes = await ClassModel.find({
-    instituteId,
-    name: new RegExp(`^\\${DEMO_PREFIX.replace("[", "\\[").replace("]", "\\]")}`),
-  })
-    .select("_id")
-    .lean();
-  const classIds = classes.map((item) => item._id);
+// Matches the "[DEMO]"-prefixed content an earlier version of this script used
+// to tag seeded rows. Kept only so a first run against a database seeded by
+// that older version can find and remove those rows once; new runs identify
+// their own rows via the manifest instead, so nothing user-facing is tagged.
+const LEGACY_DEMO_MARKER = /^\[DEMO\]/;
+const LEGACY_DEMO_CODE = /^DEMO-/;
+const LEGACY_DEMO_EMAIL = /demo\./;
 
-  const subjects = await SubjectModel.find({
-    instituteId,
-    code: /^DEMO-/,
-  })
-    .select("_id")
-    .lean();
-  const subjectIds = subjects.map((item) => item._id);
+async function cleanupDemoData(instituteId: ObjectId, manifest: SeedManifest) {
+  const previous = manifest[instituteId.toString()];
+  const oid = (id: string) => new mongoose.Types.ObjectId(id);
 
-  const courses = await CourseModel.find({
-    instituteId,
-    title: new RegExp(`^\\${DEMO_PREFIX.replace("[", "\\[").replace("]", "\\]")}`),
-  })
-    .select("_id")
-    .lean();
-  const courseIds = courses.map((item) => item._id);
+  const dedupeIds = (...groups: ObjectId[][]) => {
+    const seen = new Map<string, ObjectId>();
+    for (const group of groups) {
+      for (const id of group) seen.set(id.toString(), id);
+    }
+    return Array.from(seen.values());
+  };
+
+  const [
+    legacyClasses,
+    legacySubjects,
+    legacyCourses,
+    legacyExams,
+    legacyFees,
+    legacyUsers,
+    legacyExtraIncome,
+    legacyExpenses,
+    legacyTerms,
+    legacyEvents,
+    legacyAnnouncements,
+    legacyNotifications,
+    legacyFollowUps,
+    legacyAuditLogs,
+  ] = await Promise.all([
+    ClassModel.find({ instituteId, name: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    SubjectModel.find({ instituteId, code: LEGACY_DEMO_CODE }).select("_id").lean(),
+    CourseModel.find({ instituteId, title: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    ExamModel.find({ instituteId, title: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    FeeModel.find({ instituteId, title: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    UserModel.find({ instituteId, email: LEGACY_DEMO_EMAIL }).select("_id").lean(),
+    ExtraIncomeModel.find({ instituteId, title: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    ExpenseModel.find({ instituteId, type: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    AcademicTermModel.find({ instituteId, name: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    AcademicEventModel.find({ instituteId, title: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    AnnouncementModel.find({ instituteId, title: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    NotificationModel.find({ instituteId, title: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    StudentFollowUpModel.find({ instituteId, note: LEGACY_DEMO_MARKER }).select("_id").lean(),
+    AuditLogModel.find({ instituteId, summary: LEGACY_DEMO_MARKER }).select("_id").lean(),
+  ]);
+
+  const classIds = dedupeIds(previous?.classIds.map(oid) ?? [], legacyClasses.map((c) => c._id));
+  const subjectIds = dedupeIds(previous?.subjectIds.map(oid) ?? [], legacySubjects.map((s) => s._id));
+  const courseIds = dedupeIds(previous?.courseIds.map(oid) ?? [], legacyCourses.map((c) => c._id));
+  const examIds = dedupeIds(previous?.examIds.map(oid) ?? [], legacyExams.map((e) => e._id));
+  const feeIds = dedupeIds(previous?.feeIds.map(oid) ?? [], legacyFees.map((f) => f._id));
+  const demoUserIds = dedupeIds(previous?.userIds.map(oid) ?? [], legacyUsers.map((u) => u._id));
+  const extraIncomeIds = dedupeIds(previous?.extraIncomeIds.map(oid) ?? [], legacyExtraIncome.map((e) => e._id));
+  const expenseIds = dedupeIds(previous?.expenseIds.map(oid) ?? [], legacyExpenses.map((e) => e._id));
+  const academicTermIds = dedupeIds(previous?.academicTermIds.map(oid) ?? [], legacyTerms.map((t) => t._id));
+  const academicEventIds = dedupeIds(previous?.academicEventIds.map(oid) ?? [], legacyEvents.map((e) => e._id));
+  const announcementIds = dedupeIds(previous?.announcementIds.map(oid) ?? [], legacyAnnouncements.map((a) => a._id));
+  const notificationIds = dedupeIds(previous?.notificationIds.map(oid) ?? [], legacyNotifications.map((n) => n._id));
+  const studentFollowUpIds = dedupeIds(previous?.studentFollowUpIds.map(oid) ?? [], legacyFollowUps.map((f) => f._id));
+  const auditLogIds = dedupeIds(previous?.auditLogIds.map(oid) ?? [], legacyAuditLogs.map((a) => a._id));
 
   const modules = courseIds.length
     ? await ModuleModel.find({ instituteId, courseId: { $in: courseIds } }).select("_id").lean()
@@ -265,30 +347,6 @@ async function cleanupDemoData(instituteId: ObjectId) {
     ? await QuizQuestionModel.find({ instituteId, quizId: { $in: quizIds } }).select("_id").lean()
     : [];
   const quizQuestionIds = quizQuestions.map((item) => item._id);
-
-  const exams = await ExamModel.find({
-    instituteId,
-    title: new RegExp(`^\\${DEMO_PREFIX.replace("[", "\\[").replace("]", "\\]")}`),
-  })
-    .select("_id")
-    .lean();
-  const examIds = exams.map((item) => item._id);
-
-  const fees = await FeeModel.find({
-    instituteId,
-    title: new RegExp(`^\\${DEMO_PREFIX.replace("[", "\\[").replace("]", "\\]")}`),
-  })
-    .select("_id")
-    .lean();
-  const feeIds = fees.map((item) => item._id);
-
-  const demoUsers = await UserModel.find({
-    instituteId,
-    email: /demo\./,
-  })
-    .select("_id")
-    .lean();
-  const demoUserIds = demoUsers.map((item) => item._id);
 
   const subscriptions = await SubscriptionModel.find({ instituteId }).select("_id").lean();
   const subscriptionIds = subscriptions.map((item) => item._id);
@@ -318,22 +376,22 @@ async function cleanupDemoData(instituteId: ObjectId) {
     ClassAttemptModel.deleteMany({ instituteId, classId: { $in: classIds } }),
     FeeConcessionModel.deleteMany({
       instituteId,
-      $or: [{ feeId: { $in: feeIds } }, { studentId: { $in: demoUserIds } }, { title: /^\[DEMO\]/ }],
+      $or: [{ feeId: { $in: feeIds } }, { studentId: { $in: demoUserIds } }],
     }),
     PaymentModel.deleteMany({
       instituteId,
-      $or: [{ feeId: { $in: feeIds } }, { studentId: { $in: demoUserIds } }, { receiptNumber: /^DEMO-/ }],
+      $or: [{ feeId: { $in: feeIds } }, { studentId: { $in: demoUserIds } }],
     }),
     FeeModel.deleteMany({ instituteId, _id: { $in: feeIds } }),
-    ExtraIncomeModel.deleteMany({ instituteId, title: /^\[DEMO\]/ }),
-    ExpenseModel.deleteMany({ instituteId, type: /^\[DEMO\]/ }),
-    AcademicTermModel.deleteMany({ instituteId, name: /^\[DEMO\]/ }),
-    AcademicEventModel.deleteMany({ instituteId, title: /^\[DEMO\]/ }),
-    AnnouncementModel.deleteMany({ instituteId, title: /^\[DEMO\]/ }),
-    NotificationModel.deleteMany({ instituteId, title: /^\[DEMO\]/ }),
-    StudentFollowUpModel.deleteMany({ instituteId, note: /^\[DEMO\]/ }),
-    AuditLogModel.deleteMany({ instituteId, summary: /^\[DEMO\]/ }),
-    PlatformInvoiceModel.deleteMany({ instituteId, subscriptionId: { $in: subscriptionIds }, invoiceNumber: /^DEMO-/ }),
+    ExtraIncomeModel.deleteMany({ instituteId, _id: { $in: extraIncomeIds } }),
+    ExpenseModel.deleteMany({ instituteId, _id: { $in: expenseIds } }),
+    AcademicTermModel.deleteMany({ instituteId, _id: { $in: academicTermIds } }),
+    AcademicEventModel.deleteMany({ instituteId, _id: { $in: academicEventIds } }),
+    AnnouncementModel.deleteMany({ instituteId, _id: { $in: announcementIds } }),
+    NotificationModel.deleteMany({ instituteId, _id: { $in: notificationIds } }),
+    StudentFollowUpModel.deleteMany({ instituteId, _id: { $in: studentFollowUpIds } }),
+    AuditLogModel.deleteMany({ instituteId, _id: { $in: auditLogIds } }),
+    PlatformInvoiceModel.deleteMany({ instituteId, subscriptionId: { $in: subscriptionIds } }),
     SubjectModel.deleteMany({ instituteId, _id: { $in: subjectIds } }),
     ClassModel.deleteMany({ instituteId, _id: { $in: classIds } }),
     UserModel.deleteMany({ instituteId, _id: { $in: demoUserIds } }),
@@ -360,7 +418,7 @@ async function ensureInstituteUsers(institute: { _id: ObjectId; code: string; na
     const name = randomFrom(DEMO_STAFF_NAMES, i);
     const created = await UserModel.create({
       name,
-      email: `demo.staff.${i + 1}.${institute.code.toLowerCase()}@example.test`,
+      email: `${slugify(name)}.${i + 1}@${institute.code.toLowerCase()}.edu`,
       passwordHash,
       role: "institute-staff",
       instituteId: institute._id,
@@ -368,7 +426,7 @@ async function ensureInstituteUsers(institute: { _id: ObjectId; code: string; na
       mustChangePassword: false,
       phone: `07700000${i + 1}`,
       staffMeta: {
-        employeeCode: `DEMO-${institute.code}-T${i + 1}`,
+        employeeCode: `${institute.code}-T${i + 1}`,
         basicSalary: 65000 + i * 5000,
         commission: 4000 + i * 500,
         monthlyCommissions: [
@@ -396,7 +454,7 @@ async function ensureInstituteUsers(institute: { _id: ObjectId; code: string; na
     const name = randomFrom(DEMO_STUDENT_NAMES, i);
     const created = await UserModel.create({
       name,
-      email: `demo.student.${i + 1}.${institute.code.toLowerCase()}@example.test`,
+      email: `${slugify(name)}.${i + 1}@${institute.code.toLowerCase()}.edu`,
       passwordHash,
       role: "student",
       instituteId: institute._id,
@@ -419,8 +477,13 @@ async function ensureInstituteUsers(institute: { _id: ObjectId; code: string; na
   return { admin, staff: allStaff, students: allStudents };
 }
 
-async function seedInstitute(institute: { _id: ObjectId; code: string; name: string }, plans: Map<string, { _id: ObjectId; name: string; price: number }>, passwordHash: string) {
-  await cleanupDemoData(institute._id);
+async function seedInstitute(
+  institute: { _id: ObjectId; code: string; name: string },
+  plans: Map<string, { _id: ObjectId; name: string; price: number }>,
+  passwordHash: string,
+  manifest: SeedManifest
+) {
+  await cleanupDemoData(institute._id, manifest);
 
   const { admin, staff, students } = await ensureInstituteUsers(institute, passwordHash);
 
@@ -430,7 +493,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
   const classDocs = await ClassModel.insertMany([
     {
       instituteId: institute._id,
-      name: `${DEMO_PREFIX} Grade 6`,
+      name: "Grade 6",
       section: "A",
       academicYear: ACADEMIC_YEAR,
       timetable: [
@@ -445,7 +508,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     },
     {
       instituteId: institute._id,
-      name: `${DEMO_PREFIX} Grade 7`,
+      name: "Grade 7",
       section: "B",
       academicYear: ACADEMIC_YEAR,
       timetable: [
@@ -458,7 +521,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     },
     {
       instituteId: institute._id,
-      name: `${DEMO_PREFIX} Grade 8`,
+      name: "Grade 8",
       section: "A",
       academicYear: ACADEMIC_YEAR,
       timetable: [
@@ -481,7 +544,9 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       {
         $set: {
           lastLoginAt: student.lastLoginAt ?? daysAgo((i % 6) + 1),
-          phone: student.email.includes("demo.student.") ? `0711000${String(i).padStart(3, "0")}` : undefined,
+          phone: student.email.endsWith(`@${institute.code.toLowerCase()}.edu`)
+            ? `0711000${String(i).padStart(3, "0")}`
+            : undefined,
           "studentMeta.classId": klass._id,
           "studentMeta.rollNumber":
             student.studentMeta?.rollNumber ?? `${institute.code}-${String(i + 1).padStart(4, "0")}`,
@@ -541,7 +606,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       SubjectModel.create({
         instituteId: institute._id,
         name: blueprint.name,
-        code: `DEMO-${institute.code}-${blueprint.suffix}`,
+        code: `${blueprint.suffix}201`,
         teacherId: activeStaff[index % activeStaff.length]?._id ?? admin._id,
         classIds:
           index < 3
@@ -577,8 +642,8 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     const blueprint = SUBJECT_BLUEPRINTS[i];
     const course = await CourseModel.create({
       instituteId: institute._id,
-      title: `${DEMO_PREFIX} ${blueprint.course}`,
-      description: `${DEMO_PREFIX} Seeded course content for ${blueprint.name}.`,
+      title: blueprint.course,
+      description: `Core ${blueprint.name.toLowerCase()} curriculum with guided lessons and practice activities.`,
       subjectId: subject._id,
       teacherId: subject.teacherId,
       classIds: subject.classIds,
@@ -590,14 +655,14 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     const module1 = await ModuleModel.create({
       instituteId: institute._id,
       courseId: course._id,
-      title: `${DEMO_PREFIX} Foundations`,
+      title: "Foundations",
       order: 1,
       createdBy: admin._id,
     });
     const module2 = await ModuleModel.create({
       instituteId: institute._id,
       courseId: course._id,
-      title: `${DEMO_PREFIX} Applied Practice`,
+      title: "Applied Practice",
       order: 2,
       createdBy: admin._id,
     });
@@ -607,9 +672,9 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         instituteId: institute._id,
         courseId: course._id,
         moduleId: module1._id,
-        title: `${DEMO_PREFIX} Welcome and overview`,
+        title: "Welcome and overview",
         type: "text",
-        textBody: "This seeded lesson gives the page real content to render.",
+        textBody: "An introduction to the topics covered in this module and how they connect to what you already know.",
         durationSeconds: 600,
         order: 1,
         isPreview: true,
@@ -619,7 +684,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         instituteId: institute._id,
         courseId: course._id,
         moduleId: module1._id,
-        title: `${DEMO_PREFIX} Guided reading`,
+        title: "Guided reading",
         type: "text",
         textBody: "Students review the concept and answer short reflections.",
         durationSeconds: 900,
@@ -631,9 +696,9 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         instituteId: institute._id,
         courseId: course._id,
         moduleId: module2._id,
-        title: `${DEMO_PREFIX} Practice activity`,
+        title: "Practice activity",
         type: "link",
-        contentUrl: "https://example.com/demo-activity",
+        contentUrl: "https://example.com/practice-activity",
         durationSeconds: 1200,
         order: 3,
         isPreview: false,
@@ -671,7 +736,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       instituteId: institute._id,
       courseId: course._id,
       teacherId: subject.teacherId,
-      title: `${DEMO_PREFIX} Assignment 1`,
+      title: "Assignment 1",
       instructions: "Submit a written response with one example from class.",
       dueAt: daysAgo(5, 17),
       maxScore: 100,
@@ -682,7 +747,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       instituteId: institute._id,
       courseId: course._id,
       teacherId: subject.teacherId,
-      title: `${DEMO_PREFIX} Assignment 2`,
+      title: "Assignment 2",
       instructions: "Prepare the next lesson task so the student dashboard shows a due item.",
       dueAt: daysFromNow(6, 17),
       maxScore: 100,
@@ -704,7 +769,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         assignmentId: assignmentPast._id,
         courseId: course._id,
         studentId: student._id,
-        textResponse: "This is a seeded submission so the grading list has realistic rows.",
+        textResponse: "Here is my response covering the key points from the lesson with a supporting example.",
         submittedAt: daysAgo(4 - (studentIndex % 2), 14),
         status: graded ? "graded" : "submitted",
         grade: graded
@@ -737,7 +802,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       instituteId: institute._id,
       courseId: course._id,
       teacherId: subject.teacherId,
-      title: `${DEMO_PREFIX} Knowledge Check`,
+      title: "Knowledge Check",
       instructions: "Answer each question before the timer runs out.",
       timeLimitMinutes: 20,
       status: "published",
@@ -813,7 +878,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
           {
             questionId: questions[2]._id,
             type: "short",
-            textAnswer: "A seeded short answer to make the attempt review page feel real.",
+            textAnswer: "A brief written answer covering the required example and vocabulary.",
             isCorrect: null,
             pointsAwarded: needsManual ? 4 : 0,
             needsManualGrade: true,
@@ -842,6 +907,8 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     }
   }
 
+  const examIds: ObjectId[] = [];
+
   for (let classIndex = 0; classIndex < classes.length; classIndex++) {
     const klass = classes[classIndex];
     const klassStudents = refreshedStudents.filter(
@@ -853,13 +920,14 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       instituteId: institute._id,
       subjectId: classSubject._id,
       classId: klass._id,
-      title: `${DEMO_PREFIX} ${classSubject.name} Term Test`,
+      title: `${classSubject.name} Term Test`,
       examDate: daysFromNow(10 + classIndex, 9),
       maxMarks: 100,
       term: "Term 1",
       academicYear: ACADEMIC_YEAR,
       createdBy: admin._id,
     });
+    examIds.push(exam._id);
 
     for (let i = 0; i < klassStudents.length; i++) {
       const student = klassStudents[i];
@@ -962,7 +1030,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         instituteId: institute._id,
         classId: klass._id,
         studentId: null,
-        title: `${DEMO_PREFIX} Term ${i + 1} Tuition`,
+        title: `Term ${i + 1} Tuition`,
         amount: 8500 + i * 1500,
         dueDate: daysAgo(12 - i),
         academicYear: ACADEMIC_YEAR,
@@ -991,7 +1059,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         paymentDate: daysAgo(8 - (i % 4)),
         receiptNumber: receiptNumber(institute.code, paymentIndex++),
         recordedBy: admin._id,
-        notes: i % 4 === 0 ? "Partial payment recorded for seeded overdue view." : undefined,
+        notes: i % 4 === 0 ? "Partial payment received; balance due on the remainder." : undefined,
       });
     }
   }
@@ -1001,21 +1069,23 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       instituteId: institute._id,
       studentId: refreshedStudents[i]._id,
       feeId: feeDocs[i % feeDocs.length]._id,
-      title: `${DEMO_PREFIX} Scholarship`,
+      title: "Scholarship",
       type: i % 2 === 0 ? "percent" : "fixed",
       value: i % 2 === 0 ? 10 : 1000,
-      reason: "Seeded concession for fee overview pages.",
+      reason: "Merit-based scholarship award.",
       startsAt: daysAgo(20),
       endsAt: daysFromNow(120),
       createdBy: admin._id,
     });
   }
 
+  const extraIncomeIds: ObjectId[] = [];
+  const expenseIds: ObjectId[] = [];
   for (let i = 0; i < 6; i++) {
-    await ExtraIncomeModel.create({
+    const income = await ExtraIncomeModel.create({
       instituteId: institute._id,
-      title: `${DEMO_PREFIX} Book sale ${i + 1}`,
-      description: "Seeded extra income for finance charts.",
+      title: `Book sale ${i + 1}`,
+      description: "Proceeds from the term book sale.",
       amount: 3000 + i * 450,
       year: String(CURRENT_YEAR),
       month: new Date(CURRENT_YEAR, CURRENT_MONTH_INDEX - i, 1).toLocaleString("en-US", {
@@ -1025,25 +1095,27 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       createdAt: daysAgo(30 * i),
       updatedAt: daysAgo(30 * i),
     });
+    extraIncomeIds.push(income._id);
 
-    await ExpenseModel.create({
+    const expense = await ExpenseModel.create({
       instituteId: institute._id,
       year: String(CURRENT_YEAR),
       month: new Date(CURRENT_YEAR, CURRENT_MONTH_INDEX - i, 1).toLocaleString("en-US", {
         month: "long",
       }),
-      type: `${DEMO_PREFIX} Utilities ${i + 1}`,
+      type: `Utilities ${i + 1}`,
       price: 1800 + i * 300,
       createdBy: admin._id,
       createdAt: daysAgo(30 * i),
       updatedAt: daysAgo(30 * i),
     });
+    expenseIds.push(expense._id);
   }
 
-  await AcademicTermModel.insertMany([
+  const academicTermDocs = await AcademicTermModel.insertMany([
     {
       instituteId: institute._id,
-      name: `${DEMO_PREFIX} Term 1`,
+      name: "Term 1",
       academicYear: ACADEMIC_YEAR,
       startsAt: new Date(CURRENT_YEAR, 0, 10),
       endsAt: new Date(CURRENT_YEAR, 3, 5),
@@ -1052,7 +1124,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     },
     {
       instituteId: institute._id,
-      name: `${DEMO_PREFIX} Term 2`,
+      name: "Term 2",
       academicYear: ACADEMIC_YEAR,
       startsAt: new Date(CURRENT_YEAR, 4, 12),
       endsAt: new Date(CURRENT_YEAR, 7, 28),
@@ -1061,7 +1133,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     },
     {
       instituteId: institute._id,
-      name: `${DEMO_PREFIX} Term 3`,
+      name: "Term 3",
       academicYear: ACADEMIC_YEAR,
       startsAt: new Date(CURRENT_YEAR, 8, 10),
       endsAt: new Date(CURRENT_YEAR, 11, 5),
@@ -1070,52 +1142,52 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
     },
   ]);
 
-  await AcademicEventModel.insertMany([
+  const academicEventDocs = await AcademicEventModel.insertMany([
     {
       instituteId: institute._id,
-      title: `${DEMO_PREFIX} Parent meeting`,
+      title: "Parent meeting",
       type: "event",
       startsAt: daysFromNow(4, 15),
       endsAt: daysFromNow(4, 17),
-      description: "Seeded community event for the calendar page.",
+      description: "Meet teachers to discuss student progress this term.",
       createdBy: admin._id,
     },
     {
       instituteId: institute._id,
-      title: `${DEMO_PREFIX} Mid-term exams`,
+      title: "Mid-term exams",
       type: "exam",
       startsAt: daysFromNow(10, 9),
       endsAt: daysFromNow(12, 12),
-      description: "Seeded exam block for the calendar page.",
+      description: "Mid-term examinations across all subjects.",
       createdBy: admin._id,
     },
     {
       instituteId: institute._id,
-      title: `${DEMO_PREFIX} Public holiday`,
+      title: "Public holiday",
       type: "holiday",
       startsAt: daysFromNow(16, 0),
       endsAt: daysFromNow(16, 23),
-      description: "Seeded holiday entry.",
+      description: "Institute closed for the public holiday.",
       createdBy: admin._id,
     },
     {
       instituteId: institute._id,
-      title: `${DEMO_PREFIX} Assignment checkpoint`,
+      title: "Assignment checkpoint",
       type: "deadline",
       startsAt: daysFromNow(6, 17),
-      description: "Seeded deadline event.",
+      description: "Deadline for the current assignment cycle.",
       createdBy: admin._id,
     },
   ]);
 
   const publishedCourse = courseDocs.find((course) => course.status === "published") ?? courseDocs[0];
-  await AnnouncementModel.insertMany([
+  const announcementDocs = await AnnouncementModel.insertMany([
     {
       instituteId: institute._id,
       courseId: null,
       classId: null,
-      title: `${DEMO_PREFIX} Welcome back`,
-      body: "This seeded announcement keeps the institute feed from being empty.",
+      title: "Welcome back",
+      body: "Welcome back to the new term! Please check your class timetable and course materials.",
       audience: "institute",
       createdBy: admin._id,
       publishedAt: daysAgo(2),
@@ -1124,7 +1196,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       instituteId: institute._id,
       courseId: null,
       classId: classes[0]._id,
-      title: `${DEMO_PREFIX} Class timetable reminder`,
+      title: "Class timetable reminder",
       body: "Remember to bring the required materials for the practical session.",
       audience: "class",
       createdBy: admin._id,
@@ -1134,7 +1206,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       instituteId: institute._id,
       courseId: publishedCourse._id,
       classId: null,
-      title: `${DEMO_PREFIX} Course update`,
+      title: "Course update",
       body: "A new practice activity has been added to the course.",
       audience: "course",
       createdBy: admin._id,
@@ -1143,15 +1215,16 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
   ]);
 
   const notificationUsers = [admin, ...activeStaff.slice(0, 2), ...refreshedStudents.slice(0, 6)];
+  const notificationDocs: Array<{ _id: ObjectId }> = [];
   for (let i = 0; i < notificationUsers.length; i++) {
     const user = notificationUsers[i];
-    await NotificationModel.insertMany([
+    const created = await NotificationModel.insertMany([
       {
         instituteId: institute._id,
         userId: user._id,
         type: i % 3 === 0 ? "announcement" : i % 3 === 1 ? "academic" : "billing",
-        title: `${DEMO_PREFIX} New update available`,
-        body: "This seeded notification makes the bell and list pages look populated.",
+        title: "New update available",
+        body: "There's a new update on your workspace. Check the latest activity for details.",
         link: "/notifications",
         isRead: i % 2 === 0,
       },
@@ -1159,30 +1232,33 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         instituteId: institute._id,
         userId: user._id,
         type: user.role === "student" ? "academic" : "announcement",
-        title: `${DEMO_PREFIX} Reminder`,
+        title: "Reminder",
         body: user.role === "student" ? "Check your upcoming assignments and exam dates." : "Review the latest classroom activity.",
         link: "/dashboard",
         isRead: false,
       },
     ]);
+    notificationDocs.push(...created);
   }
 
+  const studentFollowUpDocs: Array<{ _id: ObjectId }> = [];
   for (let i = 0; i < Math.min(5, refreshedStudents.length); i++) {
-    await StudentFollowUpModel.create({
+    const followUp = await StudentFollowUpModel.create({
       instituteId: institute._id,
       studentId: refreshedStudents[i]._id,
       classId: refreshedStudents[i].studentMeta?.classId ?? null,
       type: i % 2 === 0 ? "attendance" : "coursework",
       status: i % 3 === 0 ? "resolved" : "open",
-      note: `${DEMO_PREFIX} Follow up with ${refreshedStudents[i].name} about recent performance.`,
+      note: `Follow up with ${refreshedStudents[i].name} about recent performance.`,
       nextActionAt: i % 3 === 0 ? null : daysFromNow(i + 1, 14),
       createdBy: activeStaff[i % activeStaff.length]?._id ?? admin._id,
       createdAt: daysAgo(i + 1),
       updatedAt: daysAgo(i + 1),
     });
+    studentFollowUpDocs.push(followUp);
   }
 
-  await AuditLogModel.insertMany([
+  const auditLogDocs = await AuditLogModel.insertMany([
     {
       instituteId: institute._id,
       actorUserId: admin._id,
@@ -1192,7 +1268,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       targetType: "Class",
       targetId: classes[0]._id,
       targetName: `${classes[0].name} ${classes[0].section}`,
-      summary: `${DEMO_PREFIX} Created seeded class structure for page previews.`,
+      summary: "Created new class structure.",
       createdAt: daysAgo(3, 9),
     },
     {
@@ -1204,7 +1280,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       targetType: "Subject",
       targetId: subjectDocs[0]._id,
       targetName: subjectDocs[0].name,
-      summary: `${DEMO_PREFIX} Added seeded subjects and teacher assignments.`,
+      summary: "Added subjects and teacher assignments.",
       createdAt: daysAgo(3, 10),
     },
     {
@@ -1215,8 +1291,8 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       action: "assignment.grade",
       targetType: "Assignment",
       targetId: assignmentDocs[0]._id,
-      targetName: `${DEMO_PREFIX} Assignment 1`,
-      summary: `${DEMO_PREFIX} Graded seeded submissions for the teacher workspace.`,
+      targetName: "Assignment 1",
+      summary: "Graded student submissions.",
       createdAt: daysAgo(2, 16),
     },
     {
@@ -1227,8 +1303,8 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       action: "payment.record",
       targetType: "Payment",
       targetId: new mongoose.Types.ObjectId(),
-      targetName: "Seeded payment batch",
-      summary: `${DEMO_PREFIX} Recorded demo payments for fee and finance pages.`,
+      targetName: "Payment batch",
+      summary: "Recorded a batch of fee payments.",
       createdAt: daysAgo(1, 11),
     },
   ]);
@@ -1241,7 +1317,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
         : plans.get("starter");
 
   if (!planChoice) {
-    throw new Error("Missing demo subscription plan.");
+    throw new Error("Missing subscription plan.");
   }
 
   const subscription = await SubscriptionModel.findOneAndUpdate(
@@ -1274,7 +1350,7 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       subscriptionId: subscription!._id,
       planId: planChoice._id,
       planNameSnapshot: planChoice.name,
-      invoiceNumber: `DEMO-${institute.code}-${CURRENT_YEAR}-${i + 1}`,
+      invoiceNumber: `INV-${institute.code}-${CURRENT_YEAR}-${i + 1}`,
       periodStart,
       periodEnd,
       amount: planChoice.price,
@@ -1284,14 +1360,31 @@ async function seedInstitute(institute: { _id: ObjectId; code: string; name: str
       dueAt,
       paidAt: status === "paid" ? new Date(issuedAt.getTime() + 3 * DAY_MS) : null,
       paymentMethod: status === "paid" ? "bank-transfer" : undefined,
-      receiptNumber: status === "paid" ? `DEMO-RCPT-${institute.code}-${i + 1}` : undefined,
-      notes: "Seeded platform invoice for super-admin billing previews.",
+      receiptNumber: status === "paid" ? `RCPT-${institute.code}-${i + 1}` : undefined,
+      notes: "Subscription invoice.",
       discountAmount: i === 0 ? 10 : 0,
-      discountReason: i === 0 ? "Seeded loyalty discount" : undefined,
+      discountReason: i === 0 ? "Loyalty discount" : undefined,
       lastOverdueReminderAt: status === "overdue" ? daysAgo(2) : null,
       recordedBy: admin._id,
     });
   }
+
+  manifest[institute._id.toString()] = {
+    classIds: classes.map((klass) => klass._id.toString()),
+    subjectIds: subjectDocs.map((subject) => subject._id.toString()),
+    courseIds: courseDocs.map((course) => course._id.toString()),
+    examIds: examIds.map((id) => id.toString()),
+    feeIds: feeDocs.map((fee) => fee._id.toString()),
+    userIds: [...staff, ...refreshedStudents].map((user) => user._id.toString()),
+    extraIncomeIds: extraIncomeIds.map((id) => id.toString()),
+    expenseIds: expenseIds.map((id) => id.toString()),
+    academicTermIds: academicTermDocs.map((term) => term._id.toString()),
+    academicEventIds: academicEventDocs.map((event) => event._id.toString()),
+    announcementIds: announcementDocs.map((announcement) => announcement._id.toString()),
+    notificationIds: notificationDocs.map((notification) => notification._id.toString()),
+    studentFollowUpIds: studentFollowUpDocs.map((followUp) => followUp._id.toString()),
+    auditLogIds: auditLogDocs.map((log) => log._id.toString()),
+  };
 
   return {
     institute: institute.code,
@@ -1315,6 +1408,7 @@ async function main() {
     throw new Error("No institutes found. Create at least one institute and its admin before running this seed.");
   }
 
+  const manifest = loadManifest();
   const summaries = [];
   for (const institute of institutes) {
     if (!institute.code) {
@@ -1323,9 +1417,11 @@ async function main() {
     const summary = await seedInstitute(
       { _id: asId(institute._id), code: institute.code, name: institute.name },
       plans,
-      passwordHash
+      passwordHash,
+      manifest
     );
     summaries.push(summary);
+    saveManifest(manifest);
   }
 
   console.log("Current-user demo data seed complete.");
@@ -1341,7 +1437,9 @@ async function main() {
   console.log("Run: npm run seed:fill-current");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
