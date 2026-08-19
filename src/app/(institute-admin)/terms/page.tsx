@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 export default async function TermsPage() {
   const terms = await listAcademicTermsForInstitute();
@@ -54,7 +54,7 @@ export default async function TermsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader eyebrow="Academic administration" title="Academic terms" description="Define the time windows that anchor calendars, fees, exams, reports, and institute planning." metrics={[{ label: "Current term", value: currentTerm?.name ?? "Not set", detail: currentTerm?.academicYear ?? "Activate a term to guide planning", tone: "primary" }, { label: "Active terms", value: activeCount, detail: "Only one should lead the calendar", tone: "success" }, { label: "Planned terms", value: plannedCount, detail: "Ready for future setup", tone: "info" }]} />
+      <WorkspaceHeader eyebrow="Academic administration" title="Academic terms" description="Define the time windows that anchor calendars, fees, exams, reports, and institute planning." metrics={[{ label: "Current term", value: currentTerm?.name ?? "Not set", detail: currentTerm?.academicYear ?? "Activate a term to guide planning", tone: "primary" }, { label: "Active terms", value: activeCount, detail: "Only one should lead the calendar", tone: "success" }, { label: "Planned terms", value: plannedCount, detail: "Ready for future setup", tone: "info" }]} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
