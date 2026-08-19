@@ -20,7 +20,7 @@ import {
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { FeeFormDialog } from "./new/fee-form-dialog";
 import { FeeEditDialog } from "./[id]/edit/fee-edit-dialog";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 const FEE_COLUMNS = [
@@ -98,12 +98,12 @@ export default async function FeesPage() {
 
     return (
       <div className="flex flex-col gap-6">
-          <InstituteWorkspaceHeader eyebrow="Finance operations" title="Fee schedule" description="Define what learners owe, when it is due, and where collection follow-up should begin." metrics={[{ label: "Fee definitions", value: fees.length, detail: "Across institute and class scopes", tone: "primary" }, { label: "Configured value", value: configuredValue.toFixed(2), detail: "Sum of listed fee amounts", tone: "info" }, { label: "Past due schedules", value: overdueFees, detail: `${upcomingFees} future due dates`, tone: "warning" }]} actions={<div className="flex flex-wrap items-center gap-4">
+          <WorkspaceHeader eyebrow="Finance operations" title="Fee schedule" description="Define what learners owe, when it is due, and where collection follow-up should begin." metrics={[{ label: "Fee definitions", value: fees.length, detail: "Across institute and class scopes", tone: "primary" }, { label: "Configured value", value: configuredValue.toFixed(2), detail: "Sum of listed fee amounts", tone: "info" }, { label: "Past due schedules", value: overdueFees, detail: `${upcomingFees} future due dates`, tone: "warning" }]} actions={<div className="flex flex-wrap items-center gap-4">
             <a
               href="/api/reports/export/fees?format=csv"
               target="_blank"
               rel="noreferrer"
-              className="text-sm text-primary hover:underline"
+              className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
             >
               Export CSV
             </a>
@@ -111,7 +111,7 @@ export default async function FeesPage() {
               href="/api/reports/export/fees?format=xlsx"
               target="_blank"
               rel="noreferrer"
-              className="text-sm text-primary hover:underline"
+              className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
             >
               Export Excel
             </a>
