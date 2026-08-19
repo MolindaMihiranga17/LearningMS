@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 type TimetableSlot = {
   day?: string;
@@ -26,10 +27,19 @@ export default async function MyClassesPage() {
   if (session.role === "institute-staff") {
     await requireStaffModuleAccess("classes");
     const classes = await listClassesForAttendanceTeacher();
+    const classTeacherCount = classes.filter((klass) => klass.isClassTeacher).length;
 
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">My Classes</h1>
+        <WorkspaceHeader
+          eyebrow="Classroom hub"
+          title="My Classes"
+          description="Classes you teach or manage, with quick links to attendance and live sessions."
+          metrics={[
+            { label: "Classes", value: classes.length, detail: "Assigned to you", tone: "primary" },
+            { label: "Class teacher of", value: classTeacherCount, detail: "Classes you lead", tone: "success" },
+          ]}
+        />
 
         {classes.length === 0 ? (
           <p className="text-sm text-muted-foreground">You are not assigned to any classes yet.</p>

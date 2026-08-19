@@ -60,7 +60,7 @@ export default async function AuditLogPage({
             href={`/api/reports/export/audit-log?format=csv${exportSuffix}`}
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-primary hover:underline"
+            className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
           >
             Export CSV
           </a>
@@ -68,7 +68,7 @@ export default async function AuditLogPage({
             href={`/api/reports/export/audit-log?format=xlsx${exportSuffix}`}
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-primary hover:underline"
+            className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
           >
             Export Excel
           </a>

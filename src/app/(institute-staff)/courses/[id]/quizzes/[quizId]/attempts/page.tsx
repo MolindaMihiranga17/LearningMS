@@ -18,7 +18,7 @@ export default async function QuizAttemptsPage({
   const { quiz, attempts } = data;
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div>
         <Link
           href={`/courses/${id}/quizzes/${quizId}`}
@@ -26,16 +26,16 @@ export default async function QuizAttemptsPage({
         >
           &larr; {quiz.title}
         </Link>
-        <h2 className="mt-1 text-2xl font-semibold">Attempts</h2>
+        <h1 className="mt-1 text-2xl font-semibold">Attempts</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {attempts.length} attempt{attempts.length === 1 ? "" : "s"}
         </p>
       </div>
 
       {attempts.length === 0 ? (
-        <p className="mt-6 text-sm text-muted-foreground">No attempts yet.</p>
+        <p className="text-sm text-muted-foreground">No attempts yet.</p>
       ) : (
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           {attempts.map((attempt) => {
             const student = attempt.studentId as unknown as { name?: string; email?: string };
 
@@ -62,6 +62,6 @@ export default async function QuizAttemptsPage({
           })}
         </div>
       )}
-    </>
+    </div>
   );
 }

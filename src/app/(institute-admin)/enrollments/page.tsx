@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { listClasses } from "@/lib/data/class.data";
 import { listPublishedCoursesForInstitute } from "@/lib/data/course.data";
 import { listEnrollmentsForInstitute } from "@/lib/data/enrollment.data";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { BulkEnrollForm } from "./bulk-enroll-form";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "student", header: "Student" },
@@ -44,12 +45,12 @@ export default async function EnrollmentsPage() {
       key: String(enrollment._id),
       searchValue: `${student?.name ?? ""} ${student?.email ?? ""} ${course?.title ?? ""}`,
       cells: [
-        <>
+        <Fragment key="student">
           <span className="font-medium">{student?.name ?? "Unknown"}</span>
           {student?.email ? (
             <span className="ml-1 text-xs text-muted-foreground">({student.email})</span>
           ) : null}
-        </>,
+        </Fragment>,
         course?.title ?? "Unknown",
         <Badge key="status" variant="secondary" className="capitalize">
           {enrollment.status}
@@ -62,7 +63,7 @@ export default async function EnrollmentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader title="Course enrollments" description="Place whole classes into published courses and keep an eye on learning participation and progress." metrics={[{ label: "Enrollments", value: enrollments.length, detail: "Across published courses", tone: "primary" }, { label: "Active learners", value: activeEnrollments, detail: "Currently enrolled", tone: "success" }, { label: "Average progress", value: `${averageProgress}%`, detail: "Across all enrollments", tone: "info" }]} />
+      <WorkspaceHeader title="Course enrollments" description="Place whole classes into published courses and keep an eye on learning participation and progress." metrics={[{ label: "Enrollments", value: enrollments.length, detail: "Across published courses", tone: "primary" }, { label: "Active learners", value: activeEnrollments, detail: "Currently enrolled", tone: "success" }, { label: "Average progress", value: `${averageProgress}%`, detail: "Across all enrollments", tone: "info" }]} />
 
       <Card>
         <CardHeader>

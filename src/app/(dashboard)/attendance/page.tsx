@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
 
 const ADMIN_COLUMNS = [
@@ -63,13 +63,14 @@ export default async function AttendancePage() {
     }));
 
     return (
-      <div className="flex flex-col gap-6"><InstituteWorkspaceHeader eyebrow="Academic monitoring" title="Attendance overview" description="Compare attendance across classes and identify groups that need follow-up before trends become problems." metrics={[{ label: "Institute average", value: `${instituteAverage}%`, detail: "Across recorded classes", tone: "primary" }, { label: "Classes tracked", value: recordedClasses.length, detail: "With attendance records", tone: "success" }, { label: "No records yet", value: summary.length - recordedClasses.length, detail: "Classes awaiting their first register", tone: "warning" }]} /><DataTableCard title="Class attendance" sub="Search a class to review its current attendance percentage." columns={ADMIN_COLUMNS} rows={rows} searchPlaceholder="Search classes..." emptyTitle="No classes yet." /></div>
+      <div className="flex flex-col gap-6"><WorkspaceHeader eyebrow="Academic monitoring" title="Attendance overview" description="Compare attendance across classes and identify groups that need follow-up before trends become problems." metrics={[{ label: "Institute average", value: `${instituteAverage}%`, detail: "Across recorded classes", tone: "primary" }, { label: "Classes tracked", value: recordedClasses.length, detail: "With attendance records", tone: "success" }, { label: "No records yet", value: summary.length - recordedClasses.length, detail: "Classes awaiting their first register", tone: "warning" }]} /><DataTableCard title="Class attendance" sub="Search a class to review its current attendance percentage." columns={ADMIN_COLUMNS} rows={rows} searchPlaceholder="Search classes..." emptyTitle="No classes yet." /></div>
     );
   }
 
   if (session.role === "institute-staff") {
     await requireStaffModuleAccess("classes");
     const classes = await listClassesForAttendanceTeacher();
+    const classTeacherCount = classes.filter((klass) => klass.isClassTeacher).length;
 
     const rows: DataTableRow[] = classes.map((klass) => ({
       key: klass.id,
@@ -94,16 +95,24 @@ export default async function AttendancePage() {
     }));
 
     return (
-      <>
-        <h1 className="text-2xl font-semibold">Attendance</h1>
-        <div className="mt-6">
-          <DataTableCard
-            columns={TEACHER_COLUMNS}
-            rows={rows}
-            emptyTitle="No classes to mark attendance for yet."
-          />
-        </div>
-      </>
+      <div className="flex flex-col gap-6">
+        <WorkspaceHeader
+          eyebrow="Academic monitoring"
+          title="Attendance"
+          description="Mark attendance for the classes you teach or manage."
+          metrics={[
+            { label: "Classes", value: classes.length, detail: "Assigned to you", tone: "primary" },
+            { label: "Class teacher of", value: classTeacherCount, detail: "Classes you lead", tone: "success" },
+          ]}
+        />
+        <DataTableCard
+          title="Your classes"
+          sub="Pick a class to mark today's attendance."
+          columns={TEACHER_COLUMNS}
+          rows={rows}
+          emptyTitle="No classes to mark attendance for yet."
+        />
+      </div>
     );
   }
 

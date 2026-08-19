@@ -19,7 +19,7 @@ export default async function AssignmentSubmissionsPage({
   const { assignment, submissions } = data;
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div>
         <Link
           href={`/courses/${id}/assignments/${assignmentId}`}
@@ -27,16 +27,16 @@ export default async function AssignmentSubmissionsPage({
         >
           &larr; {assignment.title}
         </Link>
-        <h2 className="mt-1 text-2xl font-semibold">Submissions</h2>
+        <h1 className="mt-1 text-2xl font-semibold">Submissions</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {submissions.length} submission{submissions.length === 1 ? "" : "s"}
         </p>
       </div>
 
       {submissions.length === 0 ? (
-        <p className="mt-6 text-sm text-muted-foreground">No submissions yet.</p>
+        <p className="text-sm text-muted-foreground">No submissions yet.</p>
       ) : (
-        <div className="mt-6 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           {submissions.map((submission) => {
             const student = submission.studentId as unknown as {
               _id: string;
@@ -90,6 +90,6 @@ export default async function AssignmentSubmissionsPage({
           })}
         </div>
       )}
-    </>
+    </div>
   );
 }

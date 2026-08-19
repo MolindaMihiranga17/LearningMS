@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { StudentFormDialog } from "./new/student-form-dialog";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -81,7 +81,7 @@ export default async function StudentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader title="Student records" description="Manage enrollment-ready student profiles, guardians, class assignment, and payment follow-up from one directory." metrics={[{ label: "Students", value: students.length, detail: "All registered learners", tone: "primary" }, { label: "Active students", value: activeStudents, detail: "Currently enabled", tone: "success" }, { label: "Roll numbers missing", value: missingRollNumbers, detail: "Needs academic setup", tone: "warning" }]} actions={<>
+      <WorkspaceHeader title="Student records" description="Manage enrollment-ready student profiles, guardians, class assignment, and payment follow-up from one directory." metrics={[{ label: "Students", value: students.length, detail: "All registered learners", tone: "primary" }, { label: "Active students", value: activeStudents, detail: "Currently enabled", tone: "success" }, { label: "Roll numbers missing", value: missingRollNumbers, detail: "Needs academic setup", tone: "warning" }]} actions={<>
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/payment-desk" className={cn(buttonVariants({ variant: "outline" }))}>
             Open payment desk
@@ -90,7 +90,7 @@ export default async function StudentsPage() {
             href="/api/reports/export/students?format=csv"
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-primary hover:underline"
+            className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
           >
             Export CSV
           </a>
@@ -98,7 +98,7 @@ export default async function StudentsPage() {
             href="/api/reports/export/students?format=xlsx"
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-primary hover:underline"
+            className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
           >
             Export Excel
           </a>

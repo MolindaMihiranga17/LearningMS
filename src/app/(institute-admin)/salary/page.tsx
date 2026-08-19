@@ -1,7 +1,7 @@
 import { getSalaryLedger } from "@/lib/data/finance.data";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { Badge } from "@/components/ui/badge";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "name", header: "Staff", sortable: true },
@@ -58,7 +58,7 @@ export default async function SalaryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader eyebrow="Finance & payroll" title="Salary planning" description="Review each staff member’s salary basis and commission impact before payroll is prepared." metrics={[{ label: "Active staff", value: activeStaff.length, detail: "Included in payroll review", tone: "success" }, { label: "Salary baseline", value: salaryTotal.toFixed(2), detail: "Basic salary total", tone: "primary" }, { label: "Commission impact", value: commissionTotal.toFixed(2), detail: "Recorded commission total", tone: "info" }]} />
+      <WorkspaceHeader eyebrow="Finance & payroll" title="Salary planning" description="Review each staff member’s salary basis and commission impact before payroll is prepared." metrics={[{ label: "Active staff", value: activeStaff.length, detail: "Included in payroll review", tone: "success" }, { label: "Salary baseline", value: salaryTotal.toFixed(2), detail: "Basic salary total", tone: "primary" }, { label: "Commission impact", value: commissionTotal.toFixed(2), detail: "Recorded commission total", tone: "info" }]} />
 
       <DataTableCard
         title="Compensation ledger"

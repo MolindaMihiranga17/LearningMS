@@ -15,7 +15,7 @@ import SubjectModel from "@/models/Subject";
 import SubmissionModel from "@/models/Submission";
 import UserModel from "@/models/User";
 import { getInstituteRecentActivity } from "@/lib/data/dashboard.data";
-import { getIncomeStatistics } from "@/lib/data/finance.data";
+import { getFinanceTrend, getIncomeStatistics } from "@/lib/data/finance.data";
 import { getStudentFeatureSnapshot, getTeacherFeatureSnapshot } from "@/lib/data/feature-plan.data";
 
 export async function getStudentDeadlinesData() {
@@ -234,7 +234,7 @@ export async function getInstituteReportsData() {
 
   await connectToDatabase();
 
-  const [attendance, gradeRows, enrollments, finance, submissions, quizAttempts] = await Promise.all([
+  const [attendance, gradeRows, enrollments, finance, submissions, quizAttempts, financeTrend] = await Promise.all([
     AttendanceModel.aggregate([
       { $match: { instituteId: new mongoose.Types.ObjectId(session.instituteId as string) } },
       { $unwind: "$records" },
@@ -253,6 +253,7 @@ export async function getInstituteReportsData() {
     getIncomeStatistics(),
     SubmissionModel.countDocuments(withTenantScope({ status: "submitted" }, session)),
     QuizAttemptModel.countDocuments(withTenantScope({ status: "submitted" }, session)),
+    getFinanceTrend(),
   ]);
 
   const attendanceTotal = attendance.reduce((sum, row) => sum + row.total, 0);
@@ -270,6 +271,7 @@ export async function getInstituteReportsData() {
     averageExamPercent: gradeRows.length > 0 ? gradeTotal / gradeRows.length : null,
     enrollmentStatus: enrollments.map((row) => ({ status: row._id ?? "unknown", total: row.total })),
     finance,
+    financeTrend,
     gradingBacklog: submissions + quizAttempts,
     exports: [
       { label: "Students CSV", href: "/api/reports/export/students?format=csv" },

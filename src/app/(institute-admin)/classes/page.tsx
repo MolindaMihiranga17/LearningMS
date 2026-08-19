@@ -6,7 +6,7 @@ import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { ClassFormDialog } from "./new/class-form-dialog";
 import { ClassEditDialog } from "./[id]/edit/class-edit-dialog";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -64,7 +64,7 @@ export default async function ClassesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader title="Class structure" description="Create class groups, assign ownership, and keep academic-year delivery organized." actions={<ClassFormDialog teachers={teachers} />} metrics={[{ label: "Classes", value: classes.length, detail: "Across all academic years", tone: "primary" }, { label: "Active classes", value: activeClasses, detail: "Open for delivery", tone: "success" }, { label: "Teacher assignment", value: classesWithoutTeacher, detail: "Classes still unowned", tone: "warning" }]} />
+      <WorkspaceHeader title="Class structure" description="Create class groups, assign ownership, and keep academic-year delivery organized." actions={<ClassFormDialog teachers={teachers} />} metrics={[{ label: "Classes", value: classes.length, detail: "Across all academic years", tone: "primary" }, { label: "Active classes", value: activeClasses, detail: "Open for delivery", tone: "success" }, { label: "Teacher assignment", value: classesWithoutTeacher, detail: "Classes still unowned", tone: "warning" }]} />
       <div>
         <DataTableCard
           columns={COLUMNS}

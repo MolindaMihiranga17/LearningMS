@@ -86,6 +86,64 @@ export async function getIncomeStatistics(): Promise<IncomeStatistics> {
   return { totalRevenue, totalExtraIncome, totalExpenses, totalSalary, netIncome };
 }
 
+export type FinanceTrendPoint = {
+  month: string;
+  revenue: number;
+  expenses: number;
+  net: number;
+};
+
+export async function getFinanceTrend(months = 6): Promise<FinanceTrendPoint[]> {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  await connectToDatabase();
+
+  const since = new Date();
+  since.setMonth(since.getMonth() - (months - 1), 1);
+  since.setHours(0, 0, 0, 0);
+
+  const [payments, extraIncome, expenses] = await Promise.all([
+    PaymentModel.find(withTenantScope({ paymentDate: { $gte: since } }, session))
+      .select("amount paymentDate")
+      .lean(),
+    ExtraIncomeModel.find(withTenantScope({}, session)).select("amount createdAt").lean(),
+    ExpenseModel.find(withTenantScope({}, session)).select("price createdAt").lean(),
+  ]);
+
+  const monthKey = (date: Date) => date.toLocaleDateString("en-US", { year: "numeric", month: "short" });
+
+  const revenueBuckets = new Map<string, number>();
+  const expenseBuckets = new Map<string, number>();
+  const order: string[] = [];
+  for (let i = 0; i < months; i++) {
+    const bucketDate = new Date(since.getFullYear(), since.getMonth() + i, 1);
+    const key = monthKey(bucketDate);
+    order.push(key);
+    revenueBuckets.set(key, 0);
+    expenseBuckets.set(key, 0);
+  }
+
+  for (const payment of payments) {
+    const key = monthKey(new Date(payment.paymentDate));
+    if (revenueBuckets.has(key)) revenueBuckets.set(key, (revenueBuckets.get(key) ?? 0) + payment.amount);
+  }
+  for (const income of extraIncome) {
+    const key = monthKey(new Date(income.createdAt as Date));
+    if (revenueBuckets.has(key)) revenueBuckets.set(key, (revenueBuckets.get(key) ?? 0) + income.amount);
+  }
+  for (const expense of expenses) {
+    const key = monthKey(new Date(expense.createdAt as Date));
+    if (expenseBuckets.has(key)) expenseBuckets.set(key, (expenseBuckets.get(key) ?? 0) + expense.price);
+  }
+
+  return order.map((month) => {
+    const revenue = revenueBuckets.get(month) ?? 0;
+    const expensesTotal = expenseBuckets.get(month) ?? 0;
+    return { month, revenue, expenses: expensesTotal, net: revenue - expensesTotal };
+  });
+}
+
 export async function getSalaryLedger() {
   const session = await requireSession();
   requireRole(session, ["institute-admin"]);

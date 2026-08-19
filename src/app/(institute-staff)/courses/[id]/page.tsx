@@ -34,10 +34,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
   }));
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">{course.title}</h2>
+          <h1 className="text-2xl font-semibold">{course.title}</h1>
           {course.description ? (
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{course.description}</p>
           ) : null}
@@ -98,6 +98,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <AddModuleForm courseId={id} />
-    </>
+    </div>
   );
 }

@@ -9,6 +9,13 @@ const TONE_ACCENT = {
   info: "bg-info",
 } as const;
 
+const TONE_ICON = {
+  primary: "bg-primary/12 text-primary",
+  success: "bg-success/14 text-success",
+  warning: "bg-warning/16 text-warning",
+  info: "bg-info/14 text-info",
+} as const;
+
 const TONE_COLOR_VAR = {
   primary: "var(--color-primary)",
   success: "var(--color-success)",
@@ -40,8 +47,8 @@ export function StatCard({
       ) : null}
       <div className="flex items-center justify-between">
         <span className="text-eyebrow">{label}</span>
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-(--radius-icon) bg-primary/10">
-          <Icon className="size-3.5 text-primary" />
+        <div className={cn("flex size-7 shrink-0 items-center justify-center rounded-(--radius-icon)", TONE_ICON[tone ?? "primary"])}>
+          <Icon className="size-3.5" />
         </div>
       </div>
       <div className="flex items-end justify-between gap-3">

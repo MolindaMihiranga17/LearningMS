@@ -514,7 +514,9 @@ export async function getTeacherFeatureSnapshot(): Promise<TeacherFeatureSnapsho
           (submission.assignmentId as unknown as { courseId?: mongoose.Types.ObjectId } | null)
             ?.courseId ?? ""
         ),
-      assignmentId: String(submission.assignmentId),
+      assignmentId: String(
+        (submission.assignmentId as unknown as { _id?: mongoose.Types.ObjectId } | null)?._id ?? ""
+      ),
     }));
 
   const examRows = exams

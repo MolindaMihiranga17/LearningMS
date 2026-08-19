@@ -1,7 +1,7 @@
 import { listInstituteAuditLogs } from "@/lib/data/deep-operations.data";
 import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 export default async function InstituteAuditHistoryPage() {
   const logs = await listInstituteAuditLogs();
@@ -29,7 +29,7 @@ export default async function InstituteAuditHistoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader eyebrow="Institute governance" title="Audit history" description="Review the institute’s recent operational record, understand who changed what, and trace system activity with confidence." metrics={[{ label: "Recent events", value: logs.length, detail: "Latest 100 audit entries", tone: "primary" }, { label: "Actors", value: uniqueActors, detail: "People or systems represented", tone: "info" }, { label: "System events", value: systemEvents, detail: latestEvent, tone: "success" }]} />
+      <WorkspaceHeader eyebrow="Institute governance" title="Audit history" description="Review the institute’s recent operational record, understand who changed what, and trace system activity with confidence." metrics={[{ label: "Recent events", value: logs.length, detail: "Latest 100 audit entries", tone: "primary" }, { label: "Actors", value: uniqueActors, detail: "People or systems represented", tone: "info" }, { label: "System events", value: systemEvents, detail: latestEvent, tone: "success" }]} />
 
       <DataTableCard
         title="Activity timeline"

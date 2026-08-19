@@ -39,23 +39,21 @@ export default async function CourseGradesPage({
   }));
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div>
         <Link href="/grades" className="text-sm text-muted-foreground hover:underline">
           &larr; Grades
         </Link>
-        <h2 className="mt-1 text-2xl font-semibold">{course.title}</h2>
+        <h1 className="mt-1 text-2xl font-semibold">{course.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Grade summary by student</p>
       </div>
 
-      <div className="mt-6">
-        <DataTableCard
-          columns={COLUMNS}
-          rows={rows}
-          searchPlaceholder="Search students..."
-          emptyTitle="No enrolled students yet."
-        />
-      </div>
-    </>
+      <DataTableCard
+        columns={COLUMNS}
+        rows={rows}
+        searchPlaceholder="Search students..."
+        emptyTitle="No enrolled students yet."
+      />
+    </div>
   );
 }

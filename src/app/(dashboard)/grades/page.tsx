@@ -6,6 +6,7 @@ import { getMyGradesForStudent } from "@/lib/data/grade.data";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const TEACHER_COLUMNS = [
   { key: "course", header: "Course" },
@@ -65,6 +66,7 @@ export default async function GradesPage() {
 
   if (session.role === "institute-staff") {
     const courses = await listCoursesForTeacher();
+    const publishedCount = courses.filter((course) => course.status === "published").length;
 
     const rows: DataTableRow[] = courses.map((course) => ({
       key: String(course._id),
@@ -83,16 +85,18 @@ export default async function GradesPage() {
     }));
 
     return (
-      <>
-        <h2 className="text-2xl font-semibold">Grades</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Pick a course to view its grade table.
-        </p>
-
-        <div className="mt-6">
-          <DataTableCard columns={TEACHER_COLUMNS} rows={rows} emptyTitle="No courses yet." />
-        </div>
-      </>
+      <div className="flex flex-col gap-6">
+        <WorkspaceHeader
+          eyebrow="Academic assessment"
+          title="Grades"
+          description="Pick a course to view or update its grade table."
+          metrics={[
+            { label: "Courses", value: courses.length, detail: "Assigned to you", tone: "primary" },
+            { label: "Published", value: publishedCount, detail: "Visible to students", tone: "success" },
+          ]}
+        />
+        <DataTableCard columns={TEACHER_COLUMNS} rows={rows} emptyTitle="No courses yet." />
+      </div>
     );
   }
 

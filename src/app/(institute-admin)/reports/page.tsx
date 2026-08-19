@@ -2,7 +2,8 @@ import { BarChart3, ClipboardCheck, GraduationCap, Layers, Wallet } from "lucide
 import { getInstituteReportsData } from "@/lib/data/remaining-plan.data";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
-import { Badge } from "@/components/ui/badge";
+import { DonutChart } from "@/components/dashboard-shell/donut-chart";
+import { MultiSeriesChart } from "@/components/dashboard-shell/multi-series-chart";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,21 +33,27 @@ export default async function InstituteReportsPage() {
         <StatCard label="Grading backlog" icon={Layers} value={data.gradingBacklog} tone="warning" />
       </div>
 
+      <MultiSeriesChart
+        title="Finance trend"
+        sub="Revenue vs. expenses over the last 6 months"
+        data={data.financeTrend.map((point) => ({ label: point.month, revenue: point.revenue, expenses: point.expenses, net: point.net }))}
+        series={[
+          { key: "revenue", label: "Revenue" },
+          { key: "expenses", label: "Expenses" },
+          { key: "net", label: "Net" },
+        ]}
+        variant="line"
+        format="currency"
+        emptyLabel="No payments or expenses recorded yet."
+      />
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Panel title="Enrollment report" sub="Current enrollment status distribution" className="p-5">
-          <div className="mt-4 flex flex-col gap-3">
-            {data.enrollmentStatus.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No enrollment data yet.</p>
-            ) : (
-              data.enrollmentStatus.map((row) => (
-                <div key={row.status} className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
-                  <span className="text-sm capitalize">{row.status}</span>
-                  <Badge variant="secondary">{row.total}</Badge>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
+        <DonutChart
+          title="Enrollment report"
+          sub="Current enrollment status distribution"
+          data={data.enrollmentStatus.map((row) => ({ key: row.status, label: row.status, value: row.total }))}
+          emptyLabel="No enrollment data yet."
+        />
 
         <Panel title="Finance report" sub="Income, expenses, salary, and net position" className="p-5">
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -78,7 +85,7 @@ export default async function InstituteReportsPage() {
               href={item.href}
               target="_blank"
               rel="noreferrer"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
             >
               {item.label}
             </a>
