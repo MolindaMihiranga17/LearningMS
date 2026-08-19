@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 export default async function StudentFollowUpsPage() {
   await requireStaffModuleAccess("students");
   const { students, followUps } = await listTeacherFollowUpData();
+  const openCount = followUps.filter((followUp) => followUp.status === "open").length;
 
   const rows: DataTableRow[] = followUps.map((followUp) => {
     const student = followUp.studentId as unknown as { name?: string } | null;
@@ -30,13 +32,15 @@ export default async function StudentFollowUpsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-eyebrow text-primary">Teaching</p>
-        <h1 className="text-heading mt-1 text-2xl">Student Follow-ups</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Record attendance, coursework, academic, behavior, and general support notes.
-        </p>
-      </div>
+      <WorkspaceHeader
+        eyebrow="Teaching"
+        title="Student follow-ups"
+        description="Record attendance, coursework, academic, behavior, and general support notes."
+        metrics={[
+          { label: "Follow-ups", value: followUps.length, detail: "All recorded notes", tone: "primary" },
+          { label: "Open", value: openCount, detail: "Needs a next action", tone: "warning" },
+        ]}
+      />
 
       <Card>
         <CardHeader>
