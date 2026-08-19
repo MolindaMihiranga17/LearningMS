@@ -29,7 +29,7 @@ export default async function AttemptGradingPage({
   );
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div>
         <Link
           href={`/courses/${id}/quizzes/${quizId}/attempts`}
@@ -37,7 +37,7 @@ export default async function AttemptGradingPage({
         >
           &larr; {quiz.title} attempts
         </Link>
-        <h2 className="mt-1 text-2xl font-semibold">{student?.name ?? "Unknown student"}</h2>
+        <h1 className="mt-1 text-2xl font-semibold">{student?.name ?? "Unknown student"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{student?.email}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded-full bg-muted px-2 py-0.5 capitalize">{attempt.status}</span>
@@ -47,7 +47,7 @@ export default async function AttemptGradingPage({
         </div>
       </div>
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         {questions.map((question, index) => {
           const questionId = question._id.toString();
           const answer = answerByQuestionId.get(questionId);
@@ -107,6 +107,6 @@ export default async function AttemptGradingPage({
           );
         })}
       </div>
-    </>
+    </div>
   );
 }

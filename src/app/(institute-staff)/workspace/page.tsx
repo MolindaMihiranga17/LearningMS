@@ -5,6 +5,7 @@ import { cancelClassSession } from "@/lib/actions/class-session.actions";
 import { getTeacherWorkspaceData } from "@/lib/data/remaining-plan.data";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
@@ -45,13 +46,11 @@ export default async function TeacherWorkspacePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-eyebrow text-primary">Teaching</p>
-        <h1 className="text-heading mt-1 text-2xl">Teacher Workspace</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Planner, grading queue, managed classes, student follow-up, and course publishing.
-        </p>
-      </div>
+      <WorkspaceHeader
+        eyebrow="Teaching"
+        title="Teacher workspace"
+        description="Planner, grading queue, managed classes, student follow-up, and course publishing in one place."
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Planner slots" icon={BookOpen} value={data.teachingPlanner.length} tone="primary" />
@@ -94,7 +93,7 @@ export default async function TeacherWorkspacePage() {
                     <div>
                       <p className="text-sm font-medium">{klass.name}</p>
                       <p className="mt-1 text-xs text-muted-foreground capitalize">
-                        {klass.sessionStatus.replace("-", " ")}
+                        {(klass.sessionStatus ?? "scheduled").replace("-", " ")}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
