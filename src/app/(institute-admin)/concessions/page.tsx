@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 export default async function ConcessionsPage() {
   const { students, fees, concessions } = await listConcessionManagementData();
@@ -31,7 +31,7 @@ export default async function ConcessionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader eyebrow="Finance operations" title="Fee concessions" description="Apply clear, student-level reductions to a specific fee or every applicable fee, with the reason recorded for review." metrics={[{ label: "Active concessions", value: concessions.length, detail: "Student financial adjustments", tone: "primary" }, { label: "Fee-specific", value: feeSpecific, detail: "Applied to one fee definition", tone: "info" }, { label: "Percentage based", value: percentageConcessions, detail: "Variable discount rules", tone: "success" }]} />
+      <WorkspaceHeader eyebrow="Finance operations" title="Fee concessions" description="Apply clear, student-level reductions to a specific fee or every applicable fee, with the reason recorded for review." metrics={[{ label: "Active concessions", value: concessions.length, detail: "Student financial adjustments", tone: "primary" }, { label: "Fee-specific", value: feeSpecific, detail: "Applied to one fee definition", tone: "info" }, { label: "Percentage based", value: percentageConcessions, detail: "Variable discount rules", tone: "success" }]} />
 
       <Card>
         <CardHeader>
