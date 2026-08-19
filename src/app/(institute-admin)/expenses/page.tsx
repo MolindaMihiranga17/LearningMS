@@ -3,7 +3,7 @@ import { deleteExpense } from "@/lib/actions/finance.actions";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { ExpenseFormDialog } from "./new/expense-form-dialog";
-import { InstituteWorkspaceHeader } from "@/components/institute-admin/workspace-header";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "type", header: "Type" },
@@ -36,7 +36,7 @@ export default async function ExpensesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <InstituteWorkspaceHeader eyebrow="Finance operations" title="Expense register" description="Record operating costs by period so financial reporting stays current and decisions have a reliable baseline." actions={<ExpenseFormDialog />} metrics={[{ label: "Expense entries", value: expenses.length, detail: "Recorded operating costs", tone: "primary" }, { label: "Total expenses", value: totalExpenses.toFixed(2), detail: "Across all recorded periods", tone: "warning" }, { label: "Expense types", value: uniqueTypes, detail: latestPeriod, tone: "info" }]} />
+      <WorkspaceHeader eyebrow="Finance operations" title="Expense register" description="Record operating costs by period so financial reporting stays current and decisions have a reliable baseline." actions={<ExpenseFormDialog />} metrics={[{ label: "Expense entries", value: expenses.length, detail: "Recorded operating costs", tone: "primary" }, { label: "Total expenses", value: totalExpenses.toFixed(2), detail: "Across all recorded periods", tone: "warning" }, { label: "Expense types", value: uniqueTypes, detail: latestPeriod, tone: "info" }]} />
       <div>
         <DataTableCard
           title="Expense activity"
