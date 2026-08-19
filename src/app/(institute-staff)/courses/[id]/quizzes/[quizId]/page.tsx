@@ -23,10 +23,10 @@ export default async function QuizDetailPage({
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">{quiz.title}</h2>
+          <h1 className="text-2xl font-semibold">{quiz.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{quiz.courseTitle}</p>
           {quiz.instructions ? (
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{quiz.instructions}</p>
@@ -63,6 +63,6 @@ export default async function QuizDetailPage({
           <AddQuestionForm quizId={quizId} />
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }
