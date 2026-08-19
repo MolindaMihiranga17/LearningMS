@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { NAV_BY_ROLE, type NavKey } from "./nav-config";
+
+const SCROLL_STORAGE_KEY = "dashboard-sidebar-scroll";
+
+function closeMobileNav() {
+  const toggle = document.getElementById("mobile-nav-toggle") as HTMLInputElement | null;
+  if (toggle) toggle.checked = false;
+}
 
 export function SidebarNav({
   navKey,
@@ -13,6 +21,31 @@ export function SidebarNav({
   staffPermissions?: Record<string, boolean>;
 }) {
   const pathname = usePathname();
+  const restoredRef = useRef(false);
+
+  useEffect(() => {
+    closeMobileNav();
+  }, [pathname]);
+
+  // Restore the sidebar's own scroll position after navigation/remount, so
+  // clicking a link never snaps the list back to the top.
+  useLayoutEffect(() => {
+    const nav = document.getElementById("dashboard-sidebar");
+    if (!nav) return;
+
+    if (!restoredRef.current) {
+      restoredRef.current = true;
+      const saved = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+      if (saved) nav.scrollTop = Number(saved);
+    }
+
+    const handleScroll = () => {
+      sessionStorage.setItem(SCROLL_STORAGE_KEY, String(nav.scrollTop));
+    };
+    nav.addEventListener("scroll", handleScroll, { passive: true });
+    return () => nav.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const items = NAV_BY_ROLE[navKey].filter((item) => {
     if (navKey !== "institute-staff" || !item.staffPermission) return true;
     return Boolean(staffPermissions?.[item.staffPermission]);
@@ -55,6 +88,7 @@ export function SidebarNav({
             {groupHeader}
             <Link
               href={item.href}
+              onClick={closeMobileNav}
               className={cn(
                 "group flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 transition-all",
                 active
