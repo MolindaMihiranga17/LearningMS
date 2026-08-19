@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 import { CourseFormDialog } from "./new/course-form-dialog";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -36,6 +37,8 @@ export default async function CoursesPage() {
     id: String(klass._id),
     label: `${klass.name}${klass.section ? ` ${klass.section}` : ""}`,
   }));
+  const publishedCount = courses.filter((course) => course.status === "published").length;
+  const draftCount = courses.filter((course) => course.status !== "published").length;
 
   const rows: DataTableRow[] = courses.map((course) => {
     const subject = course.subjectId as unknown as { name?: string } | null;
@@ -67,19 +70,24 @@ export default async function CoursesPage() {
   });
 
   return (
-    <>
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Courses</h2>
-        <CourseFormDialog subjects={subjects} classes={classOptions} />
-      </div>
-      <div className="mt-6">
-        <DataTableCard
-          columns={COLUMNS}
-          rows={rows}
-          searchPlaceholder="Search courses..."
-          emptyTitle="No courses yet."
-        />
-      </div>
-    </>
+    <div className="flex flex-col gap-6">
+      <WorkspaceHeader
+        eyebrow="Teaching"
+        title="Courses"
+        description="Build and publish course material for the classes you teach."
+        actions={<CourseFormDialog subjects={subjects} classes={classOptions} />}
+        metrics={[
+          { label: "Courses", value: courses.length, detail: "All course records", tone: "primary" },
+          { label: "Published", value: publishedCount, detail: "Visible to students", tone: "success" },
+          { label: "Draft", value: draftCount, detail: "Not yet published", tone: "info" },
+        ]}
+      />
+      <DataTableCard
+        columns={COLUMNS}
+        rows={rows}
+        searchPlaceholder="Search courses..."
+        emptyTitle="No courses yet."
+      />
+    </div>
   );
 }
