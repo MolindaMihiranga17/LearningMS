@@ -24,7 +24,20 @@ export async function getMyProfile() {
       billing: user.notificationPreferences?.billing ?? true,
       academic: user.notificationPreferences?.academic ?? true,
     },
-    staffMeta: user.staffMeta ?? null,
+    staffMeta: user.staffMeta
+      ? {
+          employeeCode: user.staffMeta.employeeCode ?? null,
+          subjectIds: (user.staffMeta.subjectIds ?? []).map((id: unknown) => String(id)),
+          basicSalary: user.staffMeta.basicSalary ?? 0,
+          commission: user.staffMeta.commission ?? 0,
+          monthlyCommissions: (user.staffMeta.monthlyCommissions ?? []).map((entry: { month?: string; amount?: number; recordedAt?: Date }) => ({
+            month: entry.month,
+            amount: entry.amount,
+            recordedAt: entry.recordedAt,
+          })),
+          permissions: user.staffMeta.permissions ?? null,
+        }
+      : null,
     studentMeta: user.studentMeta ?? null,
   };
 }
