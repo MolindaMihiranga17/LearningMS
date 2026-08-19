@@ -2,7 +2,8 @@ import { LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthHeroIllustration } from "./auth-hero-illustration";
 
-export const AUTH_CARD_WRAPPER_CLASS = "grid min-h-screen bg-background min-[920px]:grid-cols-[1.02fr_1fr]";
+export const AUTH_CARD_WRAPPER_CLASS =
+  "grid h-dvh overflow-hidden bg-background min-[920px]:grid-cols-[1.02fr_1fr]";
 
 export const AUTH_HERO_PANEL_CLASS =
   "relative flex min-h-[420px] overflow-hidden bg-[#060914] text-slate-50 max-[560px]:min-h-0";
@@ -41,7 +42,7 @@ export function AuthHeroPanel() {
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:26px_26px] [mask-image:linear-gradient(to_bottom,black,transparent_65%)]"
       />
-      <div className="relative z-10 flex min-h-[420px] flex-col justify-between p-8 min-[920px]:min-h-screen min-[920px]:p-[clamp(2.5rem,5vw,3.4rem)] max-[560px]:min-h-0 max-[560px]:justify-start max-[560px]:p-5">
+      <div className="relative z-10 flex min-h-[420px] flex-col justify-between p-8 min-[920px]:h-full min-[920px]:p-[clamp(2.5rem,5vw,3.4rem)] max-[560px]:min-h-0 max-[560px]:justify-start max-[560px]:p-5">
         <div className="hidden min-[920px]:flex min-[920px]:justify-end">
           <div className="w-full max-w-[430px] opacity-95">
             <AuthHeroIllustration />
