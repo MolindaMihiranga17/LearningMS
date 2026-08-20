@@ -7,8 +7,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { markNotificationRead, markAllNotificationsRead } from "@/lib/actions/notification.actions";
-import { NotificationTypeBadge } from "./notification-type-badge";
+import { markAllNotificationsRead } from "@/lib/actions/notification.actions";
+import { NotificationItem } from "./notification-item";
 import type { NotificationType } from "@/models/Notification";
 
 export type NotificationItem = {
@@ -59,35 +59,7 @@ export function NotificationBell({
             <p className="px-2 py-3 text-[12.5px] text-muted-foreground">No notifications yet.</p>
           ) : (
             notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`rounded-lg px-2 py-2 ${notification.isRead ? "" : "bg-primary/5"}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <NotificationTypeBadge type={notification.type} />
-                    {!notification.isRead ? (
-                      <span className="size-1.5 shrink-0 rounded-full bg-primary" />
-                    ) : null}
-                  </div>
-                  {!notification.isRead ? (
-                    <form action={markNotificationRead}>
-                      <input type="hidden" name="id" value={notification.id} />
-                      <button
-                        type="submit"
-                        className="shrink-0 text-[10.5px] font-medium text-primary hover:underline"
-                      >
-                        Mark read
-                      </button>
-                    </form>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-[12.5px] font-semibold text-foreground">{notification.title}</p>
-                <p className="mt-0.5 text-[12px] text-muted-foreground">{notification.body}</p>
-                <p className="mt-1 text-[10.5px] text-muted-foreground/70">
-                  {new Date(notification.createdAt).toLocaleString()}
-                </p>
-              </div>
+              <NotificationItem key={notification.id} notification={notification} variant="compact" />
             ))
           )}
         </div>
