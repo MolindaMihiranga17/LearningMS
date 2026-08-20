@@ -2,16 +2,17 @@ import "server-only";
 import { connectToDatabase } from "@/lib/db/connect";
 import QuizModel from "@/models/Quiz";
 import QuizQuestionModel from "@/models/QuizQuestion";
-import QuizAttemptModel from "@/models/QuizAttempt";
+import QuizAttemptModel, { type QuizAttemptAnswer } from "@/models/QuizAttempt";
 import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
 import { toStudentSafeQuestion } from "@/lib/data/quiz.data";
 import { assertOwnsQuiz } from "@/lib/actions/quiz-ownership";
+import { gradeAttemptAnswers, type SubmittedAnswer } from "@/lib/quiz/grade-attempt-answers";
 
 /**
  * If a student never clicks submit, the deadline is still enforced here: any
- * in_progress attempt past expiresAt is force-graded with whatever answers
- * were actually saved (none, since answers are only written on submit), so
- * silence can't be used to dodge grading.
+ * in_progress attempt past expiresAt is force-graded using whatever answers
+ * were autosaved during the attempt, so a missed submit doesn't zero out
+ * work that was actually done.
  */
 async function forceSubmitIfExpired(attempt: InstanceType<typeof QuizAttemptModel>) {
   if (attempt.status !== "in_progress" || new Date() <= attempt.expiresAt) {
@@ -22,32 +23,28 @@ async function forceSubmitIfExpired(attempt: InstanceType<typeof QuizAttemptMode
     .sort({ order: 1 })
     .lean();
 
-  let hasPendingShort = false;
+  const answerByQuestionId = new Map<string, SubmittedAnswer>(
+    attempt.answers.map((answer: QuizAttemptAnswer): [string, SubmittedAnswer] => {
+      const questionId = answer.questionId.toString();
+      if (answer.type === "mcq") {
+        return [questionId, { type: "mcq", questionId, selectedOptionIndex: answer.selectedOptionIndex }];
+      }
+      if (answer.type === "truefalse") {
+        return [questionId, { type: "truefalse", questionId, selectedBoolean: answer.selectedBoolean }];
+      }
+      return [questionId, { type: "short", questionId, textAnswer: answer.textAnswer }];
+    })
+  );
 
-  attempt.answers = questions.map((question) => {
-    if (question.type === "mcq" || question.type === "truefalse") {
-      return {
-        questionId: question._id,
-        type: question.type,
-        isCorrect: false,
-        pointsAwarded: 0,
-        needsManualGrade: false,
-      };
-    }
+  const { answers, autoGradedScore, hasPendingShort } = gradeAttemptAnswers(
+    questions,
+    answerByQuestionId
+  );
 
-    hasPendingShort = true;
-    return {
-      questionId: question._id,
-      type: "short",
-      isCorrect: null,
-      pointsAwarded: 0,
-      needsManualGrade: true,
-    };
-  });
-
-  attempt.autoGradedScore = 0;
+  attempt.answers = answers;
+  attempt.autoGradedScore = autoGradedScore;
   attempt.manualGradedScore = 0;
-  attempt.totalScore = 0;
+  attempt.totalScore = autoGradedScore;
   attempt.submittedAt = new Date();
   attempt.status = hasPendingShort ? "submitted" : "graded";
   await attempt.save();
