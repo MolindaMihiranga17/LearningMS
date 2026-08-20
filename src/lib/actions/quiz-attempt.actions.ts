@@ -13,6 +13,7 @@ import { assertOwnsQuiz } from "@/lib/actions/quiz-ownership";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { recomputeGradeForSource } from "@/lib/data/grade-rollup";
 import { submitQuizAttemptSchema, gradeShortAnswerSchema } from "@/lib/validation/quiz-attempt.schema";
+import { gradeAttemptAnswers } from "@/lib/quiz/grade-attempt-answers";
 
 export async function startQuizAttempt(formData: FormData): Promise<void> {
   const session = await requireSession();
@@ -103,58 +104,11 @@ export async function submitQuizAttempt(formData: FormData): Promise<void> {
 
   const answerByQuestionId = new Map(submittedAnswers.map((answer) => [answer.questionId, answer]));
 
-  let autoGradedScore = 0;
-  let hasPendingShort = false;
-
-  attempt.answers = questions.map((question) => {
-    const submitted = answerByQuestionId.get(question._id.toString());
-    const points = question.points ?? 1;
-
-    if (question.type === "mcq") {
-      const selectedOptionIndex =
-        submitted?.type === "mcq" ? submitted.selectedOptionIndex : undefined;
-      const isCorrect =
-        selectedOptionIndex !== undefined && selectedOptionIndex === question.correctOptionIndex;
-      const pointsAwarded = isCorrect ? points : 0;
-      autoGradedScore += pointsAwarded;
-      return {
-        questionId: question._id,
-        type: "mcq",
-        selectedOptionIndex,
-        isCorrect,
-        pointsAwarded,
-        needsManualGrade: false,
-      };
-    }
-
-    if (question.type === "truefalse") {
-      const selectedBoolean =
-        submitted?.type === "truefalse" ? submitted.selectedBoolean : undefined;
-      const isCorrect = selectedBoolean !== undefined && selectedBoolean === question.correctBoolean;
-      const pointsAwarded = isCorrect ? points : 0;
-      autoGradedScore += pointsAwarded;
-      return {
-        questionId: question._id,
-        type: "truefalse",
-        selectedBoolean,
-        isCorrect,
-        pointsAwarded,
-        needsManualGrade: false,
-      };
-    }
-
-    // short — unscored until a teacher manually grades it.
-    hasPendingShort = true;
-    const textAnswer = submitted?.type === "short" ? submitted.textAnswer : undefined;
-    return {
-      questionId: question._id,
-      type: "short",
-      textAnswer,
-      isCorrect: null,
-      pointsAwarded: 0,
-      needsManualGrade: true,
-    };
-  });
+  const { answers, autoGradedScore, hasPendingShort } = gradeAttemptAnswers(
+    questions,
+    answerByQuestionId
+  );
+  attempt.answers = answers;
 
   attempt.autoGradedScore = autoGradedScore;
   attempt.manualGradedScore = 0;
@@ -170,6 +124,51 @@ export async function submitQuizAttempt(formData: FormData): Promise<void> {
   revalidatePath(`/my-courses/${courseId}/quizzes/${quizId}`);
 
   redirect(`/my-courses/${courseId}/quizzes/${quizId}/result`);
+}
+
+export async function saveQuizProgress(formData: FormData): Promise<{ error?: string }> {
+  const session = await requireSession();
+  requireRole(session, ["student"]);
+
+  const attemptId = formData.get("attemptId");
+  if (typeof attemptId !== "string" || !attemptId) {
+    return { error: "Missing attempt id." };
+  }
+
+  const rawAnswers = formData.get("answers");
+  let answersInput: unknown = [];
+  if (typeof rawAnswers === "string" && rawAnswers.length > 0) {
+    try {
+      answersInput = JSON.parse(rawAnswers);
+    } catch {
+      answersInput = [];
+    }
+  }
+
+  const parsed = submitQuizAttemptSchema.safeParse({ answers: answersInput });
+  if (!parsed.success) {
+    return { error: "Invalid answers." };
+  }
+
+  await connectToDatabase();
+
+  const attempt = await QuizAttemptModel.findById(attemptId);
+  if (!attempt) {
+    return { error: "Attempt not found." };
+  }
+  assertSameInstitute(attempt, session);
+  if (attempt.studentId.toString() !== session.userId) {
+    return { error: "Attempt not found." };
+  }
+
+  if (attempt.status !== "in_progress" || new Date() > attempt.expiresAt) {
+    return { error: "Attempt is no longer in progress." };
+  }
+
+  attempt.answers = parsed.data.answers.map((answer) => ({ ...answer }));
+  await attempt.save();
+
+  return {};
 }
 
 export type GradeShortAnswerState = {

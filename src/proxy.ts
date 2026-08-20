@@ -1,69 +1,46 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifySession } from "@/lib/auth/session";
+import { COOKIE_NAME, verifySession } from "@/lib/auth/session";
 
-const SESSION_COOKIE = "lms_session";
-const PUBLIC_ROUTES = ["/login"];
-const CHANGE_PASSWORD_ROUTE = "/change-password";
-const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
-const INSTITUTE_ADMIN_ONLY_PREFIXES = [
-  "/teachers",
-  "/students",
-  "/classes",
-  "/subjects",
-  "/enrollments",
-];
-const SUPER_ADMIN_ONLY_PREFIXES = ["/institutes"];
-const STUDENT_ONLY_PREFIXES = ["/my-courses"];
+/** Paths that must stay reachable without a session cookie. */
+const PUBLIC_PATHS = ["/login"];
 
-function matchesAnyPrefix(pathname: string, prefixes: string[]): boolean {
-  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+/** API routes that authenticate themselves (e.g. a shared secret for external cron) instead of a session cookie. */
+const PUBLIC_API_PATHS = ["/api/system/sweep-trials"];
+
+function isPublicPath(pathname: string): boolean {
+  if (pathname === "/") return true;
+  if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return true;
+  if (PUBLIC_API_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return true;
+  return false;
 }
 
+/**
+ * Backstop auth check: every route-group layout already calls requireSession()/requireRole(),
+ * but that only protects routes placed inside one of those groups. This runs ahead of routing
+ * so a new page or API route added outside those groups doesn't silently ship unauthenticated.
+ */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
+
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = token ? verifySession(token) : null;
 
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-
   if (!session) {
-    if (isPublicRoute) return NextResponse.next();
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (isPublicRoute) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
-  }
-
-  const isChangePasswordRoute = pathname === CHANGE_PASSWORD_ROUTE;
-
-  if (session.mustChangePassword && !isChangePasswordRoute) {
-    return NextResponse.redirect(new URL(CHANGE_PASSWORD_ROUTE, request.url));
-  }
-
-  if (!session.mustChangePassword && isChangePasswordRoute) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
-  }
-
-  if (
-    session.role !== "institute-admin" &&
-    matchesAnyPrefix(pathname, INSTITUTE_ADMIN_ONLY_PREFIXES)
-  ) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
-  }
-
-  if (session.role !== "super-admin" && matchesAnyPrefix(pathname, SUPER_ADMIN_ONLY_PREFIXES)) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
-  }
-
-  if (session.role !== "student" && matchesAnyPrefix(pathname, STUDENT_ONLY_PREFIXES)) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+    }
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

@@ -6,6 +6,16 @@ import { listAcademicTermsForInstitute } from "@/lib/data/deep-operations.data";
 import { listUpcomingAcademicEvents } from "@/lib/data/academic-event.data";
 import { toCsv, type CsvColumn } from "@/lib/reports/csv";
 import { toXlsxBuffer } from "@/lib/reports/xlsx";
+import { getSession } from "@/lib/tenant/scope";
+
+const EXPORTABLE_TYPES = new Set(["students", "fees", "terms", "calendar-events", "audit-log"]);
+const TYPE_ALLOWED_ROLES: Record<string, ReadonlyArray<string>> = {
+  students: ["institute-admin"],
+  fees: ["institute-admin"],
+  terms: ["institute-admin"],
+  "calendar-events": ["institute-admin", "institute-staff", "student", "super-admin"],
+  "audit-log": ["super-admin"],
+};
 
 type ExportPayload<T extends Record<string, unknown>> = {
   rows: T[];
@@ -163,6 +173,19 @@ async function buildCalendarEventsExport(): Promise<ExportPayload<Record<string,
 
 export async function GET(request: Request, { params }: { params: Promise<{ type: string }> }) {
   const { type } = await params;
+
+  if (!EXPORTABLE_TYPES.has(type)) {
+    return NextResponse.json({ error: "Unknown export type." }, { status: 400 });
+  }
+
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
+  if (!TYPE_ALLOWED_ROLES[type].includes(session.role)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
   const url = new URL(request.url);
   const format = url.searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
 
