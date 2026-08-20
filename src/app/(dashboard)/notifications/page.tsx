@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { listAllNotificationsForUser } from "@/lib/data/notification.data";
-import { markNotificationRead, markAllNotificationsRead } from "@/lib/actions/notification.actions";
+import { markAllNotificationsRead } from "@/lib/actions/notification.actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { NotificationTypeBadge } from "@/components/dashboard-shell/notification-type-badge";
+import { NotificationItem } from "@/components/dashboard-shell/notification-item";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -36,38 +36,7 @@ export default async function NotificationsPage({
             <p className="py-6 text-center text-sm text-muted-foreground">No notifications yet.</p>
           ) : (
             notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={cn(
-                  "flex items-start justify-between gap-4 rounded-lg border border-border px-3 py-2.5",
-                  !notification.isRead && "bg-primary/5"
-                )}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <NotificationTypeBadge type={notification.type} />
-                    {!notification.isRead ? (
-                      <span className="size-1.5 shrink-0 rounded-full bg-primary" />
-                    ) : null}
-                  </div>
-                  <p className="mt-1.5 text-sm font-semibold text-foreground">{notification.title}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{notification.body}</p>
-                  <p className="mt-1 text-xs text-muted-foreground/70">
-                    {new Date(notification.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                {!notification.isRead ? (
-                  <form action={markNotificationRead}>
-                    <input type="hidden" name="id" value={notification.id} />
-                    <button
-                      type="submit"
-                      className="shrink-0 text-xs font-medium text-primary hover:underline"
-                    >
-                      Mark read
-                    </button>
-                  </form>
-                ) : null}
-              </div>
+              <NotificationItem key={notification.id} notification={notification} />
             ))
           )}
         </CardContent>
