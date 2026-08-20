@@ -8,7 +8,7 @@ if (!JWT_SECRET) {
   throw new Error("Missing JWT_SECRET environment variable");
 }
 
-const COOKIE_NAME = "lms_session";
+export const COOKIE_NAME = "lms_session";
 const DEFAULT_TTL_SECONDS = 60 * 60 * 24; // 1 day
 
 export type SessionPayload = {
