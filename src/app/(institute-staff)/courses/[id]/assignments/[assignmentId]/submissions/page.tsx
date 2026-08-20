@@ -1,15 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { listSubmissionsForAssignment } from "@/lib/data/submission.data";
 import { GradeSubmissionForm } from "./grade-submission-form";
+import { AttachmentPreview } from "./attachment-preview";
+import { NextUngradedButton } from "./next-ungraded-button";
+
+const STATUS_FILTERS = [
+  { value: "all", label: "All" },
+  { value: "submitted", label: "Ungraded" },
+  { value: "graded", label: "Graded" },
+] as const;
+
+type StatusFilter = (typeof STATUS_FILTERS)[number]["value"];
 
 export default async function AssignmentSubmissionsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; assignmentId: string }>;
+  searchParams: Promise<{ status?: string }>;
 }) {
   const { id, assignmentId } = await params;
+  const { status } = await searchParams;
   const data = await listSubmissionsForAssignment(assignmentId);
 
   if (!data) {
@@ -17,6 +32,19 @@ export default async function AssignmentSubmissionsPage({
   }
 
   const { assignment, submissions } = data;
+
+  const activeFilter: StatusFilter = STATUS_FILTERS.some((f) => f.value === status)
+    ? (status as StatusFilter)
+    : "all";
+
+  const counts = {
+    all: submissions.length,
+    submitted: submissions.filter((s) => s.status === "submitted").length,
+    graded: submissions.filter((s) => s.status === "graded").length,
+  };
+
+  const filteredSubmissions =
+    activeFilter === "all" ? submissions : submissions.filter((s) => s.status === activeFilter);
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,11 +61,34 @@ export default async function AssignmentSubmissionsPage({
         </p>
       </div>
 
-      {submissions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No submissions yet.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1 rounded-lg border border-border p-1">
+          {STATUS_FILTERS.map((filter) => (
+            <Link
+              key={filter.value}
+              href={
+                filter.value === "all"
+                  ? `/courses/${id}/assignments/${assignmentId}/submissions`
+                  : `/courses/${id}/assignments/${assignmentId}/submissions?status=${filter.value}`
+              }
+              className={cn(
+                buttonVariants({ variant: activeFilter === filter.value ? "secondary" : "ghost", size: "sm" }),
+                "rounded-md"
+              )}
+            >
+              {filter.label} ({counts[filter.value]})
+            </Link>
+          ))}
+        </div>
+
+        <NextUngradedButton />
+      </div>
+
+      {filteredSubmissions.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No submissions to show.</p>
       ) : (
         <div className="flex flex-col gap-4">
-          {submissions.map((submission) => {
+          {filteredSubmissions.map((submission) => {
             const student = submission.studentId as unknown as {
               _id: string;
               name?: string;
@@ -47,6 +98,7 @@ export default async function AssignmentSubmissionsPage({
             return (
               <div
                 key={submission._id.toString()}
+                data-submission-status={submission.status}
                 className="rounded-xl border border-border p-4"
               >
                 <div className="flex items-start justify-between gap-4">
@@ -66,15 +118,11 @@ export default async function AssignmentSubmissionsPage({
                   <p className="mt-3 whitespace-pre-wrap text-sm">{submission.textResponse}</p>
                 ) : null}
 
-                {submission.attachmentUrl ? (
-                  <a
-                    href={submission.attachmentUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 inline-block text-sm underline"
-                  >
-                    View attachment
-                  </a>
+                {submission.attachmentUrl && submission.attachmentKey ? (
+                  <AttachmentPreview
+                    attachmentUrl={submission.attachmentUrl}
+                    attachmentKey={submission.attachmentKey}
+                  />
                 ) : null}
 
                 <div className="mt-4 border-t border-border pt-4">
