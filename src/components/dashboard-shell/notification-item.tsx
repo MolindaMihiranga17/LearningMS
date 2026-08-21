@@ -27,14 +27,17 @@ const VARIANT_CLASSES = {
 export function NotificationItem({
   notification,
   variant = "full",
+  onMarkRead,
 }: {
   notification: NotificationItemType;
   variant?: "compact" | "full";
+  onMarkRead?: (id: string) => void;
 }) {
   const classes = VARIANT_CLASSES[variant];
 
-  const handleClick = () => {
+  const markRead = () => {
     if (notification.isRead) return;
+    onMarkRead?.(notification.id);
     const formData = new FormData();
     formData.append("id", notification.id);
     startTransition(() => {
@@ -58,17 +61,14 @@ export function NotificationItem({
           {!notification.isRead ? <span className="size-1.5 shrink-0 rounded-full bg-primary" /> : null}
         </div>
         {!notification.isRead ? (
-          <form action={markNotificationRead}>
-            <input type="hidden" name="id" value={notification.id} />
-            <button type="submit" className={classes.markRead}>
-              Mark read
-            </button>
-          </form>
+          <button type="button" onClick={markRead} className={classes.markRead}>
+            Mark read
+          </button>
         ) : null}
       </div>
 
       {notification.link ? (
-        <Link href={notification.link} onClick={handleClick} className="block">
+        <Link href={notification.link} onClick={markRead} className="block">
           {body}
         </Link>
       ) : (
