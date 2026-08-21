@@ -153,7 +153,9 @@ export async function getAdminOperationsData() {
     recentActivity,
   ] = await Promise.all([
     UserModel.countDocuments(withTenantScope({ role: "student" }, session)),
-    UserModel.find(withTenantScope({ role: "institute-staff" }, session)).select("name staffMeta.basicSalary").lean(),
+    UserModel.find(withTenantScope({ role: "institute-staff" }, session))
+      .select("name email status staffMeta")
+      .lean(),
     ClassModel.find(withTenantScope({}, session)).populate("classTeacherId", "name").lean(),
     SubjectModel.find(withTenantScope({}, session)).populate("teacherId", "name").lean(),
     EnrollmentModel.countDocuments(withTenantScope({ status: "active" }, session)),
@@ -208,16 +210,26 @@ export async function getAdminOperationsData() {
     capacity: classes.map((klass) => ({
       id: String(klass._id),
       name: klass.section ? `${klass.name} ${klass.section}` : klass.name,
+      className: klass.name,
+      section: klass.section ?? "",
       academicYear: klass.academicYear,
+      classTeacherId: klass.classTeacherId
+        ? String((klass.classTeacherId as unknown as { _id?: unknown })._id ?? klass.classTeacherId)
+        : "",
+      status: klass.status ?? "active",
       teacher: (klass.classTeacherId as unknown as { name?: string } | null)?.name ?? "Unassigned",
       slotCount: klass.timetable?.length ?? 0,
     })),
     staffWorkload: staff.map((member) => ({
       id: String(member._id),
       name: member.name,
+      email: member.email,
+      status: member.status ?? "active",
       subjects: subjectCounts.get(String(member._id)) ?? 0,
       classTeacherOf: teacherClassCounts.get(String(member._id)) ?? 0,
       salary: member.staffMeta?.basicSalary ?? 0,
+      permissions: member.staffMeta?.permissions ?? {},
+      commissions: member.staffMeta?.monthlyCommissions ?? [],
     })),
     controls: {
       unassignedClasses: classes.filter((klass) => !klass.classTeacherId).length,
