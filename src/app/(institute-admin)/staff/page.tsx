@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { listStaff } from "@/lib/data/user.data";
-import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { StaffFormDialog } from "./new/staff-form-dialog";
+import { StaffManageDialog } from "./[id]/staff-manage-dialog";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
@@ -43,13 +41,16 @@ export default async function StaffPage() {
         {member.status}
       </Badge>,
       member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "-",
-      <Link
+      <StaffManageDialog
         key="manage"
-        href={`/staff/${member._id}`}
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-      >
-        Manage
-      </Link>,
+        staffId={String(member._id)}
+        name={member.name}
+        email={member.email}
+        status={member.status ?? "active"}
+        permissions={member.staffMeta?.permissions ?? {}}
+        basicSalary={member.staffMeta?.basicSalary ?? 0}
+        commissions={member.staffMeta?.monthlyCommissions ?? []}
+      />,
     ],
   }));
 
