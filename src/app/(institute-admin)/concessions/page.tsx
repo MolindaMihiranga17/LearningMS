@@ -7,11 +7,31 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { DonutChart } from "@/components/dashboard-shell/donut-chart";
+import { ComparisonBarChart } from "@/components/dashboard-shell/comparison-bar-chart";
 
 export default async function ConcessionsPage() {
   const { students, fees, concessions } = await listConcessionManagementData();
   const percentageConcessions = concessions.filter((concession) => concession.type === "percent").length;
   const feeSpecific = concessions.filter((concession) => concession.feeId).length;
+
+  const typeDistributionData = [
+    { key: "fixed", label: "Fixed amount", value: concessions.length - percentageConcessions },
+    { key: "percent", label: "Percentage", value: percentageConcessions },
+  ];
+
+  const studentCountMap = new Map<string, { name: string; count: number }>();
+  for (const concession of concessions) {
+    const student = concession.studentId as unknown as { _id?: unknown; name?: string } | null;
+    const studentId = student?._id ? String(student._id) : "unknown";
+    const current = studentCountMap.get(studentId) ?? { name: student?.name ?? "Student", count: 0 };
+    current.count += 1;
+    studentCountMap.set(studentId, current);
+  }
+  const topStudentsData = [...studentCountMap.entries()]
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 8)
+    .map(([studentId, value]) => ({ key: studentId, label: value.name, value: value.count }));
 
   const rows: DataTableRow[] = concessions.map((concession) => {
     const student = concession.studentId as unknown as { name?: string; studentMeta?: { rollNumber?: string } } | null;
@@ -69,6 +89,21 @@ export default async function ConcessionsPage() {
           </form>
         </CardContent>
       </Card>
+
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <DonutChart
+          title="Concession types"
+          sub="Fixed amount vs percentage-based discounts"
+          data={typeDistributionData}
+          emptyLabel="No concessions created yet."
+        />
+        <ComparisonBarChart
+          title="Most concessions per student"
+          sub="Students with the highest number of active concessions"
+          data={topStudentsData}
+          emptyLabel="No concessions created yet."
+        />
+      </div>
 
       <DataTableCard
         title="Active concessions"
