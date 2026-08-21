@@ -1,14 +1,12 @@
-import Link from "next/link";
 import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { listCoursesForTeacher } from "@/lib/data/course.data";
 import { listSubjectsForTeacher } from "@/lib/data/subject.data";
 import { listClassesForTeacher } from "@/lib/data/class.data";
-import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 import { CourseFormDialog } from "./new/course-form-dialog";
+import { CourseManageDialog } from "./[id]/course-manage-dialog";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -58,13 +56,7 @@ export default async function CoursesPage() {
         <Badge key="status" variant={course.status === "published" ? "success" : "secondary"} className="capitalize">
           {STATUS_LABEL[course.status ?? "draft"]}
         </Badge>,
-        <Link
-          key="manage"
-          href={`/courses/${course._id}`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          Manage
-        </Link>,
+        <CourseManageDialog key="manage" courseId={String(course._id)} subjects={subjects} classes={classOptions} />,
       ],
     };
   });
