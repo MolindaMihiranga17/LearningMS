@@ -143,6 +143,9 @@ export async function updateStaffPermissions(
     after: parsed.data,
   });
 
+  revalidatePath("/staff");
+  revalidatePath("/operations");
+
   return { success: true };
 }
 
@@ -183,6 +186,9 @@ export async function updateStaffSalary(
     summary: `Updated basic salary for "${staff.name}" to ${parsed.data.basicSalary}`,
     after: { basicSalary: parsed.data.basicSalary },
   });
+
+  revalidatePath("/staff");
+  revalidatePath("/operations");
 
   return { success: true };
 }
@@ -229,6 +235,9 @@ export async function addMonthlyCommission(
     summary: `Added ${parsed.data.month} commission of ${parsed.data.amount} for "${staff.name}"`,
     after: parsed.data,
   });
+
+  revalidatePath("/staff");
+  revalidatePath("/operations");
 
   return { success: true };
 }
