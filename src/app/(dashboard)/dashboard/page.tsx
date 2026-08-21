@@ -32,6 +32,7 @@ import {
   getInstituteAttendanceSummary,
   getAttendanceSummaryForTeacherClasses,
 } from "@/lib/data/attendance.data";
+import { getFinanceTrend } from "@/lib/data/finance.data";
 import {
   getRecentFeeCollectionSummary,
   listRecentPaymentsForInstitute,
@@ -45,6 +46,9 @@ import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
 import { AttendanceChart } from "@/components/dashboard-shell/attendance-chart";
 import { TrendChart } from "@/components/dashboard-shell/trend-chart";
+import { ComparisonBarChart } from "@/components/dashboard-shell/comparison-bar-chart";
+import { MultiSeriesChart } from "@/components/dashboard-shell/multi-series-chart";
+import { DonutChart } from "@/components/dashboard-shell/donut-chart";
 import { ActivityFeed, type ActivityItem } from "@/components/dashboard-shell/activity-feed";
 import { AttentionList } from "@/components/dashboard-shell/attention-list";
 import { Badge } from "@/components/ui/badge";
@@ -115,15 +119,17 @@ export default async function DashboardPage() {
       recentPayments,
       financeSummary,
       featureSnapshot,
+      financeTrend,
     ] = await Promise.all([
       getInstituteDashboardCounts(),
       getInstituteRecentActivity(),
-      getInstituteClassesOverview(),
+      getInstituteClassesOverview(8),
       getInstituteAttendanceSummary(),
       getRecentFeeCollectionSummary(),
       listRecentPaymentsForInstitute(5),
       getInstituteFinanceSummary(),
       getAdminFeatureSnapshot(),
+      getFinanceTrend(6),
     ]);
 
     const activityItems: ActivityItem[] = activity.map((entry) => {
@@ -136,36 +142,48 @@ export default async function DashboardPage() {
       };
     });
 
-    const classRows: DataTableRow[] = classesOverview.map((cls) => ({
-      key: cls.id,
-      cells: [
-        cls.section ? `${cls.name} ${cls.section}` : cls.name,
-        cls.classTeacherName,
-        cls.academicYear,
-        `${cls.studentCount} students`,
-        <Link
-          key="action"
-          href={`/classes/${cls.id}/edit`}
-          className="text-xs font-semibold text-success"
-        >
-          Edit
-        </Link>,
-      ],
-    }));
-
     const paymentRows: DataTableRow[] = recentPayments.map((payment) => ({
       key: String(payment._id),
       cells: [
-        (payment.studentId as unknown as { name?: string } | null)?.name ?? "Unknown",
-        payment.amount.toFixed(2),
-        new Date(payment.paymentDate).toLocaleDateString(),
+        <span key="student" className="font-medium text-foreground">
+          {(payment.studentId as unknown as { name?: string } | null)?.name ?? "Unknown"}
+        </span>,
+        <span key="amount" className="font-semibold text-success">
+          {payment.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>,
+        <span key="date" className="text-muted-foreground">
+          {new Date(payment.paymentDate).toLocaleDateString()}
+        </span>,
       ],
     }));
 
-    const coverageRows: DataTableRow[] = featureSnapshot.timetableCoverage.map((row) => ({
-      key: row.id,
-      cells: [row.className, row.classTeacher, row.academicYear, row.slotCount],
+    const classSizeData = classesOverview.map((cls) => ({
+      key: cls.id,
+      label: cls.section ? `${cls.name} ${cls.section}` : cls.name,
+      value: cls.studentCount,
     }));
+
+    const coverageData = featureSnapshot.timetableCoverage.map((row) => ({
+      key: row.id,
+      label: row.className,
+      value: row.slotCount,
+    }));
+
+    const financeTrendData = financeTrend.map((point) => ({
+      label: point.month,
+      revenue: point.revenue,
+      expenses: point.expenses,
+    }));
+
+    const grossIncome = financeSummary.totalRevenue + financeSummary.totalExtraIncome;
+    const incomeAllocationData = grossIncome > 0
+      ? [
+          { key: "expenses", label: "Expenses", value: financeSummary.totalExpenses },
+          { key: "salary", label: "Salary", value: financeSummary.totalSalary },
+          { key: "net", label: "Net income", value: Math.max(financeSummary.netIncome, 0) },
+        ]
+      : [];
+
     const adminAttentionItems = [
       featureSnapshot.financeSignals.overdueFees > 0
         ? {
@@ -268,19 +286,56 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <DataTableCard
-          title="Classes"
-          sub="Overview of your most recently created classes"
-          compact
-          columns={[
-            { key: "name", header: "Class" },
-            { key: "teacher", header: "Class Teacher" },
-            { key: "year", header: "Academic Year" },
-            { key: "students", header: "Students" },
-            { key: "action", header: "Action" },
-          ]}
-          rows={classRows}
-        />
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <MultiSeriesChart
+            title="Revenue vs expenses"
+            sub="Last 6 months across your institute"
+            data={financeTrendData}
+            series={[
+              { key: "revenue", label: "Revenue" },
+              { key: "expenses", label: "Expenses" },
+            ]}
+            variant="bar"
+            format="currency"
+            emptyLabel="No finance activity recorded yet."
+            action={
+              <Link href="/income" className="text-xs font-semibold text-success">
+                View finances &rarr;
+              </Link>
+            }
+          />
+          <DonutChart
+            title="Income allocation"
+            sub="Where gross income has gone"
+            data={incomeAllocationData}
+            emptyLabel="No income recorded yet."
+          />
+        </div>
+
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <ComparisonBarChart
+            title="Students per class"
+            sub="Recently created classes by enrollment"
+            data={classSizeData}
+            emptyLabel="No classes created yet."
+            action={
+              <Link href="/classes" className="text-xs font-semibold text-success">
+                View classes &rarr;
+              </Link>
+            }
+          />
+          <ComparisonBarChart
+            title="Timetable coverage"
+            sub="Scheduled slots per class"
+            data={coverageData}
+            emptyLabel="No classes configured yet."
+            action={
+              <Link href="/classes" className="text-xs font-semibold text-success">
+                Manage timetables &rarr;
+              </Link>
+            }
+          />
+        </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <AttentionList
@@ -356,20 +411,6 @@ export default async function DashboardPage() {
           </Panel>
         </div>
 
-        <DataTableCard
-          title="Timetable coverage"
-          sub="Classes, assigned teachers, and configured schedule slots"
-          compact
-          columns={[
-            { key: "class", header: "Class" },
-            { key: "teacher", header: "Teacher" },
-            { key: "year", header: "Academic Year" },
-            { key: "slots", header: "Slots" },
-          ]}
-          rows={coverageRows}
-          emptyTitle="No classes configured yet."
-        />
-
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <Panel title="Upcoming exams" sub="Scheduled institute assessments" className="p-5">
             <div className="mt-4 flex flex-col gap-3">
@@ -383,7 +424,7 @@ export default async function DashboardPage() {
                       <span className="text-xs text-muted-foreground">{formatDate(exam.examDate)}</span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {exam.subjectName} Â· {exam.className}
+                      {exam.subjectName} · {exam.className}
                     </p>
                   </div>
                 ))
@@ -420,8 +461,8 @@ export default async function DashboardPage() {
           compact
           columns={[
             { key: "student", header: "Student" },
-            { key: "amount", header: "Amount" },
-            { key: "date", header: "Date" },
+            { key: "amount", header: "Amount", align: "right" },
+            { key: "date", header: "Date", align: "right" },
           ]}
           rows={paymentRows}
           emptyTitle="No payments recorded yet."
@@ -586,11 +627,11 @@ export default async function DashboardPage() {
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-medium">{slot.className}</p>
                       <span className="text-xs text-muted-foreground">
-                        {formatWeekday(slot.day)} Â· {slot.startTime}-{slot.endTime}
+                        {formatWeekday(slot.day)} · {slot.startTime}-{slot.endTime}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {slot.subjectName ?? "Lesson"}{slot.room ? ` Â· Room ${slot.room}` : ""}
+                      {slot.subjectName ?? "Lesson"}{slot.room ? ` · Room ${slot.room}` : ""}
                     </p>
                   </div>
                 ))
@@ -645,7 +686,7 @@ export default async function DashboardPage() {
                     </Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {item.subjectName} Â· {item.className}
+                    {item.subjectName} · {item.className}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.date)}</p>
                 </div>

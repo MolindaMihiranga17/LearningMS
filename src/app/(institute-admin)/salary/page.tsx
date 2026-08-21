@@ -2,6 +2,8 @@ import { getSalaryLedger } from "@/lib/data/finance.data";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { Badge } from "@/components/ui/badge";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { ComparisonBarChart } from "@/components/dashboard-shell/comparison-bar-chart";
+import { DonutChart } from "@/components/dashboard-shell/donut-chart";
 
 const COLUMNS = [
   { key: "name", header: "Staff", sortable: true },
@@ -19,6 +21,17 @@ export default async function SalaryPage() {
   const activeStaff = ledger.filter((entry) => entry.status === "active");
   const salaryTotal = activeStaff.reduce((total, entry) => total + entry.basicSalary, 0);
   const commissionTotal = activeStaff.reduce((total, entry) => total + entry.totalCommission, 0);
+
+  const topCompensationData = ledger
+    .slice()
+    .sort((a, b) => b.totalCompensation - a.totalCompensation)
+    .slice(0, 8)
+    .map((entry) => ({ key: entry.id, label: entry.name, value: entry.totalCompensation }));
+
+  const compositionData = [
+    { key: "salary", label: "Basic salary", value: salaryTotal },
+    { key: "commission", label: "Commission", value: commissionTotal },
+  ];
 
   const rows: DataTableRow[] = ledger.map((entry) => ({
     key: entry.id,
@@ -59,6 +72,22 @@ export default async function SalaryPage() {
   return (
     <div className="flex flex-col gap-6">
       <WorkspaceHeader eyebrow="Finance & payroll" title="Salary planning" description="Review each staff member’s salary basis and commission impact before payroll is prepared." metrics={[{ label: "Active staff", value: activeStaff.length, detail: "Included in payroll review", tone: "success" }, { label: "Salary baseline", value: salaryTotal.toFixed(2), detail: "Basic salary total", tone: "primary" }, { label: "Commission impact", value: commissionTotal.toFixed(2), detail: "Recorded commission total", tone: "info" }]} />
+
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <ComparisonBarChart
+          title="Top compensation"
+          sub="Highest total compensation across staff"
+          data={topCompensationData}
+          format="currency"
+          emptyLabel="No staff compensation recorded yet."
+        />
+        <DonutChart
+          title="Salary vs commission"
+          sub="Composition of active staff compensation"
+          data={compositionData}
+          emptyLabel="No compensation recorded yet."
+        />
+      </div>
 
       <DataTableCard
         title="Compensation ledger"

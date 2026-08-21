@@ -25,6 +25,8 @@ export type DataTableColumn = {
   headerClassName?: string;
   /** Enables click-to-sort on this column; requires rows to provide a matching `sortValues` entry. */
   sortable?: boolean;
+  /** Text alignment for the header and cells of this column. Defaults to "left". */
+  align?: "left" | "right" | "center";
 };
 
 export type DataTableRow = {
@@ -211,6 +213,8 @@ export function DataTableCard({
   }
 
   const cellPadding = compact ? "px-3 py-2" : undefined;
+  const alignClass = (align?: "left" | "right" | "center") =>
+    align === "right" ? "text-right" : align === "center" ? "text-center" : undefined;
 
   return (
     <Card size={compact ? "sm" : "default"}>
@@ -307,7 +311,7 @@ export function DataTableCard({
                   return (
                     <TableHead
                       key={column.key}
-                      className={cn(cellPadding, column.headerClassName)}
+                      className={cn(cellPadding, alignClass(column.align), column.headerClassName)}
                     >
                       {column.sortable ? (
                         <button
@@ -315,6 +319,7 @@ export function DataTableCard({
                           onClick={() => toggleSort(index)}
                           className={cn(
                             "flex items-center gap-1 text-left transition-colors hover:text-foreground",
+                            column.align === "right" && "ml-auto flex-row-reverse",
                             isSorted && "text-foreground"
                           )}
                         >
@@ -352,7 +357,10 @@ export function DataTableCard({
                       </TableCell>
                     ) : null}
                     {row.cells.map((cell, index) => (
-                      <TableCell key={index} className={cellPadding}>
+                      <TableCell
+                        key={index}
+                        className={cn(cellPadding, alignClass(columns[index]?.align))}
+                      >
                         {cell}
                       </TableCell>
                     ))}

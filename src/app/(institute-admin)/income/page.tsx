@@ -1,4 +1,4 @@
-import { listExtraIncome, getIncomeStatistics } from "@/lib/data/finance.data";
+import { listExtraIncome, getIncomeStatistics, getFinanceTrend } from "@/lib/data/finance.data";
 import { deleteExtraIncome } from "@/lib/actions/finance.actions";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
@@ -6,6 +6,8 @@ import { Wallet, TrendingDown, TrendingUp, PiggyBank } from "lucide-react";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { IncomeFormDialog } from "./new/income-form-dialog";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { MultiSeriesChart } from "@/components/dashboard-shell/multi-series-chart";
+import { DonutChart } from "@/components/dashboard-shell/donut-chart";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -15,7 +17,26 @@ const COLUMNS = [
 ];
 
 export default async function IncomePage() {
-  const [income, stats] = await Promise.all([listExtraIncome(), getIncomeStatistics()]);
+  const [income, stats, financeTrend] = await Promise.all([
+    listExtraIncome(),
+    getIncomeStatistics(),
+    getFinanceTrend(6),
+  ]);
+
+  const financeTrendData = financeTrend.map((point) => ({
+    label: point.month,
+    revenue: point.revenue,
+    expenses: point.expenses,
+  }));
+
+  const grossIncome = stats.totalRevenue + stats.totalExtraIncome;
+  const allocationData = grossIncome > 0
+    ? [
+        { key: "expenses", label: "Expenses", value: stats.totalExpenses },
+        { key: "salary", label: "Salary", value: stats.totalSalary },
+        { key: "net", label: "Net income", value: Math.max(stats.netIncome, 0) },
+      ]
+    : [];
 
   const rows: DataTableRow[] = income.map((entry) => ({
     key: String(entry._id),
@@ -61,6 +82,27 @@ export default async function IncomePage() {
           icon={PiggyBank}
           value={stats.netIncome.toFixed(2)}
           tone="primary"
+        />
+      </div>
+
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <MultiSeriesChart
+          title="Revenue vs expenses"
+          sub="Last 6 months across your institute"
+          data={financeTrendData}
+          series={[
+            { key: "revenue", label: "Revenue" },
+            { key: "expenses", label: "Expenses" },
+          ]}
+          variant="bar"
+          format="currency"
+          emptyLabel="No finance activity recorded yet."
+        />
+        <DonutChart
+          title="Income allocation"
+          sub="Where gross income has gone"
+          data={allocationData}
+          emptyLabel="No income recorded yet."
         />
       </div>
 

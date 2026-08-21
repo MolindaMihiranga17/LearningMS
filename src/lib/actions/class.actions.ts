@@ -168,6 +168,7 @@ export async function updateClass(
   });
 
   revalidatePath("/classes");
+  revalidatePath("/operations");
 
   return { success: { classId: klass._id.toString(), name: klass.name } };
 }

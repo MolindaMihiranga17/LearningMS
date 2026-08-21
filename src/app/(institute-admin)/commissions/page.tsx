@@ -2,6 +2,8 @@ import { getCommissionLedger } from "@/lib/data/finance.data";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { Badge } from "@/components/ui/badge";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { TrendChart } from "@/components/dashboard-shell/trend-chart";
+import { ComparisonBarChart } from "@/components/dashboard-shell/comparison-bar-chart";
 
 const COLUMNS = [
   { key: "staff", header: "Staff", sortable: true },
@@ -17,6 +19,19 @@ export default async function CommissionsPage() {
   const { entries, monthlyTotals } = await getCommissionLedger();
   const currentMonth = monthlyTotals.at(-1);
   const activeEntries = entries.filter((entry) => entry.status === "active").length;
+
+  const monthlyTrendData = monthlyTotals.map((month) => ({ label: month.month, value: month.total }));
+
+  const topEarnersMap = new Map<string, { name: string; total: number }>();
+  for (const entry of entries) {
+    const current = topEarnersMap.get(entry.staffId) ?? { name: entry.staffName, total: 0 };
+    current.total += entry.amount;
+    topEarnersMap.set(entry.staffId, current);
+  }
+  const topEarnersData = [...topEarnersMap.entries()]
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 8)
+    .map(([staffId, value]) => ({ key: staffId, label: value.name, value: value.total }));
 
   const rows: DataTableRow[] = entries.map((entry) => ({
     key: entry.key,
@@ -60,6 +75,23 @@ export default async function CommissionsPage() {
             <div className="mt-1 text-2xl font-semibold">{month.total.toFixed(2)}</div>
           </div>
         ))}
+      </div>
+
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <TrendChart
+          title="Monthly commission totals"
+          sub="Total commissions recorded per month"
+          data={monthlyTrendData}
+          format="currency"
+          emptyLabel="No commissions recorded yet."
+        />
+        <ComparisonBarChart
+          title="Top earners"
+          sub="Staff with the highest total commission"
+          data={topEarnersData}
+          format="currency"
+          emptyLabel="No commissions recorded yet."
+        />
       </div>
 
       <DataTableCard

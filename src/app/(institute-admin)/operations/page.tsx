@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { BookOpen, ClipboardCheck, GraduationCap, Users, Wallet } from "lucide-react";
 import { getAdminOperationsData } from "@/lib/data/remaining-plan.data";
+import { listStaff } from "@/lib/data/user.data";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { cn } from "@/lib/utils";
+import { ClassEditDialog } from "../classes/[id]/edit/class-edit-dialog";
+import { StaffManageDialog } from "../staff/[id]/staff-manage-dialog";
 
 function formatDateTime(date: Date) {
   return new Date(date).toLocaleString(undefined, {
@@ -18,7 +21,8 @@ function formatDateTime(date: Date) {
 }
 
 export default async function AdminOperationsPage() {
-  const data = await getAdminOperationsData();
+  const [data, teachersList] = await Promise.all([getAdminOperationsData(), listStaff()]);
+  const teachers = teachersList.map((teacher) => ({ id: String(teacher._id), name: teacher.name }));
 
   const capacityRows: DataTableRow[] = data.capacity.map((row) => ({
     key: row.id,
@@ -27,9 +31,16 @@ export default async function AdminOperationsPage() {
       row.academicYear,
       row.teacher,
       row.slotCount,
-      <Link key="edit" href={`/classes/${row.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-        Manage
-      </Link>,
+      <ClassEditDialog
+        key="edit"
+        classId={row.id}
+        name={row.className}
+        section={row.section}
+        academicYear={row.academicYear}
+        classTeacherId={row.classTeacherId}
+        status={row.status}
+        teachers={teachers}
+      />,
     ],
   }));
 
@@ -40,9 +51,16 @@ export default async function AdminOperationsPage() {
       row.subjects,
       row.classTeacherOf,
       row.salary.toFixed(2),
-      <Link key="manage" href={`/staff/${row.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-        Manage
-      </Link>,
+      <StaffManageDialog
+        key="manage"
+        staffId={row.id}
+        name={row.name}
+        email={row.email}
+        status={row.status}
+        permissions={row.permissions}
+        basicSalary={row.salary}
+        commissions={row.commissions}
+      />,
     ],
   }));
 

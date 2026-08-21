@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { StudentFormDialog } from "./new/student-form-dialog";
+import { StudentManageDialog } from "./[id]/student-manage-dialog";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
@@ -27,6 +28,12 @@ export default async function StudentsPage() {
     id: String(klass._id),
     label: `${klass.name}${klass.section ? ` ${klass.section}` : ""}`,
   }));
+  const classesById = new Map(
+    classes.map((klass) => [
+      String(klass._id),
+      { name: klass.name, section: klass.section ?? "", academicYear: klass.academicYear },
+    ])
+  );
 
   const rows: DataTableRow[] = students.map((student) => ({
     key: String(student._id),
@@ -55,12 +62,40 @@ export default async function StudentsPage() {
       </Badge>,
       student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "-",
       <div key="actions" className="flex items-center gap-2">
-        <Link
-          href={`/students/${student._id}`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          Manage
-        </Link>
+        <StudentManageDialog
+          studentId={String(student._id)}
+          name={student.name}
+          email={student.email}
+          status={student.status ?? "active"}
+          createdAt={student.createdAt ? new Date(student.createdAt).toISOString() : null}
+          classes={classOptions}
+          assignedClass={
+            student.studentMeta?.classId ? (classesById.get(String(student.studentMeta.classId)) ?? null) : null
+          }
+          defaults={{
+            name: student.name,
+            email: student.email,
+            phone: student.phone ?? "",
+            rollNumber: student.studentMeta?.rollNumber ?? "",
+            classId: student.studentMeta?.classId ? String(student.studentMeta.classId) : "",
+            birthday: student.studentMeta?.birthday
+              ? new Date(student.studentMeta.birthday).toISOString().slice(0, 10)
+              : "",
+            gender: student.studentMeta?.gender ?? "",
+            guardianName: student.studentMeta?.guardianName ?? "",
+            guardianPhone: student.studentMeta?.guardianPhone ?? "",
+            guardianEmail: student.studentMeta?.guardianEmail ?? "",
+            guardianRelation: student.studentMeta?.guardianRelation ?? "",
+            hasSpecialNeeds: Boolean(student.studentMeta?.hasSpecialNeeds),
+            specialNeedsDetails: student.studentMeta?.specialNeedsDetails ?? "",
+            registrationDate: student.studentMeta?.registrationDate
+              ? new Date(student.studentMeta.registrationDate).toISOString().slice(0, 10)
+              : "",
+            paymentType: student.studentMeta?.paymentType ?? "",
+            notes: student.studentMeta?.notes ?? "",
+            status: student.status,
+          }}
+        />
         <Link
           href={`/fees/students/${student._id}/payments`}
           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

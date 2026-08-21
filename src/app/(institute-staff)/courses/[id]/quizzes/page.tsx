@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { QuizFormDialog } from "./new/quiz-form-dialog";
+import { QuizManageDialog } from "./[quizId]/quiz-manage-dialog";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -33,13 +34,7 @@ export default async function CourseQuizzesPage({ params }: { params: Promise<{ 
       <Badge key="status" variant={quiz.status === "published" ? "success" : "secondary"} className="capitalize">
         {quiz.status}
       </Badge>,
-      <Link
-        key="manage"
-        href={`/courses/${id}/quizzes/${String(quiz._id)}`}
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-      >
-        Manage
-      </Link>,
+      <QuizManageDialog key="manage" courseId={id} quizId={String(quiz._id)} />,
     ],
   }));
 
