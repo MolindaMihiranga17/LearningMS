@@ -62,6 +62,12 @@ export async function DashboardShell({
       style={{ "--sidebar-primary": NAV_ACCENT[navKey] } as React.CSSProperties}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_30%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_22%)]" />
+      <a
+        href="#dashboard-main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
       <input type="checkbox" id="mobile-nav-toggle" className="peer hidden" />
 
       <nav
@@ -105,6 +111,7 @@ export async function DashboardShell({
           <div className="surface-subtle shadow-hairline flex h-16 items-center justify-between rounded-[24px] border border-border/70 px-4 backdrop-blur-xl sm:px-6 lg:justify-end">
           <label
             htmlFor="mobile-nav-toggle"
+            aria-label="Toggle navigation menu"
             className="flex size-10 shrink-0 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-muted lg:hidden"
           >
             <Menu className="size-[18px]" />
@@ -124,7 +131,7 @@ export async function DashboardShell({
 
         <div className="flex flex-1 flex-col gap-6 px-3 pb-4 sm:px-4 sm:pb-6 lg:px-0 lg:pb-8">
           {impersonatedByEmail !== undefined ? <ImpersonationBanner email={impersonatedByEmail} /> : null}
-          <main className="mx-auto flex w-full max-w-[1520px] flex-col gap-6">{children}</main>
+          <main id="dashboard-main-content" className="mx-auto flex w-full max-w-[1520px] flex-col gap-6">{children}</main>
         </div>
       </div>
     </div>
