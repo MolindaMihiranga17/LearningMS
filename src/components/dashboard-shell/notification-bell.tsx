@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 import {
   Popover,
@@ -8,6 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { markAllNotificationsRead } from "@/lib/actions/notification.actions";
+import { toast } from "@/lib/toast";
 import { NotificationItem } from "./notification-item";
 import type { NotificationType } from "@/models/Notification";
 
@@ -21,13 +23,67 @@ export type NotificationItem = {
   createdAt: Date | string;
 };
 
+const POLL_INTERVAL_MS = 25_000;
+
 export function NotificationBell({
-  notifications,
-  unreadCount,
+  notifications: initialNotifications,
+  unreadCount: initialUnreadCount,
 }: {
   notifications: NotificationItem[];
   unreadCount: number;
 }) {
+  const [notifications, setNotifications] = useState(initialNotifications);
+  const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  const knownIdsRef = useRef(new Set(initialNotifications.map((n) => n.id)));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const res = await fetch("/api/notifications/summary", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data: { notifications: NotificationItem[]; unreadCount: number } = await res.json();
+
+        const newUnread = data.notifications.filter(
+          (n) => !n.isRead && !knownIdsRef.current.has(n.id)
+        );
+        knownIdsRef.current = new Set(data.notifications.map((n) => n.id));
+
+        if (!cancelled) {
+          setNotifications(data.notifications);
+          setUnreadCount(data.unreadCount);
+          for (const notification of newUnread.slice(0, 3)) {
+            toast.success(notification.title, notification.body);
+          }
+        }
+      } catch {
+        // A missed poll is fine — the next interval tick will retry.
+      }
+    }
+
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  function handleMarkAllRead() {
+    setNotifications((current) => current.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+    startTransition(() => {
+      markAllNotificationsRead();
+    });
+  }
+
+  function handleMarkRead(id: string) {
+    setNotifications((current) =>
+      current.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+    setUnreadCount((count) => Math.max(0, count - 1));
+  }
+
   return (
     <Popover>
       <PopoverTrigger
@@ -46,11 +102,13 @@ export function NotificationBell({
         <div className="flex items-center justify-between px-2 py-1.5">
           <span className="text-[13px] font-semibold text-foreground">Notifications</span>
           {unreadCount > 0 ? (
-            <form action={markAllNotificationsRead}>
-              <button type="submit" className="text-[11.5px] font-medium text-primary hover:underline">
-                Mark all read
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              className="text-[11.5px] font-medium text-primary hover:underline"
+            >
+              Mark all read
+            </button>
           ) : null}
         </div>
 
@@ -59,7 +117,12 @@ export function NotificationBell({
             <p className="px-2 py-3 text-[12.5px] text-muted-foreground">No notifications yet.</p>
           ) : (
             notifications.map((notification) => (
-              <NotificationItem key={notification.id} notification={notification} variant="compact" />
+              <NotificationItem
+                key={notification.id}
+                notification={notification}
+                variant="compact"
+                onMarkRead={handleMarkRead}
+              />
             ))
           )}
         </div>
