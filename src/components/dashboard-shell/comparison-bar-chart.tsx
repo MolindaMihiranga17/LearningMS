@@ -22,6 +22,7 @@ export function ComparisonBarChart({
   referenceValue,
   referenceLabel,
   format = "number",
+  action,
   emptyLabel = "No data yet.",
   className,
 }: {
@@ -31,6 +32,7 @@ export function ComparisonBarChart({
   referenceValue?: number;
   referenceLabel?: string;
   format?: "number" | "percent" | "currency";
+  action?: React.ReactNode;
   emptyLabel?: string;
   className?: string;
 }) {
@@ -39,7 +41,7 @@ export function ComparisonBarChart({
     format === "percent" ? `${value.toFixed(1)}%` : format === "currency" ? `$${value.toFixed(2)}` : value.toLocaleString();
 
   return (
-    <Panel title={title} sub={sub} className={cn("flex-1 p-5", className)}>
+    <Panel title={title} sub={sub} className={cn("flex-1 p-5", className)} action={action}>
       {!hasData ? (
         <p className="mt-4 text-[13px] text-muted-foreground/70">{emptyLabel}</p>
       ) : (
