@@ -23,7 +23,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b [&_tr]:border-border bg-muted/45", className)}
+      className={cn("[&_tr]:border-b-2 [&_tr]:border-border bg-muted/55", className)}
       {...props}
     />
   )
@@ -33,7 +33,10 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0", className)}
+      className={cn(
+        "[&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-muted/25",
+        className
+      )}
       {...props}
     />
   )
@@ -57,7 +60,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-border/80 transition-colors hover:bg-muted/35 has-aria-expanded:bg-muted/40 data-[state=selected]:bg-muted",
+        "border-b border-border/70 transition-colors hover:bg-primary/6 has-aria-expanded:bg-muted/40 data-[state=selected]:bg-primary/10",
         className
       )}
       {...props}
@@ -70,7 +73,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "text-eyebrow h-12 px-4 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "text-eyebrow h-12 px-4 text-left align-middle whitespace-nowrap first:rounded-tl-lg last:rounded-tr-lg [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -83,7 +86,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-4 py-3.5 align-middle text-sm whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "px-4 py-3.5 align-middle text-sm tabular-nums whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
