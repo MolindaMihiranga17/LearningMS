@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { AssignmentFormDialog } from "./new/assignment-form-dialog";
+import { AssignmentManageDialog } from "./[assignmentId]/assignment-manage-dialog";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -39,13 +40,7 @@ export default async function CourseAssignmentsPage({
       <Badge key="status" variant={assignment.status === "published" ? "success" : "secondary"} className="capitalize">
         {assignment.status}
       </Badge>,
-      <Link
-        key="manage"
-        href={`/courses/${id}/assignments/${String(assignment._id)}`}
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-      >
-        Manage
-      </Link>,
+      <AssignmentManageDialog key="manage" courseId={id} assignmentId={String(assignment._id)} />,
     ],
   }));
 
