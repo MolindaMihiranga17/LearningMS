@@ -4,6 +4,7 @@ import { getActiveSession } from "@/lib/data/class-session.data";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SessionControls } from "./session-controls";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 export default async function ClassSessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,6 +16,7 @@ export default async function ClassSessionPage({ params }: { params: Promise<{ i
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffWorkspaceHeader eyebrow="Live teaching" title={`${data.class.name}${data.class.section ? ` ${data.class.section}` : ""}`} description="Run the class session, manage breaks, and keep the roster ready for teaching." metrics={[{ label: "Session", value: data.class.sessionStatus.replace("-", " "), detail: "Current session status", tone: "primary" }, { label: "Learners", value: data.roster.length, detail: "Students on the class roster", tone: "info" }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">
           {data.class.name}
