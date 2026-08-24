@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { PermissionsForm } from "./permissions-form";
 import { SalaryForm } from "./salary-form";
 import { CommissionForm } from "./commission-form";
+import { AvailabilityForm } from "./availability-form";
 
 export default async function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,6 +19,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
   }
 
   const commissions = staff.staffMeta?.monthlyCommissions ?? [];
+  const leaveHistory = (staff.staffMeta?.leaveHistory ?? []).slice().reverse().map((entry: { startAt?: Date; endAt?: Date; reason?: string; recordedAt?: Date }) => ({ startAt: new Date(entry.startAt ?? 0).toISOString(), endAt: new Date(entry.endAt ?? 0).toISOString(), reason: entry.reason ?? "", recordedAt: new Date(entry.recordedAt ?? entry.startAt ?? 0).toISOString() }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -35,6 +37,11 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           </Link>
         </div>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Availability & leave</CardTitle></CardHeader>
+        <CardContent><AvailabilityForm staffId={String(staff._id)} availabilityStatus={staff.staffMeta?.availabilityStatus ?? "available"} availabilityNote={staff.staffMeta?.availabilityNote ?? ""} leaveHistory={leaveHistory} /></CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
