@@ -12,6 +12,7 @@ import {
   createStudentSchema,
   updateStaffPermissionsSchema,
   updateStaffSalarySchema,
+  updateStaffAvailabilitySchema,
   addMonthlyCommissionSchema,
   updateStudentRecordSchema,
 } from "@/lib/validation/user.schema";
@@ -95,6 +96,34 @@ export async function createStaff(
 }
 
 export type UpdateStaffState = { error?: string; success?: boolean };
+
+export async function updateStaffAvailability(
+  _prevState: UpdateStaffState,
+  formData: FormData
+): Promise<UpdateStaffState> {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+  const staffId = String(formData.get("staffId") ?? "");
+  const parsed = updateStaffAvailabilitySchema.safeParse({
+    availabilityStatus: formData.get("availabilityStatus"), availabilityNote: formData.get("availabilityNote"),
+    leaveStart: formData.get("leaveStart"), leaveEnd: formData.get("leaveEnd"), leaveReason: formData.get("leaveReason"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid availability details." };
+  await connectToDatabase();
+  const staff = await UserModel.findOne(withTenantScope({ _id: staffId, role: "institute-staff" }, session));
+  if (!staff) return { error: "Staff member not found." };
+  const before = { availabilityStatus: staff.staffMeta?.availabilityStatus, availabilityNote: staff.staffMeta?.availabilityNote };
+  const leaveHistory = [...(staff.staffMeta?.leaveHistory ?? [])];
+  if (parsed.data.leaveStart && parsed.data.leaveEnd && parsed.data.leaveReason) {
+    leaveHistory.push({ startAt: new Date(parsed.data.leaveStart), endAt: new Date(parsed.data.leaveEnd), reason: parsed.data.leaveReason, recordedAt: new Date() });
+  }
+  staff.staffMeta = { ...staff.staffMeta, availabilityStatus: parsed.data.availabilityStatus, availabilityNote: parsed.data.availabilityNote || undefined, leaveHistory };
+  await staff.save();
+  const actor = await UserModel.findById(session.userId).select("name");
+  await recordAuditEntry({ session, actorName: actor?.name ?? "Unknown", action: "staff.availability-update", targetType: "User", targetId: String(staff._id), targetName: staff.name, summary: `Updated availability for "${staff.name}"`, before, after: { availabilityStatus: parsed.data.availabilityStatus, availabilityNote: parsed.data.availabilityNote, leaveRecorded: Boolean(parsed.data.leaveStart) } });
+  revalidatePath("/staff"); revalidatePath("/operations"); revalidatePath(`/staff/${staff._id}`);
+  return { success: true };
+}
 
 export async function updateStaffPermissions(
   _prevState: UpdateStaffState,
