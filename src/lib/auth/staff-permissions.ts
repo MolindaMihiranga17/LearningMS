@@ -24,6 +24,11 @@ export async function requireStaffModuleAccess(permission: StaffPermissionKey) {
   const session = await requireSession();
   if (session.role !== "institute-staff") return session;
 
+  // The dashboard is the safe landing page for staff. Older staff records can
+  // lack the nested permission defaults, so redirecting a denied dashboard
+  // request back to /dashboard creates an unrecoverable redirect loop.
+  if (permission === "dashboard") return session;
+
   const permissions = await loadStaffPermissions(session);
   if (!permissions?.[permission]) {
     redirect("/dashboard");
