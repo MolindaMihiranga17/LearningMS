@@ -47,6 +47,30 @@ export const updateStaffSalarySchema = z.object({
 
 export type UpdateStaffSalaryInput = z.infer<typeof updateStaffSalarySchema>;
 
+export const updateStaffAvailabilitySchema = z.object({
+  availabilityStatus: z.enum(["available", "unavailable", "on-leave"]),
+  availabilityNote: z.string().trim().max(300).optional().or(z.literal("")),
+  leaveStart: optionalDateString,
+  leaveEnd: optionalDateString,
+  leaveReason: z.string().trim().max(300).optional().or(z.literal("")),
+}).superRefine((value, ctx) => {
+  const hasLeaveValue = Boolean(value.leaveStart || value.leaveEnd || value.leaveReason);
+  if (hasLeaveValue && (!value.leaveStart || !value.leaveEnd || !value.leaveReason)) {
+    ctx.addIssue({ code: "custom", path: ["leaveStart"], message: "Leave start, end, and reason are required together." });
+  }
+  if (value.leaveStart && value.leaveEnd && new Date(value.leaveEnd) < new Date(value.leaveStart)) {
+    ctx.addIssue({ code: "custom", path: ["leaveEnd"], message: "Leave end date cannot be before the start date." });
+  }
+});
+
+export const saveReportPresetSchema = z.object({
+  name: z.string().trim().min(2, "Preset name must be at least 2 characters.").max(80),
+  reportTypes: z.array(z.enum(["students", "fees", "terms", "calendar"])).min(1, "Select at least one report."),
+  formats: z.array(z.enum(["csv", "xlsx", "pdf"])).min(1, "Select at least one format."),
+});
+
+export const deleteReportPresetSchema = z.object({ presetId: z.string().trim().min(1) });
+
 export const addMonthlyCommissionSchema = z.object({
   month: z.string().trim().min(1, "Month is required."),
   amount: z.coerce.number().min(0, "Amount can't be negative."),
