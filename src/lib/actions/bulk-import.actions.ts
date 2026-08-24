@@ -25,6 +25,9 @@ export async function bulkImportRecords(formData: FormData): Promise<void> {
 
   const type = String(formData.get("type") ?? "");
   const csv = String(formData.get("csv") ?? "");
+  if (formData.get("confirmed") !== "true") {
+    throw new Error("Review the import preview and confirm before importing records.");
+  }
   const rows = parseCsv(csv);
   if (!rows.length) return;
 
