@@ -36,6 +36,9 @@ const userSchema = new Schema(
       notes: { type: String },
     },
     staffMeta: {
+      availabilityStatus: { type: String, enum: ["available", "unavailable", "on-leave"], default: "available" },
+      availabilityNote: { type: String, trim: true },
+      leaveHistory: [{ startAt: Date, endAt: Date, reason: String, recordedAt: { type: Date, default: Date.now } }],
       employeeCode: { type: String },
       subjectIds: [{ type: Schema.Types.ObjectId, ref: "Subject" }],
       basicSalary: { type: Number, default: 0 },
@@ -57,6 +60,10 @@ const userSchema = new Schema(
         salary: { type: Boolean, default: false },
         income: { type: Boolean, default: false },
       },
+    },
+    adminPreferences: {
+      dashboardFocus: { type: String, enum: ["operations", "insights"], default: "operations" },
+      savedReportPresets: [{ name: String, reportTypes: [String], formats: [String], createdAt: { type: Date, default: Date.now } }],
     },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
