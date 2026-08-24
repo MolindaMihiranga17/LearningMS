@@ -9,6 +9,7 @@ import { QuizStatusForm } from "./quiz-status-form";
 import { QuestionList } from "./question-list";
 import { AddQuestionForm } from "./add-question-form";
 import { QuizEditDialog } from "./edit/quiz-edit-dialog";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 export default async function QuizDetailPage({
   params,
@@ -24,6 +25,7 @@ export default async function QuizDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffWorkspaceHeader eyebrow="Course assessment" title={quiz.title} description={quiz.instructions ?? `Manage questions, timing, and learner attempts for ${quiz.courseTitle}.`} metrics={[{ label: "Questions", value: quiz.questions.length, detail: "Knowledge checks included", tone: "primary" }, { label: "Time limit", value: `${quiz.timeLimitMinutes} min`, detail: "Per learner attempt", tone: "info" }, { label: "Status", value: quiz.status, detail: "Quiz availability", tone: quiz.status === "published" ? "success" : "warning" }]} />
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{quiz.title}</h1>
