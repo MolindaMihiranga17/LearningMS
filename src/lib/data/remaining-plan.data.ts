@@ -152,7 +152,9 @@ export async function getAdminOperationsData() {
     finance,
     recentActivity,
   ] = await Promise.all([
-    UserModel.countDocuments(withTenantScope({ role: "student" }, session)),
+    UserModel.find(withTenantScope({ role: "student" }, session))
+      .select("studentMeta.classId")
+      .lean(),
     UserModel.find(withTenantScope({ role: "institute-staff" }, session))
       .select("name email status staffMeta")
       .lean(),
@@ -194,7 +196,7 @@ export async function getAdminOperationsData() {
 
   return {
     counts: {
-      students,
+      students: students.length,
       staff: staff.length,
       classes: classes.length,
       subjects: subjects.length,
@@ -229,12 +231,25 @@ export async function getAdminOperationsData() {
       classTeacherOf: teacherClassCounts.get(String(member._id)) ?? 0,
       salary: member.staffMeta?.basicSalary ?? 0,
       permissions: member.staffMeta?.permissions ?? {},
-      commissions: member.staffMeta?.monthlyCommissions ?? [],
+      commissions: (member.staffMeta?.monthlyCommissions ?? []).map((entry: { month?: string; amount?: number }) => ({
+        month: entry.month,
+        amount: entry.amount,
+      })),
+      availabilityStatus: member.staffMeta?.availabilityStatus ?? "available",
+      availabilityNote: member.staffMeta?.availabilityNote ?? "",
+      leaveHistory: (member.staffMeta?.leaveHistory ?? []).map((entry: { startAt?: Date; endAt?: Date; reason?: string; recordedAt?: Date }) => ({
+        startAt: entry.startAt?.toISOString() ?? "", endAt: entry.endAt?.toISOString() ?? "", reason: entry.reason ?? "", recordedAt: entry.recordedAt?.toISOString() ?? "",
+      })),
     })),
     controls: {
       unassignedClasses: classes.filter((klass) => !klass.classTeacherId).length,
       unassignedSubjects: subjects.filter((subject) => !subject.teacherId).length,
       classesWithoutTimetable: classes.filter((klass) => !klass.timetable?.length).length,
+      studentsWithoutClass: students.filter((student) => !student.studentMeta?.classId).length,
+      staffMissingEmployeeCode: staff.filter((member) => !member.staffMeta?.employeeCode).length,
+      staffWithoutPermissions: staff.filter(
+        (member) => !Object.values(member.staffMeta?.permissions ?? {}).some(Boolean)
+      ).length,
     },
     recentActivity,
   };
@@ -286,12 +301,46 @@ export async function getInstituteReportsData() {
     financeTrend,
     gradingBacklog: submissions + quizAttempts,
     exports: [
-      { label: "Students CSV", href: "/api/reports/export/students?format=csv" },
-      { label: "Students Excel", href: "/api/reports/export/students?format=xlsx" },
-      { label: "Fees CSV", href: "/api/reports/export/fees?format=csv" },
-      { label: "Fees Excel", href: "/api/reports/export/fees?format=xlsx" },
-      { label: "Terms CSV", href: "/api/reports/export/terms?format=csv" },
-      { label: "Calendar CSV", href: "/api/reports/export/calendar-events?format=csv" },
+      {
+        type: "students",
+        title: "Student records",
+        description: "Profiles, enrollment details, and guardian contacts.",
+        formats: [
+          { label: "CSV", href: "/api/reports/export/students?format=csv" },
+          { label: "Excel", href: "/api/reports/export/students?format=xlsx" },
+          { label: "PDF", href: "/api/reports/export/students?format=pdf" },
+        ],
+      },
+      {
+        type: "fees",
+        title: "Fee schedule",
+        description: "Fee amounts, due dates, and billing scope.",
+        formats: [
+          { label: "CSV", href: "/api/reports/export/fees?format=csv" },
+          { label: "Excel", href: "/api/reports/export/fees?format=xlsx" },
+          { label: "PDF", href: "/api/reports/export/fees?format=pdf" },
+        ],
+      },
+      {
+        type: "terms",
+        title: "Academic terms",
+        description: "Term dates, academic years, and status.",
+        formats: [
+          { label: "CSV", href: "/api/reports/export/terms?format=csv" },
+          { label: "Excel", href: "/api/reports/export/terms?format=xlsx" },
+          { label: "PDF", href: "/api/reports/export/terms?format=pdf" },
+        ],
+      },
+      {
+        type: "calendar",
+        title: "Academic calendar",
+        description: "Upcoming events, deadlines, and schedules.",
+        formats: [
+          { label: "CSV", href: "/api/reports/export/calendar-events?format=csv" },
+          { label: "Excel", href: "/api/reports/export/calendar-events?format=xlsx" },
+          { label: "PDF", href: "/api/reports/export/calendar-events?format=pdf" },
+        ],
+      },
     ],
   };
 }
