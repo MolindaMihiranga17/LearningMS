@@ -5,6 +5,8 @@ import { listSubjectsForTeacher, listSubjectsForStudent } from "@/lib/data/subje
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
+import { BookOpen, UserRound } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default async function MySubjectsPage() {
   const session = await getSession();
@@ -25,6 +27,9 @@ export default async function MySubjectsPage() {
 
   const headerMetrics = [
     { label: "Subjects", value: subjects.length, detail: "Assigned to you", tone: "primary" as const },
+    ...(session.role === "student"
+      ? [{ label: "Teachers assigned", value: subjects.filter((subject) => Boolean(subject.teacherId)).length, detail: "Subject teachers available", tone: "success" as const }]
+      : []),
   ];
 
   return (
@@ -46,19 +51,18 @@ export default async function MySubjectsPage() {
       )}
 
       {subjects.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No subjects assigned yet.</p>
+        <Card className="border-dashed"><CardContent className="py-12 text-center"><BookOpen className="mx-auto size-6 text-muted-foreground" /><p className="mt-3 font-medium">No subjects assigned yet</p><p className="mt-1 text-sm text-muted-foreground">Your subjects will appear here once your enrollment is ready.</p></CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {subjects.map((subject) => (
-            <Card key={subject._id.toString()}>
-              <CardHeader>
+            <Card key={subject._id.toString()} className="transition-transform hover:-translate-y-0.5 hover:shadow-panel">
+              <CardHeader className="gap-2">
+                <div className="flex items-center justify-between gap-3"><Badge variant="outline">{subject.code || "Subject"}</Badge><BookOpen className="size-4 text-primary" /></div>
                 <CardTitle>{subject.name}</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">Code: {subject.code}</p>
+              <CardContent className="flex flex-col gap-2">
                 {session.role === "student" ? (
-                  <p className="text-sm text-muted-foreground">
-                    Teacher:{" "}
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground"><UserRound className="size-3.5" />
                     {(subject.teacherId as unknown as { name?: string } | null)?.name ?? "Unassigned"}
                   </p>
                 ) : null}
