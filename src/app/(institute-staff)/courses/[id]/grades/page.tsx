@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCourseGradeSummaryForTeacher } from "@/lib/data/grade.data";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 const COLUMNS = [
   { key: "student", header: "Student" },
@@ -40,15 +41,11 @@ export default async function CourseGradesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link href="/grades" className="text-sm text-muted-foreground hover:underline">
-          &larr; Grades
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{course.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Grade summary by student</p>
-      </div>
+      <StaffWorkspaceHeader eyebrow="Course assessment" title={course.title} description="Review published grade totals and performance by student." metrics={[{ label: "Students", value: gradeRows.length, detail: "Enrolled in this course", tone: "primary" }, { label: "Graded", value: gradeRows.filter((row) => row.itemCount > 0).length, detail: "With published scores", tone: "success" }]} actions={<Link href="/grades" className="text-sm font-medium text-primary hover:underline">&larr; All grades</Link>} />
 
       <DataTableCard
+        title="Student grade summary"
+        sub="Search students to review aggregate course performance."
         columns={COLUMNS}
         rows={rows}
         searchPlaceholder="Search students..."
