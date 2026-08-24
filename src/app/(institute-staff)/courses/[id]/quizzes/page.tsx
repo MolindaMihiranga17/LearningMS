@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { QuizFormDialog } from "./new/quiz-form-dialog";
 import { QuizManageDialog } from "./[quizId]/quiz-manage-dialog";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -40,12 +41,7 @@ export default async function CourseQuizzesPage({ params }: { params: Promise<{ 
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Quizzes</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{course.title}</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <StaffWorkspaceHeader eyebrow="Course assessment" title="Quizzes" description={`Create timed knowledge checks and review results for ${course.title}.`} metrics={[{ label: "Quizzes", value: quizzes.length, detail: "All course quizzes", tone: "primary" }, { label: "Published", value: quizzes.filter((quiz) => quiz.status === "published").length, detail: "Ready for learners", tone: "success" }]} actions={<div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/courses/${id}`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -53,10 +49,9 @@ export default async function CourseQuizzesPage({ params }: { params: Promise<{ 
             Back to course
           </Link>
           <QuizFormDialog courseId={id} />
-        </div>
-      </div>
+        </div>} />
 
-      <DataTableCard columns={COLUMNS} rows={rows} emptyTitle="No quizzes yet." />
+      <DataTableCard title="Course quizzes" sub="Manage time limits, availability, and quiz status." columns={COLUMNS} rows={rows} emptyTitle="No quizzes yet." />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { CourseStatusForm } from "./course-status-form";
 import { ModuleCard } from "./module-card";
 import { AddModuleForm } from "./add-module-form";
 import { CourseEditDialog } from "./edit/course-edit-dialog";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,6 +36,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffWorkspaceHeader eyebrow="Course management" title={course.title} description={course.description ?? "Build a clear learning path with modules, lessons, assignments, and quizzes."} metrics={[{ label: "Status", value: course.status, detail: "Course visibility", tone: course.status === "published" ? "success" : "warning" }, { label: "Modules", value: course.modules.length, detail: "Learning sections", tone: "primary" }, { label: "Classes", value: classes.length, detail: subject?.name ? `Subject: ${subject.name}` : "Assigned classes", tone: "info" }]} />
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{course.title}</h1>

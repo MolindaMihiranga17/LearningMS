@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { AssignmentStatus } from "@/models/Assignment";
 import { AssignmentStatusForm } from "./assignment-status-form";
 import { AssignmentEditDialog } from "./edit/assignment-edit-dialog";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 function toDatetimeLocal(date: Date) {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -28,6 +29,7 @@ export default async function AssignmentDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffWorkspaceHeader eyebrow="Course assessment" title={assignment.title} description={assignment.instructions ?? `Manage assignment settings and learner submissions for ${assignment.courseTitle}.`} metrics={[{ label: "Status", value: assignment.status, detail: "Assignment publication status", tone: assignment.status === "published" ? "success" : "warning" }, { label: "Max score", value: assignment.maxScore, detail: "Points available", tone: "primary" }]} />
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{assignment.title}</h1>

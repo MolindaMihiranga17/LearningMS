@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { AssignmentFormDialog } from "./new/assignment-form-dialog";
 import { AssignmentManageDialog } from "./[assignmentId]/assignment-manage-dialog";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 const COLUMNS = [
   { key: "title", header: "Title" },
@@ -46,12 +47,7 @@ export default async function CourseAssignmentsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Assignments</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{course.title}</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <StaffWorkspaceHeader eyebrow="Course assessment" title="Assignments" description={`Create, publish, and review assignment work for ${course.title}.`} metrics={[{ label: "Assignments", value: assignments.length, detail: "All course assignments", tone: "primary" }, { label: "Published", value: assignments.filter((assignment) => assignment.status === "published").length, detail: "Visible to learners", tone: "success" }]} actions={<div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/courses/${id}`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -59,10 +55,9 @@ export default async function CourseAssignmentsPage({
             Back to course
           </Link>
           <AssignmentFormDialog courseId={id} />
-        </div>
-      </div>
+        </div>} />
 
-      <DataTableCard columns={COLUMNS} rows={rows} emptyTitle="No assignments yet." />
+      <DataTableCard title="Course assignments" sub="Keep deadlines, scoring, and publication status clear." columns={COLUMNS} rows={rows} emptyTitle="No assignments yet." />
     </div>
   );
 }

@@ -7,6 +7,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { StudentWorkspaceHeader } from "@/components/student/student-workspace-header";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 const TEACHER_COLUMNS = [
   { key: "course", header: "Course" },
@@ -22,45 +25,49 @@ export default async function GradesPage() {
 
   if (session.role === "student") {
     const groups = await getMyGradesForStudent();
+    const scoredGroups = groups.filter((group) => group.percent !== null);
+    const average = scoredGroups.length
+      ? scoredGroups.reduce((total, group) => total + (group.percent ?? 0), 0) / scoredGroups.length
+      : 0;
 
     return (
-      <>
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">Grades</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Your grades across all courses.</p>
-          </div>
-          <a
+      <div className="flex flex-col gap-6">
+        <StudentWorkspaceHeader
+          eyebrow="Academic record"
+          title="My grades"
+          description="Track course performance, review published scores, and download your current report card."
+          metrics={[
+            { label: "Courses graded", value: groups.length, detail: "With published items", tone: "primary" },
+            { label: "Average score", value: `${average.toFixed(1)}%`, detail: "Across scored courses", tone: average >= 75 ? "success" : "warning" },
+            { label: "Graded items", value: groups.reduce((total, group) => total + group.itemCount, 0), detail: "Published assessments", tone: "info" },
+          ]}
+          actions={<a
             href={`/api/reports/report-card/${session.userId}`}
             target="_blank"
             rel="noreferrer"
             className={cn(buttonVariants({ variant: "outline" }))}
-          >
-            Download report card
-          </a>
-        </div>
+          >Download report card</a>}
+        />
 
         {groups.length === 0 ? (
-          <p className="mt-6 text-sm text-muted-foreground">No grades yet.</p>
+          <Card className="border-dashed"><CardContent className="py-12 text-center text-sm text-muted-foreground">No grades have been published yet.</CardContent></Card>
         ) : (
-          <div className="mt-6 flex flex-col gap-4">
-            {groups.map((group) => (
-              <div key={group.courseId} className="rounded-xl border border-border p-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {groups.map((group, index) => (
+              <Card key={group.courseId || `${group.courseTitle}-${index}`} className="transition-transform hover:-translate-y-0.5 hover:shadow-panel"><CardContent className="pt-(--card-spacing)">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{group.courseTitle}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {group.percent !== null ? `${group.percent.toFixed(1)}%` : "-"}
-                  </p>
+                  <Badge variant={group.percent === null ? "secondary" : group.percent >= 75 ? "success" : "warning"}>{group.percent !== null ? `${group.percent.toFixed(1)}%` : "Pending"}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {group.itemCount} graded item{group.itemCount === 1 ? "" : "s"} &middot;{" "}
                   {group.totalScore} / {group.totalMaxScore}
                 </p>
-              </div>
+              </CardContent></Card>
             ))}
           </div>
         )}
-      </>
+      </div>
     );
   }
 

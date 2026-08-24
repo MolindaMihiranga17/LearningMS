@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 export default async function StudentFollowUpsPage() {
   await requireStaffModuleAccess("students");
@@ -32,7 +32,7 @@ export default async function StudentFollowUpsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <WorkspaceHeader
+      <StaffWorkspaceHeader
         eyebrow="Teaching"
         title="Student follow-ups"
         description="Record attendance, coursework, academic, behavior, and general support notes."

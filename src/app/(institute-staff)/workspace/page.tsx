@@ -5,7 +5,7 @@ import { cancelClassSession } from "@/lib/actions/class-session.actions";
 import { getTeacherWorkspaceData } from "@/lib/data/remaining-plan.data";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { Panel } from "@/components/dashboard-shell/panel";
-import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
@@ -46,7 +46,7 @@ export default async function TeacherWorkspacePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <WorkspaceHeader
+      <StaffWorkspaceHeader
         eyebrow="Teaching"
         title="Teacher workspace"
         description="Planner, grading queue, managed classes, student follow-up, and course publishing in one place."

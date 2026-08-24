@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Inbox, Search, SearchX } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Inbox, Search, SearchX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -141,6 +141,16 @@ export function DataTableCard({
     });
   }, [filtered, sort]);
 
+  const hasActiveFilters =
+    query.trim().length > 0 || filters.some((filter) => (filterState[filter.key] ?? ALL_FILTER_VALUE) !== ALL_FILTER_VALUE);
+
+  function resetTableControls() {
+    setQuery("");
+    setFilterState(Object.fromEntries(filters.map((filter) => [filter.key, ALL_FILTER_VALUE])));
+    setSort(null);
+    setPage(1);
+  }
+
   function handleSearchChange(value: string) {
     setQuery(value);
     setPage(1);
@@ -263,8 +273,18 @@ export function DataTableCard({
                   </div>
                 ))}
               </div>
-              {selectionEnabled && activeSelected.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {sorted.length === rows.length ? `${rows.length} total` : `${sorted.length} of ${rows.length}`}
+                </span>
+                {hasActiveFilters ? (
+                  <Button type="button" size="xs" variant="ghost" onClick={resetTableControls}>
+                    <X className="size-3" />
+                    Clear
+                  </Button>
+                ) : null}
+                {selectionEnabled && activeSelected.length > 0 ? (
+                  <>
                   <span className="text-xs font-medium text-muted-foreground">
                     {activeSelected.length} selected
                   </span>
@@ -279,8 +299,9 @@ export function DataTableCard({
                       {actionConfig.label}
                     </Button>
                   ))}
-                </div>
-              ) : null}
+                  </>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </CardHeader>

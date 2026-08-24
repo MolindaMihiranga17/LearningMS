@@ -4,7 +4,7 @@ import { listSubjectsForTeacher } from "@/lib/data/subject.data";
 import { listClassesForTeacher } from "@/lib/data/class.data";
 import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 import { CourseFormDialog } from "./new/course-form-dialog";
 import { CourseManageDialog } from "./[id]/course-manage-dialog";
 
@@ -63,7 +63,7 @@ export default async function CoursesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <WorkspaceHeader
+      <StaffWorkspaceHeader
         eyebrow="Teaching"
         title="Courses"
         description="Build and publish course material for the classes you teach."

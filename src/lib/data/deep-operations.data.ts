@@ -69,8 +69,19 @@ export async function listInstituteAuditLogs(limit = 100) {
 
   await connectToDatabase();
 
-  return AuditLogModel.find(withTenantScope({}, session))
+  const logs = await AuditLogModel.find(withTenantScope({}, session))
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
+
+  const now = Date.now();
+  return logs.map((log) => ({
+    ...log,
+    recency:
+      log.createdAt.getTime() > now - 24 * 60 * 60 * 1000
+        ? "today"
+        : log.createdAt.getTime() > now - 7 * 24 * 60 * 60 * 1000
+          ? "week"
+          : "older",
+  }));
 }

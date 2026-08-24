@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
-import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 export default async function GradingQueuePage() {
   await requireStaffModuleAccess("subjects");
@@ -47,7 +47,7 @@ export default async function GradingQueuePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <WorkspaceHeader
+      <StaffWorkspaceHeader
         eyebrow="Teaching"
         title="Grading queue"
         description="Review submitted work that still needs feedback."

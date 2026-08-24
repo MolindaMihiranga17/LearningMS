@@ -5,6 +5,7 @@ import { DataTableCard, type DataTableRow } from "@/components/data-table/data-t
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 
 const COLUMNS = [
   { key: "student", header: "Student", sortable: true },
@@ -71,35 +72,26 @@ export default async function PaymentDeskPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Payment Desk</h1>
-          <p className="text-sm text-muted-foreground">
-            Review balances, open ledgers, and queue follow-ups for overdue students.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Students</div>
-          <div className="mt-1 text-2xl font-semibold">{snapshot.summary.studentCount}</div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Outstanding</div>
-          <div className="mt-1 text-2xl font-semibold">{snapshot.summary.outstandingAmount.toFixed(2)}</div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Overdue</div>
-          <div className="mt-1 text-2xl font-semibold">{snapshot.summary.overdueAmount.toFixed(2)}</div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card px-4 py-3">
-          <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Overdue accounts</div>
-          <div className="mt-1 text-2xl font-semibold">{snapshot.summary.overdueCount}</div>
-        </div>
-      </div>
+      <WorkspaceHeader
+        eyebrow="Finance operations"
+        title="Payment desk"
+        description="Review balances, open ledgers, and queue follow-ups for overdue students."
+        actions={
+          <Link href="/fees" className={cn(buttonVariants({ variant: "outline" }))}>
+            Fee schedules
+          </Link>
+        }
+        metrics={[
+          { label: "Students", value: snapshot.summary.studentCount, detail: "Accounts in the payment desk", tone: "primary" },
+          { label: "Outstanding", value: snapshot.summary.outstandingAmount.toFixed(2), detail: "Balances still due", tone: "warning" },
+          { label: "Overdue", value: snapshot.summary.overdueAmount.toFixed(2), detail: "Past the due date", tone: "warning" },
+          { label: "Overdue accounts", value: snapshot.summary.overdueCount, detail: "Need a follow-up", tone: "info" },
+        ]}
+      />
 
       <DataTableCard
+        title="Student balances"
+        sub="Filter accounts by balance state, then create follow-ups for the selected students."
         columns={COLUMNS}
         rows={rows}
         searchPlaceholder="Search students in payment desk..."

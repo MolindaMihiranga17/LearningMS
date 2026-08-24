@@ -24,20 +24,16 @@ export async function getMyProfile() {
       billing: user.notificationPreferences?.billing ?? true,
       academic: user.notificationPreferences?.academic ?? true,
     },
-    staffMeta: user.staffMeta
+    studentMeta: user.studentMeta
       ? {
-          employeeCode: user.staffMeta.employeeCode ?? null,
-          subjectIds: (user.staffMeta.subjectIds ?? []).map((id: unknown) => String(id)),
-          basicSalary: user.staffMeta.basicSalary ?? 0,
-          commission: user.staffMeta.commission ?? 0,
-          monthlyCommissions: (user.staffMeta.monthlyCommissions ?? []).map((entry: { month?: string; amount?: number; recordedAt?: Date }) => ({
-            month: entry.month,
-            amount: entry.amount,
-            recordedAt: entry.recordedAt,
-          })),
-          permissions: user.staffMeta.permissions ?? null,
+          rollNumber: user.studentMeta.rollNumber ?? "",
+          birthday: user.studentMeta.birthday?.toISOString() ?? null,
+          gender: user.studentMeta.gender ?? "",
+          guardianName: user.studentMeta.guardianName ?? "",
+          guardianPhone: user.studentMeta.guardianPhone ?? "",
+          registrationDate: user.studentMeta.registrationDate?.toISOString() ?? null,
+          paymentType: user.studentMeta.paymentType ?? "",
         }
       : null,
-    studentMeta: user.studentMeta ?? null,
   };
 }

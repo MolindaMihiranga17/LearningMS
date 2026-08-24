@@ -7,6 +7,7 @@ import { listSubmissionsForAssignment } from "@/lib/data/submission.data";
 import { GradeSubmissionForm } from "./grade-submission-form";
 import { AttachmentPreview } from "./attachment-preview";
 import { NextUngradedButton } from "./next-ungraded-button";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -48,6 +49,7 @@ export default async function AssignmentSubmissionsPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffWorkspaceHeader eyebrow="Course assessment" title="Assignment submissions" description={`Review learner work and provide marks and feedback for ${assignment.title}.`} metrics={[{ label: "Submissions", value: counts.all, detail: "All received work", tone: "primary" }, { label: "To grade", value: counts.submitted, detail: "Awaiting feedback", tone: "warning" }, { label: "Graded", value: counts.graded, detail: "Feedback completed", tone: "success" }]} />
       <div>
         <Link
           href={`/courses/${id}/assignments/${assignmentId}`}

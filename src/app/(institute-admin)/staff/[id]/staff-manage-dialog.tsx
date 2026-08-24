@@ -9,6 +9,7 @@ import { Dialog, DialogPopup, DialogHeader, DialogTitle } from "@/components/ui/
 import { PermissionsForm } from "./permissions-form";
 import { SalaryForm } from "./salary-form";
 import { CommissionForm } from "./commission-form";
+import { AvailabilityForm } from "./availability-form";
 
 export function StaffManageDialog({
   staffId,
@@ -18,6 +19,9 @@ export function StaffManageDialog({
   permissions,
   basicSalary,
   commissions,
+  availabilityStatus,
+  availabilityNote,
+  leaveHistory,
 }: {
   staffId: string;
   name: string;
@@ -26,6 +30,9 @@ export function StaffManageDialog({
   permissions: Record<string, boolean | undefined>;
   basicSalary: number;
   commissions: { month?: string; amount?: number }[];
+  availabilityStatus: "available" | "unavailable" | "on-leave";
+  availabilityNote: string;
+  leaveHistory: { startAt: string; endAt: string; reason: string; recordedAt: string }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
@@ -55,6 +62,7 @@ export function StaffManageDialog({
         </DialogHeader>
 
         <div className="mt-4 flex flex-col gap-6">
+          <Card><CardHeader><CardTitle>Availability & leave</CardTitle></CardHeader><CardContent><AvailabilityForm staffId={staffId} availabilityStatus={availabilityStatus} availabilityNote={availabilityNote} leaveHistory={leaveHistory} /></CardContent></Card>
           <Card>
             <CardHeader>
               <CardTitle>Module permissions</CardTitle>

@@ -11,10 +11,10 @@ type StudentMetric = {
 };
 
 const toneClasses: Record<NonNullable<StudentMetric["tone"]>, string> = {
-  primary: "bg-primary-subtle text-primary",
-  success: "bg-success-subtle text-success",
-  warning: "bg-warning-subtle text-warning",
-  info: "bg-info-subtle text-info",
+  primary: "text-primary",
+  success: "text-success",
+  warning: "text-warning",
+  info: "text-info",
 };
 
 export function StudentWorkspaceHeader({
@@ -44,13 +44,11 @@ export function StudentWorkspaceHeader({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {metrics.map((metric) => (
               <Card key={metric.label} size="sm" className="bg-card/75">
-                <CardContent className="flex items-center gap-3 pt-(--card-spacing)">
-                  <div className={`flex size-10 shrink-0 items-center justify-center rounded-2xl text-sm font-bold ${toneClasses[metric.tone ?? "primary"]}`}>
-                    {metric.value}
-                  </div>
+                <CardContent className="pt-(--card-spacing)">
                   <div className="min-w-0">
                     <p className="text-eyebrow">{metric.label}</p>
-                    <p className="truncate text-xs text-muted-foreground">{metric.detail}</p>
+                    <p className={`mt-1 break-words text-xl font-semibold leading-tight tabular-nums ${toneClasses[metric.tone ?? "primary"]}`}>{metric.value}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{metric.detail}</p>
                   </div>
                 </CardContent>
               </Card>

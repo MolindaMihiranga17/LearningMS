@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAttemptForTeacherGrading } from "@/lib/data/quiz-attempt.data";
 import type { QuizAttemptAnswer } from "@/models/QuizAttempt";
 import { GradeShortAnswerForm } from "./grade-short-answer-form";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 const TYPE_LABEL: Record<string, string> = {
   mcq: "Multiple choice",
@@ -30,6 +31,7 @@ export default async function AttemptGradingPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffWorkspaceHeader eyebrow="Quiz grading" title={student?.name ?? "Unknown student"} description={student?.email ?? "Review responses and complete any manual grading."} metrics={[{ label: "Status", value: attempt.status, detail: "Attempt status", tone: attempt.status === "graded" ? "success" : "warning" }, { label: "Score", value: `${attempt.totalScore} / ${attempt.maxScore}`, detail: "Current total score", tone: "primary" }, { label: "Questions", value: questions.length, detail: "Responses to review", tone: "info" }]} />
       <div>
         <Link
           href={`/courses/${id}/quizzes/${quizId}/attempts`}
