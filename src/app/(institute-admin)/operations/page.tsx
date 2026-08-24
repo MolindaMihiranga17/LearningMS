@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { cn } from "@/lib/utils";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
 import { ClassEditDialog } from "../classes/[id]/edit/class-edit-dialog";
 import { StaffManageDialog } from "../staff/[id]/staff-manage-dialog";
 
@@ -60,19 +61,20 @@ export default async function AdminOperationsPage() {
         permissions={row.permissions}
         basicSalary={row.salary}
         commissions={row.commissions}
+        availabilityStatus={row.availabilityStatus}
+        availabilityNote={row.availabilityNote}
+        leaveHistory={row.leaveHistory}
       />,
     ],
   }));
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-eyebrow text-primary">Institute admin</p>
-        <h1 className="text-heading mt-1 text-2xl">Operations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Academic administration, finance health, class coverage, and staff workload.
-        </p>
-      </div>
+      <WorkspaceHeader
+        eyebrow="Institute administration"
+        title="Operations"
+        description="Monitor academic setup, finance health, class coverage, and staff workload from one place."
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard label="Students" icon={Users} value={data.counts.students} tone="info" />
@@ -112,7 +114,7 @@ export default async function AdminOperationsPage() {
           </div>
         </Panel>
 
-        <Panel title="Controls" sub="Operational setup gaps to resolve" className="p-5">
+        <Panel title="Readiness checks" sub="Resolve setup gaps before they affect daily delivery" className="p-5">
           <div className="mt-4 flex flex-col gap-3">
             <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
               <span className="text-sm">Classes without class teacher</span>
@@ -132,6 +134,24 @@ export default async function AdminOperationsPage() {
                 {data.controls.classesWithoutTimetable}
               </Badge>
             </div>
+            <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
+              <span className="text-sm">Students without a class</span>
+              <Badge variant={data.controls.studentsWithoutClass > 0 ? "warning" : "success"}>
+                {data.controls.studentsWithoutClass}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
+              <span className="text-sm">Staff missing employee code</span>
+              <Badge variant={data.controls.staffMissingEmployeeCode > 0 ? "warning" : "success"}>
+                {data.controls.staffMissingEmployeeCode}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
+              <span className="text-sm">Staff without module access</span>
+              <Badge variant={data.controls.staffWithoutPermissions > 0 ? "warning" : "success"}>
+                {data.controls.staffWithoutPermissions}
+              </Badge>
+            </div>
             <div className="flex flex-wrap gap-2 pt-1">
               <Link href="/classes" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
                 Classes
@@ -141,6 +161,12 @@ export default async function AdminOperationsPage() {
               </Link>
               <Link href="/enrollments" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
                 Enrollments
+              </Link>
+              <Link href="/students" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                Students
+              </Link>
+              <Link href="/staff" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                Staff
               </Link>
             </div>
           </div>
