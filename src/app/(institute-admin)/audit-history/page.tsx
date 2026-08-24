@@ -18,6 +18,11 @@ export default async function InstituteAuditHistoryPage() {
       log.action,
       null,
     ],
+    filterValues: {
+      role: log.actorRole,
+      action: log.action.split(".")[0],
+      recency: log.recency,
+    },
     cells: [
       log.createdAt ? new Date(log.createdAt).toLocaleString() : "-",
       <span key="actor" className="font-medium">{log.actorName}</span>,
@@ -44,6 +49,31 @@ export default async function InstituteAuditHistoryPage() {
         rows={rows}
         searchPlaceholder="Search audit history..."
         emptyTitle="No audit history yet."
+        filters={[
+          {
+            key: "role",
+            label: "Actor role",
+            options: [...new Set(logs.map((log) => log.actorRole))]
+              .sort()
+              .map((role) => ({ value: role, label: role })),
+          },
+          {
+            key: "action",
+            label: "Area",
+            options: [...new Set(logs.map((log) => log.action.split(".")[0]))]
+              .sort()
+              .map((action) => ({ value: action, label: action })),
+          },
+          {
+            key: "recency",
+            label: "When",
+            options: [
+              { value: "today", label: "Last 24 hours" },
+              { value: "week", label: "Last 7 days" },
+              { value: "older", label: "Older" },
+            ],
+          },
+        ]}
       />
     </div>
   );
