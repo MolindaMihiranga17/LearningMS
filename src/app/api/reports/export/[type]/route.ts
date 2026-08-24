@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createElement } from "react";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { listStudents } from "@/lib/data/user.data";
 import { listFeesForInstitute } from "@/lib/data/fee.data";
 import { listAuditLogs } from "@/lib/data/audit.data";
@@ -6,6 +8,7 @@ import { listAcademicTermsForInstitute } from "@/lib/data/deep-operations.data";
 import { listUpcomingAcademicEvents } from "@/lib/data/academic-event.data";
 import { toCsv, type CsvColumn } from "@/lib/reports/csv";
 import { toXlsxBuffer } from "@/lib/reports/xlsx";
+import { TabularReportPdf } from "@/lib/reports/tabular-report-pdf";
 import { getSession } from "@/lib/tenant/scope";
 
 const EXPORTABLE_TYPES = new Set(["students", "fees", "terms", "calendar-events", "audit-log"]);
@@ -187,7 +190,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
   }
 
   const url = new URL(request.url);
-  const format = url.searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
+  const requestedFormat = url.searchParams.get("format");
+  const format = requestedFormat === "xlsx" || requestedFormat === "pdf" ? requestedFormat : "csv";
 
   let payload: ExportPayload<Record<string, unknown>>;
 
@@ -211,6 +215,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="${payload.filename}.xlsx"`,
+      },
+    });
+  }
+
+  if (format === "pdf") {
+    const buffer = await renderToBuffer(
+      createElement(TabularReportPdf, {
+        title: `${payload.filename.replace(/-/g, " ")} report`.replace(/\b\w/g, (letter) => letter.toUpperCase()),
+        columns: payload.columns.map((column) => ({ key: String(column.key), header: column.header })),
+        rows: payload.rows,
+      })
+    );
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${payload.filename}.pdf"`,
       },
     });
   }
