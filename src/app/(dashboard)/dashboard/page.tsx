@@ -55,6 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { StudentHome } from "@/components/student/student-home";
 import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 function formatRelativeTime(date: Date) {
   const seconds = Math.round((Date.now() - new Date(date).getTime()) / 1000);
@@ -216,6 +217,17 @@ export default async function DashboardPage() {
             } need a class teacher.`,
             badge: String(featureSnapshot.financeSignals.unassignedClasses),
             href: "/classes",
+          }
+        : null,
+      featureSnapshot.atRiskStudents.length > 0
+        ? {
+            id: "at-risk-attendance",
+            title: "Student attendance follow-up is needed",
+            detail: `${featureSnapshot.atRiskStudents.length} student${
+              featureSnapshot.atRiskStudents.length === 1 ? " is" : "s are"
+            } below the 75% attendance target.`,
+            badge: `${featureSnapshot.atRiskStudents[0].attendancePercent}%`,
+            href: "/students",
           }
         : null,
       featureSnapshot.upcomingExams.length > 0
@@ -562,9 +574,26 @@ export default async function DashboardPage() {
           }
         : null,
     ].filter((value): value is NonNullable<typeof value> => Boolean(value));
+    const classAttendanceData = attendanceSummary
+      .filter((row) => row.percentPresent !== null)
+      .map((row) => ({ key: row.id, label: row.name, value: row.percentPresent ?? 0 }));
+    const teachingLoadData = Array.from(
+      data.rows.reduce((counts, row) => counts.set(row.className, (counts.get(row.className) ?? 0) + 1), new Map<string, number>())
+    ).map(([label, value]) => ({ key: label, label, value }));
 
     return (
-      <>
+      <div className="flex flex-col gap-6">
+        <StaffWorkspaceHeader
+          eyebrow="Teaching workspace"
+          title="Your teaching dashboard"
+          description="Plan classes, review learner progress, and act on the teaching work that needs you next."
+          metrics={[
+            { label: "Classes", value: data.classCount, detail: "Teaching assignments", tone: "primary" },
+            { label: "To grade", value: featureSnapshot.gradingQueue.length, detail: "Submissions awaiting feedback", tone: featureSnapshot.gradingQueue.length > 0 ? "warning" : "success" },
+            { label: "Follow-ups", value: featureSnapshot.atRiskStudents.length, detail: "Attendance signals to review", tone: featureSnapshot.atRiskStudents.length > 0 ? "warning" : "info" },
+          ]}
+          actions={<div className="flex flex-wrap gap-2"><Link href="/grading" className="text-sm font-medium text-primary hover:underline">Open grading queue</Link><Link href="/workspace" className="text-sm font-medium text-primary hover:underline">Teaching workspace</Link></div>}
+        />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <StatCard label="My Classes" icon={BookOpen} value={data.classCount} tone="primary" />
           <StatCard label="My Subjects" icon={ClipboardCheck} value={data.subjectCount} tone="info" />
@@ -582,6 +611,24 @@ export default async function DashboardPage() {
             sub="Your recent actions"
             items={activityItems}
             emptyLabel="No recent activity yet."
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <ComparisonBarChart
+            title="Attendance by class"
+            sub="Present and late attendance across your teaching assignments"
+            data={classAttendanceData}
+            format="percent"
+            emptyLabel="Attendance visualizations will appear after registers are recorded."
+            action={<Link href="/attendance" className="text-xs font-semibold text-success">Open attendance &rarr;</Link>}
+          />
+          <ComparisonBarChart
+            title="Teaching load"
+            sub="Subject assignments across your classes"
+            data={teachingLoadData}
+            emptyLabel="Class and subject assignments will appear here."
+            action={<Link href="/my-subjects" className="text-xs font-semibold text-success">View subjects &rarr;</Link>}
           />
         </div>
 
@@ -716,7 +763,7 @@ export default async function DashboardPage() {
             )}
           </div>
         </Panel>
-      </>
+      </div>
     );
   }
 
