@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { listAttemptsForQuizTeacher } from "@/lib/data/quiz-attempt.data";
+import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 
 export default async function QuizAttemptsPage({
   params,
@@ -19,6 +20,7 @@ export default async function QuizAttemptsPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffWorkspaceHeader eyebrow="Quiz assessment" title="Quiz attempts" description={`Review learner attempts for ${quiz.title}.`} metrics={[{ label: "Attempts", value: attempts.length, detail: "Submitted quiz attempts", tone: "primary" }, { label: "Needs grading", value: attempts.filter((attempt) => attempt.status === "submitted").length, detail: "Ready for review", tone: "warning" }]} />
       <div>
         <Link
           href={`/courses/${id}/quizzes/${quizId}`}
