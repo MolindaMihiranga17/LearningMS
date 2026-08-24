@@ -626,6 +626,7 @@ export type AdminFeatureSnapshot = {
     unassignedSubjects: number;
     unassignedClasses: number;
   };
+  atRiskStudents: Array<{ id: string; name: string; className: string; attendancePercent: number }>;
   recentAnnouncements: Array<{ id: string; title: string; audience: string; publishedAt: Date }>;
 };
 
@@ -636,7 +637,7 @@ export async function getAdminFeatureSnapshot(): Promise<AdminFeatureSnapshot> {
   await connectToDatabase();
 
   const now = new Date();
-  const [events, classes, exams, subjects, fees, payments, announcements] = await Promise.all([
+  const [events, classes, exams, subjects, fees, payments, announcements, students, attendanceRows] = await Promise.all([
     AcademicEventModel.find(withTenantScope({ startsAt: { $gte: now } }, session))
       .sort({ startsAt: 1 })
       .limit(8)
@@ -659,6 +660,20 @@ export async function getAdminFeatureSnapshot(): Promise<AdminFeatureSnapshot> {
       .sort({ publishedAt: -1 })
       .limit(5)
       .lean(),
+    UserModel.find(withTenantScope({ role: "student" }, session))
+      .select("name studentMeta.classId")
+      .lean(),
+    AttendanceModel.aggregate([
+      { $match: { instituteId: new mongoose.Types.ObjectId(session.instituteId as string) } },
+      { $unwind: "$records" },
+      {
+        $group: {
+          _id: { classId: "$classId", studentId: "$records.studentId" },
+          total: { $sum: 1 },
+          present: { $sum: { $cond: [{ $in: ["$records.status", ["present", "late"]] }, 1, 0] } },
+        },
+      },
+    ]),
   ]);
 
   const paidByFee = new Map<string, number>();
@@ -672,6 +687,35 @@ export async function getAdminFeatureSnapshot(): Promise<AdminFeatureSnapshot> {
     const balance = fee.amount - (paidByFee.get(String(fee._id)) ?? 0);
     return balance > 0 && fee.dueDate.getTime() < now.getTime();
   });
+  const classNames = new Map(
+    classes.map((klass) => [String(klass._id), klass.section ? `${klass.name} ${klass.section}` : klass.name])
+  );
+  const attendanceByStudent = new Map<string, { classId: string; percent: number }>();
+  for (const row of attendanceRows as Array<{
+    _id: { classId: mongoose.Types.ObjectId; studentId: mongoose.Types.ObjectId };
+    total: number;
+    present: number;
+  }>) {
+    if (row.total === 0) continue;
+    attendanceByStudent.set(String(row._id.studentId), {
+      classId: String(row._id.classId),
+      percent: Math.round((row.present / row.total) * 100),
+    });
+  }
+  const atRiskStudents = students
+    .map((student) => {
+      const attendance = attendanceByStudent.get(String(student._id));
+      if (!attendance || attendance.percent >= 75) return null;
+      return {
+        id: String(student._id),
+        name: student.name,
+        className: classNames.get(attendance.classId) ?? "Class",
+        attendancePercent: attendance.percent,
+      };
+    })
+    .filter((student): student is NonNullable<typeof student> => Boolean(student))
+    .sort((a, b) => a.attendancePercent - b.attendancePercent)
+    .slice(0, 6);
 
   return {
     academicEvents: events.map((event) => ({
@@ -707,6 +751,7 @@ export async function getAdminFeatureSnapshot(): Promise<AdminFeatureSnapshot> {
       unassignedSubjects: subjects.filter((subject) => !subject.teacherId).length,
       unassignedClasses: classes.filter((klass) => !klass.classTeacherId).length,
     },
+    atRiskStudents,
     recentAnnouncements: announcements.map((announcement) => ({
       id: String(announcement._id),
       title: announcement.title,
