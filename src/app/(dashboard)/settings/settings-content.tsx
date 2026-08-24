@@ -28,11 +28,11 @@ export function SettingsContent({
     notificationPreferences: { announcements: boolean; billing: boolean; academic: boolean };
     studentMeta?: {
       rollNumber?: string;
-      birthday?: Date;
+      birthday?: string | null;
       gender?: string;
       guardianName?: string;
       guardianPhone?: string;
-      registrationDate?: Date;
+      registrationDate?: string | null;
       paymentType?: string;
     } | null;
   };
