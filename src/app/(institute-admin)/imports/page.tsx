@@ -1,7 +1,6 @@
-import { bulkImportRecords } from "@/lib/actions/bulk-import.actions";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { ImportCsvForm } from "./import-csv-form";
 
 const TEMPLATES = [
   {
@@ -25,13 +24,15 @@ const TEMPLATES = [
 export default function ImportsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-eyebrow text-primary">Institute admin</p>
-        <h1 className="text-heading mt-1 text-2xl">Bulk Imports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Import students, staff, and enrollments from CSV using the supported templates.
-        </p>
-      </div>
+      <WorkspaceHeader
+        eyebrow="Data management"
+        title="Bulk imports"
+        description="Import students, staff, and enrollments from CSV using the supported templates."
+        metrics={[
+          { label: "Supported imports", value: TEMPLATES.length, detail: "Students, staff, and enrollments", tone: "primary" },
+          { label: "Import format", value: "CSV", detail: "Use the matching column headers", tone: "info" },
+        ]}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {TEMPLATES.map((template) => (
@@ -50,20 +51,10 @@ export default function ImportsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Import CSV</CardTitle>
+          <CardTitle>Review and import CSV</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={bulkImportRecords} className="flex flex-col gap-3">
-            <select name="type" className="h-10 rounded-xl border border-input bg-card px-3 text-sm">
-              {TEMPLATES.map((template) => (
-                <option key={template.value} value={template.value}>
-                  {template.label}
-                </option>
-              ))}
-            </select>
-            <Textarea name="csv" className="min-h-56 font-mono text-xs" placeholder={TEMPLATES[0].sample} required />
-            <Button type="submit" className="self-start">Run import</Button>
-          </form>
+          <ImportCsvForm templates={TEMPLATES} />
         </CardContent>
       </Card>
     </div>
