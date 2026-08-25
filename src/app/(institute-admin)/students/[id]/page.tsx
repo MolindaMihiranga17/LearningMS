@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStudentById } from "@/lib/data/user.data";
+import { getStudentForStaff } from "@/lib/data/user.data";
 import { listClasses } from "@/lib/data/class.data";
+import { getSession } from "@/lib/auth/session";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -14,7 +17,13 @@ function formatDate(value?: Date | null) {
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [student, classes] = await Promise.all([getStudentById(id), listClasses()]);
+  const session = await getSession();
+  const isStaff = session?.role === "institute-staff";
+  if (isStaff) await requireStaffModuleAccess("students");
+  const [student, classes] = await Promise.all([
+    isStaff ? getStudentForStaff(id) : getStudentById(id),
+    isStaff ? Promise.resolve([]) : listClasses(),
+  ]);
 
   if (!student) notFound();
 
@@ -40,12 +49,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           <Link href="/students" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
             Back to students
           </Link>
-          <Link
-            href={`/fees/students/${student._id}/payments`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Fees ledger
-          </Link>
+          {!isStaff ? <Link href={`/fees/students/${student._id}/payments`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Fees ledger</Link> : null}
         </div>
       </div>
 
@@ -77,36 +81,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Student record</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StudentRecordForm
-            studentId={String(student._id)}
-            classes={classOptions}
-            defaults={{
-              name: student.name,
-              email: student.email,
-              phone: student.phone ?? "",
-              rollNumber: student.studentMeta?.rollNumber ?? "",
-              classId: student.studentMeta?.classId ? String((student.studentMeta.classId as { _id?: unknown })._id ?? student.studentMeta.classId) : "",
-              birthday: student.studentMeta?.birthday ? new Date(student.studentMeta.birthday).toISOString().slice(0, 10) : "",
-              gender: student.studentMeta?.gender ?? "",
-              guardianName: student.studentMeta?.guardianName ?? "",
-              guardianPhone: student.studentMeta?.guardianPhone ?? "",
-              guardianEmail: student.studentMeta?.guardianEmail ?? "",
-              guardianRelation: student.studentMeta?.guardianRelation ?? "",
-              hasSpecialNeeds: Boolean(student.studentMeta?.hasSpecialNeeds),
-              specialNeedsDetails: student.studentMeta?.specialNeedsDetails ?? "",
-              registrationDate: student.studentMeta?.registrationDate ? new Date(student.studentMeta.registrationDate).toISOString().slice(0, 10) : "",
-              paymentType: student.studentMeta?.paymentType ?? "",
-              notes: student.studentMeta?.notes ?? "",
-              status: student.status,
-            }}
-          />
-        </CardContent>
-      </Card>
+      {!isStaff ? <Card><CardHeader><CardTitle>Student record</CardTitle></CardHeader><CardContent><StudentRecordForm studentId={String(student._id)} classes={classOptions} defaults={{ name: student.name, email: student.email, phone: student.phone ?? "", rollNumber: student.studentMeta?.rollNumber ?? "", classId: student.studentMeta?.classId ? String((student.studentMeta.classId as { _id?: unknown })._id ?? student.studentMeta.classId) : "", birthday: student.studentMeta?.birthday ? new Date(student.studentMeta.birthday).toISOString().slice(0, 10) : "", gender: student.studentMeta?.gender ?? "", guardianName: student.studentMeta?.guardianName ?? "", guardianPhone: student.studentMeta?.guardianPhone ?? "", guardianEmail: student.studentMeta?.guardianEmail ?? "", guardianRelation: student.studentMeta?.guardianRelation ?? "", hasSpecialNeeds: Boolean(student.studentMeta?.hasSpecialNeeds), specialNeedsDetails: student.studentMeta?.specialNeedsDetails ?? "", registrationDate: student.studentMeta?.registrationDate ? new Date(student.studentMeta.registrationDate).toISOString().slice(0, 10) : "", paymentType: student.studentMeta?.paymentType ?? "", notes: student.studentMeta?.notes ?? "", status: student.status }} /></CardContent></Card> : <Card><CardContent className="py-5 text-sm text-muted-foreground">Staff can view this student record because the student belongs to one of their assigned teaching groups. Profile editing and fee management remain institute-admin tasks.</CardContent></Card>}
     </div>
   );
 }
