@@ -247,4 +247,9 @@
       linear-gradient(180deg, color-mix(in oklch, var(--card), white 4%), var(--card)),
       radial-gradient(circle at top left, color-mix(in oklch, var(--primary) 9%, transparent), transparent 40%);
   }
+  .dashboard-hero {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--dashboard-hero-accent) 35%, white 65%), transparent 55%),
+      linear-gradient(135deg, color-mix(in oklch, var(--dashboard-hero-accent) 18%, white 82%), color-mix(in oklch, var(--card) 96%, white 4%));
+  }
 }

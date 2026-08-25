@@ -7,10 +7,10 @@ export default async function InstituteAdminLayout({
   children: React.ReactNode;
 }) {
   const session = await requireSession();
-  requireRole(session, ["institute-admin"]);
+  requireRole(session, ["institute-admin", "institute-staff"]);
 
   return (
-    <DashboardShell navKey="institute-admin" userId={session.userId} role={session.role} impersonatedByEmail={session.impersonatedByEmail}>
+    <DashboardShell navKey={session.role === "institute-staff" ? "institute-staff" : "institute-admin"} userId={session.userId} role={session.role} impersonatedByEmail={session.impersonatedByEmail}>
       {children}
     </DashboardShell>
   );

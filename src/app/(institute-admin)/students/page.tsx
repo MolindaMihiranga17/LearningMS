@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { listClasses } from "@/lib/data/class.data";
 import { listStudents } from "@/lib/data/user.data";
+import { listStudentsForStaff } from "@/lib/data/user.data";
+import { getSession } from "@/lib/auth/session";
+import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { bulkUpdateStudentStatus } from "@/lib/actions/user.actions";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +24,25 @@ const COLUMNS = [
 ];
 
 export default async function StudentsPage() {
+  const session = await getSession();
+  if (session?.role === "institute-staff") {
+    await requireStaffModuleAccess("students");
+    const students = await listStudentsForStaff();
+    const activeStudents = students.filter((student) => student.status === "active").length;
+    const rows: DataTableRow[] = students.map((student) => ({
+      key: String(student._id),
+      searchValue: `${student.name} ${student.email} ${student.studentMeta?.rollNumber ?? ""}`,
+      filterValues: { status: student.status },
+      cells: [
+        <Link key="name" href={`/students/${student._id}`} className="font-medium hover:text-primary hover:underline">{student.name}</Link>,
+        student.email,
+        student.studentMeta?.rollNumber || "-",
+        <Badge key="status" variant={student.status === "active" ? "success" : "secondary"} className="capitalize">{student.status}</Badge>,
+        student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "-",
+      ],
+    }));
+    return <div className="flex flex-col gap-6"><WorkspaceHeader eyebrow="Teaching roster" title="My students" description="Students in your class-teacher assignments and the courses you teach." metrics={[{ label: "My students", value: students.length, detail: "Across your teaching groups", tone: "primary" }, { label: "Active", value: activeStudents, detail: "Currently enabled", tone: "success" }, { label: "Needs review", value: students.length - activeStudents, detail: "Suspended accounts", tone: "warning" }]} /><DataTableCard title="Student roster" sub="Access is limited to students in your assigned classes and courses." columns={[{ key: "name", header: "Student", sortable: true }, { key: "email", header: "Email" }, { key: "rollNumber", header: "Roll number" }, { key: "status", header: "Status" }, { key: "created", header: "Joined" }]} rows={rows} searchPlaceholder="Search my students..." emptyTitle="No students are assigned to your teaching groups yet." filters={[{ key: "status", label: "Status", options: [{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }] }]} /></div>;
+  }
   const [students, classes] = await Promise.all([listStudents(), listClasses()]);
   const activeStudents = students.filter((student) => student.status === "active").length;
   const missingRollNumbers = students.filter((student) => !student.studentMeta?.rollNumber).length;

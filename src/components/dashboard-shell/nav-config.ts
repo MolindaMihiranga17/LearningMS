@@ -20,9 +20,11 @@ import {
   CreditCard,
   ScrollText,
   HeartPulse,
+  UserRoundSearch,
   SlidersHorizontal,
   CalendarDays,
   History,
+  Video,
 } from "lucide-react";
 
 export type NavItem = {
@@ -65,11 +67,12 @@ export const INSTITUTE_STAFF_NAV: NavItem[] = [
   { label: "Calendar", href: "/calendar", icon: CalendarDays, group: "Overview", staffPermission: "dashboard" },
   { label: "Workspace", href: "/workspace", icon: BriefcaseBusiness, group: "Overview", staffPermission: "classes" },
   { label: "Follow-ups", href: "/student-followups", icon: History, group: "Overview", staffPermission: "students" },
+  { label: "Meetings", href: "/meetings", icon: Video, group: "Teaching" },
   { label: "Courses", href: "/courses", icon: BookOpen, group: "Teaching", staffPermission: "subjects" },
   { label: "Grading queue", href: "/grading", icon: BarChart3, group: "Teaching" },
   { label: "My Classes", href: "/my-classes", icon: BookOpen, group: "Teaching", staffPermission: "classes" },
   { label: "My Subjects", href: "/my-subjects", icon: ClipboardCheck, group: "Teaching", staffPermission: "subjects" },
-  { label: "Students", href: "/students", icon: Users, disabled: true, group: "Teaching", staffPermission: "students" },
+  { label: "Students", href: "/students", icon: Users, group: "Teaching", staffPermission: "students" },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, group: "Operations", staffPermission: "classes" },
   { label: "Exams", href: "/exams", icon: FileText, group: "Operations", staffPermission: "subjects" },
   { label: "Grades", href: "/grades", icon: BarChart3, group: "Operations", staffPermission: "subjects" },
@@ -84,6 +87,8 @@ export const SUPER_ADMIN_NAV: NavItem[] = [
   { label: "Billing", href: "/billing", icon: CreditCard, group: "Platform" },
   { label: "Audit log", href: "/audit-log", icon: ScrollText, group: "Platform" },
   { label: "Institute health", href: "/health", icon: HeartPulse, group: "Platform" },
+  { label: "Announcements", href: "/platform-announcements", icon: Megaphone, group: "Platform" },
+  { label: "Global users", href: "/global-users", icon: UserRoundSearch, group: "Platform" },
   { label: "Platform settings", href: "/platform-settings", icon: SlidersHorizontal, group: "Platform" },
   { label: "Settings", href: "/settings", icon: Settings, group: "System" },
 ];
@@ -92,6 +97,7 @@ export const STUDENT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
   { label: "My Courses", href: "/my-courses", icon: BookOpen, group: "Learning" },
   { label: "My Classes", href: "/my-classes", icon: BookOpen, group: "Learning" },
+  { label: "Meetings", href: "/meetings", icon: Video, group: "Learning" },
   { label: "Exam Registration", href: "/exam-registration", icon: FileText, group: "Progress" },
   { label: "Fees", href: "/fees", icon: Wallet, group: "Progress" },
   { label: "Deadlines", href: "/deadlines", icon: CalendarDays, group: "Progress" },

@@ -23,8 +23,8 @@ import {
   getInstituteClassesOverview,
   getInstituteFinanceSummary,
 } from "@/lib/data/dashboard.data";
-import { countInstitutes, getPlatformTrends } from "@/lib/data/institute.data";
-import { getMrrArr, getOverdueInvoiceTotal, getRevenueTrend } from "@/lib/data/subscription.data";
+import { getRevenueTrend } from "@/lib/data/subscription.data";
+import { getPlatformDashboardSummary } from "@/lib/data/platform-dashboard.data";
 import { getPlatformAlerts, type PlatformAlertSeverity } from "@/lib/data/platform-alerts.data";
 import { getTeacherDashboardData } from "@/lib/data/teacher-dashboard.data";
 import { getStudentDashboardData } from "@/lib/data/student-dashboard.data";
@@ -102,6 +102,10 @@ const ACTIVITY_ICON = {
   payment: Wallet,
   announcement: Megaphone,
 } as const;
+
+function DashboardHero({ eyebrow, title, description, accent, metrics }: { eyebrow: string; title: string; description: string; accent: string; metrics: Array<{ label: string; value: string | number; detail: string }> }) {
+  return <section className="dashboard-hero overflow-hidden rounded-[28px] border border-border/70 px-6 py-6 shadow-panel sm:px-7 sm:py-7" style={{ "--dashboard-hero-accent": accent } as React.CSSProperties}><div className="grid gap-6 xl:grid-cols-[1.35fr_.95fr] xl:items-end"><div><p className="text-eyebrow text-primary">{eyebrow}</p><h1 className="text-heading mt-2 text-3xl sm:text-[2.1rem]">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p></div><div className="grid gap-3 sm:grid-cols-3">{metrics.map((metric) => <div key={metric.label} className="rounded-2xl border border-white/65 bg-card/75 p-4 shadow-sm"><p className="text-eyebrow">{metric.label}</p><p className="mt-2 text-2xl font-semibold tabular-nums">{metric.value}</p><p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p></div>)}</div></div></section>;
+}
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -246,6 +250,7 @@ export default async function DashboardPage() {
 
     return (
       <>
+        <DashboardHero eyebrow="Institute overview" title="Your institute, clearly in view." description="Keep academic operations, finances, and staff activity aligned from one place." accent="#a855f7" metrics={[{ label: "Students", value: counts.students, detail: "Active learners" }, { label: "Collected (30d)", value: feeSummary.totalCollected.toFixed(2), detail: "Recent fee revenue" }, { label: "Needs attention", value: adminAttentionItems.length, detail: "Items to review" }]} />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard label="Teachers" icon={GraduationCap} value={counts.teachers} tone="primary" />
           <StatCard label="Students" icon={Users} value={counts.students} tone="info" />
@@ -768,11 +773,8 @@ export default async function DashboardPage() {
   }
 
   if (session.role === "super-admin") {
-    const [instituteCount, trends, metrics, overdueTotal, revenueTrend, alerts] = await Promise.all([
-      countInstitutes(),
-      getPlatformTrends(),
-      getMrrArr(),
-      getOverdueInvoiceTotal(),
+    const [summary, revenueTrend, alerts] = await Promise.all([
+      getPlatformDashboardSummary(),
       getRevenueTrend(),
       getPlatformAlerts(),
     ]);
@@ -795,27 +797,22 @@ export default async function DashboardPage() {
 
     return (
       <>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-          <StatCard label="Institutes" icon={Building2} value={instituteCount} tone="primary" />
+        <DashboardHero eyebrow="Platform overview" title="Everything important, in one view." description="Monitor growth, revenue, account health, and the platform work that needs action." accent="#2a78d6" metrics={[{ label: "Institutes", value: summary.institutes, detail: `${summary.newThisMonth} new this month` }, { label: "MRR", value: `$${summary.mrr.toFixed(2)}`, detail: "Active subscriptions" }, { label: "Alerts", value: alerts.length, detail: "Platform signals" }]} />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+          <StatCard label="Institutes" icon={Building2} value={summary.institutes} tone="primary" />
+          <StatCard label="Active users" icon={Users} value={summary.activeUsers} sub={`${summary.students.toLocaleString()} students`} tone="info" />
           <StatCard
             label="MRR"
             icon={CreditCard}
-            value={`$${metrics.mrr.toFixed(2)}`}
+            value={`$${summary.mrr.toFixed(2)}`}
             tone="success"
-            trend={revenueSparkline}
-          />
-          <StatCard
-            label="ARR"
-            icon={CreditCard}
-            value={`$${metrics.arr.toFixed(2)}`}
-            tone="info"
             trend={revenueSparkline}
           />
           <StatCard
             label="Overdue total"
             icon={CircleAlert}
-            value={`$${overdueTotal.totalAmount.toFixed(2)}`}
-            sub={`${overdueTotal.count} invoice${overdueTotal.count === 1 ? "" : "s"}`}
+            value={`$${summary.overdueRevenue.toFixed(2)}`}
+            sub={`${summary.suspended} suspended · ${summary.churned} churned`}
             tone="warning"
           />
           <StatCard
@@ -831,15 +828,14 @@ export default async function DashboardPage() {
           <TrendChart
             title="New institutes"
             sub="Signups over the last 6 months"
-            data={trends.map((point) => ({ label: point.month, value: point.institutesCreated }))}
+            data={summary.growthPoints}
             color="var(--color-chart-2)"
             emptyLabel="No institute signups yet."
           />
 
-          <Panel title="Welcome" sub="Manage every institute on the platform" className="flex-1 p-6">
-            <Link href="/institutes" className="mt-3 inline-block text-sm font-semibold text-success">
-              Manage institutes &rarr;
-            </Link>
+          <Panel title="Growth snapshot" sub="This month across the platform" className="flex-1 p-6">
+            <div className="mt-4 grid grid-cols-3 gap-3 text-center"><div><p className="text-xl font-semibold">{summary.newThisMonth}</p><p className="text-xs text-muted-foreground">New</p></div><div><p className="text-xl font-semibold">{summary.suspended}</p><p className="text-xs text-muted-foreground">Suspended</p></div><div><p className="text-xl font-semibold">{summary.churned}</p><p className="text-xs text-muted-foreground">Churned</p></div></div>
+            <Link href="/institutes" className="mt-5 inline-block text-sm font-semibold text-success">Manage institutes &rarr;</Link>
           </Panel>
         </div>
 
@@ -855,6 +851,47 @@ export default async function DashboardPage() {
             </Link>
           }
         />
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <MultiSeriesChart
+            title="User acquisition"
+            sub="New platform users and students over the last 6 months"
+            data={summary.userGrowthPoints}
+            series={[{ key: "users", label: "All users" }, { key: "students", label: "Students" }]}
+            variant="bar"
+            emptyLabel="New user accounts will appear here."
+          />
+          <DonutChart
+            title="Institute account health"
+            sub="Current account status across the platform"
+            data={summary.instituteStatus}
+            emptyLabel="Institute status data will appear here."
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <DonutChart
+            title="User mix"
+            sub="Who is using the platform by account role"
+            data={summary.userRoles}
+            emptyLabel="User role data will appear here."
+          />
+          <DonutChart
+            title="Subscription portfolio"
+            sub="Subscription lifecycle status across institutes"
+            data={summary.subscriptionStatus}
+            emptyLabel="Subscription data will appear here."
+          />
+        </div>
+
+        <Panel title="Operating detail" sub="Additional signals for platform follow-up" className="p-5">
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-xl border border-border/60 p-3"><p className="text-xs text-muted-foreground">Active students</p><p className="mt-1 text-2xl font-semibold tabular-nums">{summary.students.toLocaleString()}</p></div>
+            <div className="rounded-xl border border-border/60 p-3"><p className="text-xs text-muted-foreground">Inactive users (30d)</p><p className="mt-1 text-2xl font-semibold tabular-nums">{summary.inactiveUsers.toLocaleString()}</p></div>
+            <div className="rounded-xl border border-border/60 p-3"><p className="text-xs text-muted-foreground">New institutes this month</p><p className="mt-1 text-2xl font-semibold tabular-nums">{summary.newThisMonth}</p></div>
+            <div className="rounded-xl border border-border/60 p-3"><p className="text-xs text-muted-foreground">Suspended + churned</p><p className="mt-1 text-2xl font-semibold tabular-nums">{summary.suspended + summary.churned}</p></div>
+          </div>
+        </Panel>
 
         <AttentionList
           title="Needs attention"
