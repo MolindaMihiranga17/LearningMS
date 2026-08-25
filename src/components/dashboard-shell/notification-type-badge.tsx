@@ -4,6 +4,7 @@ import type { NotificationType } from "@/models/Notification";
 
 const TYPE_VARIANT: Record<NotificationType, VariantProps<typeof badgeVariants>["variant"]> = {
   announcement: "secondary",
+  "platform-announcement": "secondary",
   academic: "default",
   billing: "warning",
   trial: "default",
@@ -11,6 +12,7 @@ const TYPE_VARIANT: Record<NotificationType, VariantProps<typeof badgeVariants>[
 
 const TYPE_LABEL: Record<NotificationType, string> = {
   announcement: "Announcement",
+  "platform-announcement": "Platform update",
   academic: "Academic",
   billing: "Billing",
   trial: "Trial",
