@@ -38,7 +38,7 @@ export function InvoiceForm({
       periodStart: today,
       periodEnd: today,
       amount: 0,
-      currency: "USD",
+      currency: "LKR",
       issuedAt: today,
       dueAt: today,
       notes: "",
