@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { InstituteFormDialog } from "./new/institute-form-dialog";
 import { InstituteManagementDialog } from "./institute-management-dialog";
+import { ExportButtons } from "@/components/export-buttons";
 
 const COLUMNS = [
   { key: "institute", header: "Institute", sortable: true },
@@ -89,7 +90,7 @@ export default async function InstitutesPage() {
             <h1 className="text-heading mt-2 text-3xl sm:text-4xl">Every institute, clearly in view.</h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Monitor account health, subscriptions, and learning activity before opening an institute&apos;s full operational record.</p>
           </div>
-          <InstituteFormDialog />
+          <div className="flex flex-wrap items-center gap-3"><ExportButtons endpoint="/api/platform-reports/institutes" /><InstituteFormDialog /></div>
         </div>
       </section>
 
