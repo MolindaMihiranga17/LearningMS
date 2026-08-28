@@ -232,7 +232,7 @@ async function ensurePlans() {
           name: def.name,
           description: `${def.name} plan for growing institutes.`,
           price: def.price,
-          currency: "USD",
+          currency: "LKR",
           billingInterval: def.billingInterval,
           limits: {
             maxStudents: null,
@@ -1354,7 +1354,7 @@ async function seedInstitute(
       periodStart,
       periodEnd,
       amount: planChoice.price,
-      currency: "USD",
+      currency: "LKR",
       status,
       issuedAt,
       dueAt,
