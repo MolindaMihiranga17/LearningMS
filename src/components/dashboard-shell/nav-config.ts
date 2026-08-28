@@ -17,6 +17,7 @@ import {
   TrendingDown,
   TrendingUp,
   Layers,
+  Landmark,
   CreditCard,
   ScrollText,
   HeartPulse,
@@ -24,6 +25,7 @@ import {
   SlidersHorizontal,
   CalendarDays,
   History,
+  RefreshCw,
   Video,
 } from "lucide-react";
 
@@ -56,6 +58,7 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Concessions", href: "/concessions", icon: BadgePercent, group: "Finance" },
   { label: "Expenses", href: "/expenses", icon: TrendingDown, group: "Finance" },
   { label: "Income", href: "/income", icon: TrendingUp, group: "Finance" },
+  { label: "Bank", href: "/bank", icon: Landmark, group: "Finance" },
   { label: "Bulk Imports", href: "/imports", icon: Upload, group: "System" },
   { label: "Audit History", href: "/audit-history", icon: History, group: "System" },
   { label: "Announcements", href: "/announcements", icon: Megaphone, group: "Engage" },
@@ -85,11 +88,15 @@ export const SUPER_ADMIN_NAV: NavItem[] = [
   { label: "Institutes", href: "/institutes", icon: Building2, group: "Platform" },
   { label: "Plans", href: "/plans", icon: Layers, group: "Platform" },
   { label: "Billing", href: "/billing", icon: CreditCard, group: "Platform" },
+  { label: "Bank", href: "/bank", icon: Landmark, group: "Platform" },
+  { label: "Revenue analytics", href: "/revenue-analytics", icon: TrendingUp, group: "Platform" },
+  { label: "Subscription lifecycle", href: "/subscription-lifecycle", icon: RefreshCw, group: "Platform" },
   { label: "Audit log", href: "/audit-log", icon: ScrollText, group: "Platform" },
   { label: "Institute health", href: "/health", icon: HeartPulse, group: "Platform" },
   { label: "Announcements", href: "/platform-announcements", icon: Megaphone, group: "Platform" },
   { label: "Global users", href: "/global-users", icon: UserRoundSearch, group: "Platform" },
   { label: "Platform settings", href: "/platform-settings", icon: SlidersHorizontal, group: "Platform" },
+  { label: "Privacy requests", href: "/privacy", icon: ScrollText, group: "Platform" },
   { label: "Settings", href: "/settings", icon: Settings, group: "System" },
 ];
 
