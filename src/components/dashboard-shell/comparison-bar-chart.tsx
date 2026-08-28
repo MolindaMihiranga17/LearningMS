@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from "recha
 import { Panel } from "./panel";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
+import { formatLkr } from "@/lib/currency";
 
 export type ComparisonPoint = {
   key: string;
@@ -38,7 +39,7 @@ export function ComparisonBarChart({
 }) {
   const hasData = data.length > 0;
   const formatValue = (value: number) =>
-    format === "percent" ? `${value.toFixed(1)}%` : format === "currency" ? `$${value.toFixed(2)}` : value.toLocaleString();
+    format === "percent" ? `${value.toFixed(1)}%` : format === "currency" ? formatLkr(value) : value.toLocaleString();
 
   return (
     <Panel title={title} sub={sub} className={cn("flex-1 p-5", className)} action={action}>
