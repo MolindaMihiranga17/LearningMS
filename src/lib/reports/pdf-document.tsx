@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
     padding: 32,
     fontSize: 10,
     fontFamily: "Helvetica",
-    color: "#1a1a1a",
+    color: "#172033",
   },
   header: {
     flexDirection: "row",
@@ -14,20 +14,22 @@ export const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 20,
     paddingBottom: 12,
-    borderBottom: "2 solid #1a1a1a",
+    borderBottom: "2 solid #2563eb",
   },
   instituteName: {
     fontSize: 16,
     fontFamily: "Helvetica-Bold",
+    color: "#0f172a",
   },
   docTitle: {
     fontSize: 14,
     fontFamily: "Helvetica-Bold",
     textAlign: "right",
+    color: "#1d4ed8",
   },
   docMeta: {
     fontSize: 9,
-    color: "#555555",
+    color: "#64748b",
     textAlign: "right",
     marginTop: 2,
   },
@@ -39,7 +41,7 @@ export const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     marginBottom: 6,
     textTransform: "uppercase",
-    color: "#555555",
+    color: "#2563eb",
   },
   row: {
     flexDirection: "row",
@@ -47,7 +49,7 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    color: "#555555",
+    color: "#64748b",
   },
   value: {
     fontFamily: "Helvetica-Bold",
@@ -57,13 +59,15 @@ export const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: "row",
-    borderBottom: "1 solid #e0e0e0",
+    borderBottom: "1 solid #e2e8f0",
     paddingVertical: 6,
   },
   tableHeaderRow: {
     flexDirection: "row",
-    borderBottom: "2 solid #1a1a1a",
-    paddingBottom: 6,
+    backgroundColor: "#0f172a",
+    color: "#ffffff",
+    paddingHorizontal: 6,
+    paddingVertical: 7,
     marginBottom: 2,
     fontFamily: "Helvetica-Bold",
   },
@@ -80,9 +84,9 @@ export const styles = StyleSheet.create({
     left: 32,
     right: 32,
     fontSize: 8,
-    color: "#888888",
+    color: "#64748b",
     textAlign: "center",
-    borderTop: "1 solid #e0e0e0",
+    borderTop: "1 solid #e2e8f0",
     paddingTop: 8,
   },
 });
