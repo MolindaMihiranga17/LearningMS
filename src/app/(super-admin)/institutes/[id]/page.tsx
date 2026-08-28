@@ -9,8 +9,14 @@ import {
   TrendingDown,
   PiggyBank,
 } from "lucide-react";
-import { getInstituteById, getInstituteSummary } from "@/lib/data/institute.data";
-import { getInstituteSubscription, listPlans } from "@/lib/data/subscription.data";
+import {
+  getInstituteById,
+  getInstituteSummary,
+} from "@/lib/data/institute.data";
+import {
+  getInstituteSubscription,
+  listPlans,
+} from "@/lib/data/subscription.data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +24,7 @@ import { StatCard } from "@/components/dashboard-shell/stat-card";
 import { cn } from "@/lib/utils";
 import { AssignPlanForm } from "./assign-plan-form";
 import { InstituteLifecycleActions } from "./institute-lifecycle-actions";
+import { formatLkr } from "@/lib/currency";
 
 export default async function InstituteDetailPage({
   params,
@@ -32,11 +39,12 @@ export default async function InstituteDetailPage({
   }
 
   const summary = await getInstituteSummary(id);
-  const [subscription, plans] = await Promise.all([getInstituteSubscription(id), listPlans()]);
+  const [subscription, plans] = await Promise.all([
+    getInstituteSubscription(id),
+    listPlans(),
+  ]);
   const subscribedPlan = subscription?.planId as unknown as
-    | { _id: string; name: string }
-    | null
-    | undefined;
+    { _id: string; name: string } | null | undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,7 +61,10 @@ export default async function InstituteDetailPage({
               >
                 Download backup
               </a>
-              <Link href={`/institutes/${id}/admins`} className={cn(buttonVariants({ variant: "outline" }))}>
+              <Link
+                href={`/institutes/${id}/admins`}
+                className={cn(buttonVariants({ variant: "outline" }))}
+              >
                 View admins
               </Link>
             </div>
@@ -72,7 +83,9 @@ export default async function InstituteDetailPage({
               <dd>{institute.address || "-"}</dd>
               <dt className="text-muted-foreground">Created</dt>
               <dd>
-                {institute.createdAt ? new Date(institute.createdAt).toLocaleString() : "-"}
+                {institute.createdAt
+                  ? new Date(institute.createdAt).toLocaleString()
+                  : "-"}
               </dd>
             </dl>
           </CardContent>
@@ -108,41 +121,74 @@ export default async function InstituteDetailPage({
             </dl>
             <AssignPlanForm
               instituteId={id}
-              plans={plans.map((plan) => ({ id: String(plan._id), name: plan.name }))}
-              currentPlanId={subscribedPlan ? String(subscribedPlan._id) : undefined}
+              plans={plans.map((plan) => ({
+                id: String(plan._id),
+                name: plan.name,
+              }))}
+              currentPlanId={
+                subscribedPlan ? String(subscribedPlan._id) : undefined
+              }
             />
             <hr className="border-border" />
-            <InstituteLifecycleActions instituteId={id} status={institute.status} />
+            <InstituteLifecycleActions
+              instituteId={id}
+              status={institute.status}
+            />
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Staff" icon={GraduationCap} value={summary.staff} tone="primary" />
-        <StatCard label="Students" icon={Users} value={summary.students} tone="info" />
-        <StatCard label="Classes" icon={BookOpen} value={summary.classes} tone="success" />
-        <StatCard label="Subjects" icon={ClipboardCheck} value={summary.subjects} tone="warning" />
+        <StatCard
+          label="Staff"
+          icon={GraduationCap}
+          value={summary.staff}
+          tone="primary"
+        />
+        <StatCard
+          label="Students"
+          icon={Users}
+          value={summary.students}
+          tone="info"
+        />
+        <StatCard
+          label="Classes"
+          icon={BookOpen}
+          value={summary.classes}
+          tone="success"
+        />
+        <StatCard
+          label="Subjects"
+          icon={ClipboardCheck}
+          value={summary.subjects}
+          tone="warning"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total revenue"
           icon={Wallet}
-          value={summary.totalRevenue.toFixed(2)}
-          sub={`+${summary.totalExtraIncome.toFixed(2)} extra income`}
+          value={formatLkr(summary.totalRevenue)}
+          sub={`+${formatLkr(summary.totalExtraIncome)} extra income`}
           tone="info"
         />
         <StatCard
           label="Expenses"
           icon={TrendingDown}
-          value={summary.totalExpenses.toFixed(2)}
+          value={formatLkr(summary.totalExpenses)}
           tone="warning"
         />
-        <StatCard label="Salary" icon={Wallet} value={summary.totalSalary.toFixed(2)} tone="warning" />
+        <StatCard
+          label="Salary"
+          icon={Wallet}
+          value={formatLkr(summary.totalSalary)}
+          tone="warning"
+        />
         <StatCard
           label="Net income"
           icon={PiggyBank}
-          value={summary.netIncome.toFixed(2)}
+          value={formatLkr(summary.netIncome)}
           tone="primary"
         />
       </div>
