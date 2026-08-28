@@ -98,6 +98,9 @@ function SelectPopup({ className, children, ...props }: SelectPrimitive.Popup.Pr
   );
 }
 
+// Compatibility alias for conventional shadcn-style select composition.
+const SelectContent = SelectPopup;
+
 function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Props) {
   return (
     <SelectPrimitive.Item
@@ -137,6 +140,7 @@ export {
   SelectPortal,
   SelectPositioner,
   SelectPopup,
+  SelectContent,
   SelectItem,
   SelectGroup,
   SelectGroupLabel,
