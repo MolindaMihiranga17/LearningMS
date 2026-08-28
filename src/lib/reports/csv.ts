@@ -19,5 +19,5 @@ export function toCsv<T extends Record<string, unknown>>(
   const lines = rows.map((row) =>
     columns.map((column) => escapeCsvValue(row[column.key])).join(",")
   );
-  return [header, ...lines].join("\r\n");
+  return `\uFEFF${[header, ...lines].join("\r\n")}`;
 }

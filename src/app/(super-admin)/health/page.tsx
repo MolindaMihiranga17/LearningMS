@@ -1,16 +1,28 @@
 import Link from "next/link";
 import { AlertTriangle, Users, Wallet } from "lucide-react";
-import { listInstituteHealth, type InstituteHealthRow } from "@/lib/data/institute-health.data";
+import {
+  listInstituteHealth,
+  type InstituteHealthRow,
+} from "@/lib/data/institute-health.data";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
-import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import {
+  DataTableCard,
+  type DataTableRow,
+} from "@/components/data-table/data-table-card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatLkr } from "@/lib/currency";
+import { ExportButtons } from "@/components/export-buttons";
 
 type SortKey = "balance" | "inactivity" | "months";
 
-const SORTERS: Record<SortKey, (a: InstituteHealthRow, b: InstituteHealthRow) => number> = {
+const SORTERS: Record<
+  SortKey,
+  (a: InstituteHealthRow, b: InstituteHealthRow) => number
+> = {
   balance: (a, b) => b.overdueFeeTotal - a.overdueFeeTotal,
-  inactivity: (a, b) => (a.lastActivityAt?.getTime() ?? 0) - (b.lastActivityAt?.getTime() ?? 0),
+  inactivity: (a, b) =>
+    (a.lastActivityAt?.getTime() ?? 0) - (b.lastActivityAt?.getTime() ?? 0),
   months: (a, b) => b.monthsOnPlatform - a.monthsOnPlatform,
 };
 
@@ -35,11 +47,15 @@ export default async function InstituteHealthPage({
   searchParams: Promise<{ sort?: string }>;
 }) {
   const { sort } = await searchParams;
-  const sortKey: SortKey = sort === "inactivity" || sort === "months" ? sort : "balance";
+  const sortKey: SortKey =
+    sort === "inactivity" || sort === "months" ? sort : "balance";
 
   const health = await listInstituteHealth();
 
-  const totalOutstanding = health.reduce((sum, row) => sum + row.overdueFeeTotal, 0);
+  const totalOutstanding = health.reduce(
+    (sum, row) => sum + row.overdueFeeTotal,
+    0,
+  );
   const inactiveCount = health.filter((row) => row.isInactive).length;
 
   const sorted = [...health].sort(SORTERS[sortKey]);
@@ -48,14 +64,18 @@ export default async function InstituteHealthPage({
     key: row.id,
     searchValue: `${row.name} ${row.code} ${row.status}`,
     cells: [
-      <Link key="name" href={`/institutes/${row.id}`} className="font-medium hover:underline">
+      <Link
+        key="name"
+        href={`/institutes/${row.id}`}
+        className="font-medium hover:underline"
+      >
         {row.name} ({row.code})
       </Link>,
       <Badge key="status" variant="secondary" className="capitalize">
         {row.status}
       </Badge>,
       `${row.activeStudents} / ${row.inactiveStudents}`,
-      row.overdueFeeTotal.toFixed(2),
+      formatLkr(row.overdueFeeTotal),
       row.lastActivityAt ? row.lastActivityAt.toLocaleDateString() : "Never",
       row.monthsOnPlatform,
     ],
@@ -63,18 +83,21 @@ export default async function InstituteHealthPage({
 
   return (
     <div>
-      <div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
         <h1 className="text-2xl font-semibold">Institute health</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Outstanding balances, activity, and tenure across all institutes.
         </p>
+        </div>
+        <ExportButtons endpoint="/api/platform-reports/health" />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="Total outstanding balance"
           icon={Wallet}
-          value={totalOutstanding.toFixed(2)}
+          value={formatLkr(totalOutstanding)}
           tone="warning"
         />
         <StatCard
@@ -83,7 +106,12 @@ export default async function InstituteHealthPage({
           value={inactiveCount}
           tone="warning"
         />
-        <StatCard label="Institutes" icon={Users} value={health.length} tone="primary" />
+        <StatCard
+          label="Institutes"
+          icon={Users}
+          value={health.length}
+          tone="primary"
+        />
       </div>
 
       <div className="mt-6 flex items-center gap-2 text-sm">
@@ -96,7 +124,7 @@ export default async function InstituteHealthPage({
               "rounded-full px-3 py-1",
               sortKey === key
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted"
+                : "text-muted-foreground hover:bg-muted",
             )}
           >
             {SORT_LABELS[key]}

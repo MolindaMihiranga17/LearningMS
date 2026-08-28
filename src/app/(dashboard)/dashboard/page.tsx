@@ -56,6 +56,7 @@ import { DataTableCard, type DataTableRow } from "@/components/data-table/data-t
 import { StudentHome } from "@/components/student/student-home";
 import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
+import { formatLkr } from "@/lib/currency";
 
 function formatRelativeTime(date: Date) {
   const seconds = Math.round((Date.now() - new Date(date).getTime()) / 1000);
@@ -797,21 +798,21 @@ export default async function DashboardPage() {
 
     return (
       <>
-        <DashboardHero eyebrow="Platform overview" title="Everything important, in one view." description="Monitor growth, revenue, account health, and the platform work that needs action." accent="#2a78d6" metrics={[{ label: "Institutes", value: summary.institutes, detail: `${summary.newThisMonth} new this month` }, { label: "MRR", value: `$${summary.mrr.toFixed(2)}`, detail: "Active subscriptions" }, { label: "Alerts", value: alerts.length, detail: "Platform signals" }]} />
+        <DashboardHero eyebrow="Platform overview" title="Everything important, in one view." description="Monitor growth, revenue, account health, and the platform work that needs action." accent="#2a78d6" metrics={[{ label: "Institutes", value: summary.institutes, detail: `${summary.newThisMonth} new this month` }, { label: "MRR", value: formatLkr(summary.mrr), detail: "Active subscriptions" }, { label: "Alerts", value: alerts.length, detail: "Platform signals" }]} />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
           <StatCard label="Institutes" icon={Building2} value={summary.institutes} tone="primary" />
           <StatCard label="Active users" icon={Users} value={summary.activeUsers} sub={`${summary.students.toLocaleString()} students`} tone="info" />
           <StatCard
             label="MRR"
             icon={CreditCard}
-            value={`$${summary.mrr.toFixed(2)}`}
+            value={formatLkr(summary.mrr)}
             tone="success"
             trend={revenueSparkline}
           />
           <StatCard
             label="Overdue total"
             icon={CircleAlert}
-            value={`$${summary.overdueRevenue.toFixed(2)}`}
+            value={formatLkr(summary.overdueRevenue)}
             sub={`${summary.suspended} suspended · ${summary.churned} churned`}
             tone="warning"
           />

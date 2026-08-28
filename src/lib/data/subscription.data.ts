@@ -126,6 +126,39 @@ export async function getRevenueTrend(months = 6): Promise<RevenueTrendPoint[]> 
   return Array.from(buckets.entries()).map(([month, totalPaid]) => ({ month, totalPaid }));
 }
 
+export async function getRevenueAnalytics() {
+  await requireSuperAdmin();
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const [metrics, paid, due, plans, newSubscriptions, cancelledSubscriptions] = await Promise.all([
+    getMrrArr(),
+    PlatformInvoiceModel.aggregate<{ amount: number }>([{ $match: { status: "paid", paidAt: { $gte: monthStart } } }, { $group: { _id: null, amount: { $sum: "$amount" } } }]),
+    PlatformInvoiceModel.aggregate<{ paid: number; total: number }>([{ $match: { issuedAt: { $gte: monthStart } } }, { $group: { _id: null, paid: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } }, total: { $sum: 1 } } }]),
+    SubscriptionModel.aggregate<{ name: string; revenue: number; subscribers: number }>([{ $match: { status: "active" } }, { $lookup: { from: "subscriptionplans", localField: "planId", foreignField: "_id", as: "plan" } }, { $unwind: { path: "$plan", preserveNullAndEmptyArrays: true } }, { $group: { _id: "$planId", name: { $first: { $ifNull: ["$plan.name", "Unknown plan"] } }, revenue: { $sum: { $cond: [{ $eq: ["$plan.billingInterval", "yearly"] }, { $divide: ["$plan.price", 12] }, "$plan.price"] } }, subscribers: { $sum: 1 } } }, { $project: { _id: 0, name: 1, revenue: 1, subscribers: 1 } }, { $sort: { revenue: -1 } }]),
+    SubscriptionModel.countDocuments({ createdAt: { $gte: monthStart } }),
+    SubscriptionModel.countDocuments({ status: "cancelled", cancelledAt: { $gte: monthStart } }),
+  ]);
+  const collected = paid[0]?.amount ?? 0; const collection = due[0] ? (due[0].paid / due[0].total) * 100 : 0;
+  const trend = await getRevenueTrend(6);
+  const previousPaid = await PlatformInvoiceModel.aggregate<{ amount: number }>([{ $match: { status: "paid", paidAt: { $gte: previousStart, $lt: monthStart } } }, { $group: { _id: null, amount: { $sum: "$amount" } } }]);
+  const forecast = metrics.mrr * 3;
+  return { ...metrics, collected, collection, plans, newSubscriptions, cancelledSubscriptions, trend, forecast, previousCollected: previousPaid[0]?.amount ?? 0 };
+}
+
+export async function getSubscriptionLifecycle() {
+  await requireSuperAdmin();
+  const now = new Date(); const inThirtyDays = new Date(now.getTime() + 30 * 86400000);
+  const [trials, renewals, failedPayments, cancelled, upgrades] = await Promise.all([
+    SubscriptionModel.find({ status: "trialing", trialEndsAt: { $gte: now, $lte: inThirtyDays } }).populate("instituteId", "name code").populate("planId", "name").sort({ trialEndsAt: 1 }).lean(),
+    getUpcomingRenewals(30),
+    getOverdueInvoices(),
+    SubscriptionModel.find({ status: "cancelled" }).populate("instituteId", "name code").populate("planId", "name").sort({ cancelledAt: -1 }).limit(20).lean(),
+    SubscriptionModel.find({ updatedAt: { $gte: new Date(now.getTime() - 30 * 86400000) }, status: "active" }).populate("instituteId", "name code").populate("planId", "name").sort({ updatedAt: -1 }).limit(20).lean(),
+  ]);
+  return { trials, renewals, failedPayments, cancelled, upgrades };
+}
+
 export async function listInvoices(status?: "pending" | "paid" | "overdue" | "void") {
   await requireSuperAdmin();
   const filter = status ? { status } : {};

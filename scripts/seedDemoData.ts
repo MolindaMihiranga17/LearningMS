@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import InstituteModel from "@/models/Institute";
 import UserModel from "@/models/User";
@@ -42,6 +43,7 @@ async function main() {
     contactEmail: "info@nps.edu",
     phone: "011-234-5678",
     address: "42 Galle Road, Colombo",
+    createdBy: new mongoose.Types.ObjectId(),
   });
 
   const admin = await UserModel.create({
@@ -263,6 +265,7 @@ async function main() {
     status: "trial",
     plan: "free",
     contactEmail: "hello@riverside.edu",
+    createdBy: new mongoose.Types.ObjectId(),
   });
 
   const riversideAdmin = await UserModel.create({

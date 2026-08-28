@@ -80,7 +80,7 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
       slug: plan?.slug ?? "",
       description: plan?.description ?? "",
       price: plan?.price ?? 0,
-      currency: plan?.currency ?? "USD",
+      currency: plan?.currency ?? "LKR",
       billingInterval: (plan?.billingInterval as "monthly" | "yearly") ?? "monthly",
       maxStudents: plan?.limits.maxStudents ?? "",
       maxStaff: plan?.limits.maxStaff ?? "",

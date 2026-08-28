@@ -27,7 +27,7 @@ async function getOrCreateFreeTrialPlan() {
     slug: FREE_TRIAL_SLUG,
     description: "Default plan backfilled for institutes created before the subscription system.",
     price: 0,
-    currency: "USD",
+    currency: "LKR",
     billingInterval: "monthly",
     limits: {
       maxStudents: null,

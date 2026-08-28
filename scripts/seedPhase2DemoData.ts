@@ -12,6 +12,8 @@ import PlatformInvoiceModel from "@/models/PlatformInvoice";
 import FeeModel from "@/models/Fee";
 import PaymentModel from "@/models/Payment";
 import AuditLogModel from "@/models/AuditLog";
+import PlatformFinanceEntryModel from "@/models/PlatformFinanceEntry";
+import PlatformBankAccountModel from "@/models/PlatformBankAccount";
 import { hashPassword } from "@/lib/auth/password";
 
 const DEMO_PASSWORD = "Password123!";
@@ -42,7 +44,7 @@ async function getOrCreatePlans() {
       name: "Starter",
       slug: "starter",
       description: "Small institutes just getting going.",
-      price: 49,
+      price: 14900,
       billingInterval: "monthly" as const,
       sortOrder: 1,
     },
@@ -50,7 +52,7 @@ async function getOrCreatePlans() {
       name: "Growth",
       slug: "growth",
       description: "Mid-size institutes with multiple classes.",
-      price: 99,
+      price: 24900,
       billingInterval: "monthly" as const,
       sortOrder: 2,
     },
@@ -58,7 +60,7 @@ async function getOrCreatePlans() {
       name: "Pro Yearly",
       slug: "pro-yearly",
       description: "Full platform access, billed yearly.",
-      price: 999,
+      price: 249000,
       billingInterval: "yearly" as const,
       sortOrder: 3,
     },
@@ -73,7 +75,7 @@ async function getOrCreatePlans() {
         slug: def.slug,
         description: def.description,
         price: def.price,
-        currency: "USD",
+        currency: "LKR",
         billingInterval: def.billingInterval,
         limits: { maxStudents: null, maxStaff: null, maxClasses: null, maxSubjects: null, storageMb: null },
         features: ["Core academics", "Fee management", "Attendance"],
@@ -81,6 +83,10 @@ async function getOrCreatePlans() {
         isPublic: true,
         sortOrder: def.sortOrder,
       });
+    } else {
+      plan.price = def.price;
+      plan.currency = "LKR";
+      await plan.save();
     }
     plans[def.slug] = plan;
   }
@@ -240,7 +246,7 @@ async function seedInvoices(
       periodStart,
       periodEnd,
       amount: opts.monthlyAmount,
-      currency: "USD",
+      currency: "LKR",
       status: "paid",
       issuedAt,
       dueAt,
@@ -270,7 +276,7 @@ async function seedInvoices(
       periodStart,
       periodEnd,
       amount: opts.monthlyAmount,
-      currency: "USD",
+      currency: "LKR",
       status: "pending",
       issuedAt,
       dueAt,
@@ -308,7 +314,7 @@ async function main() {
   });
   await seedInvoices(String(active._id), String(activeSub._id), String(plans.growth._id), "Growth", String(activeAdmin._id), {
     paidMonthsBack: [5, 4, 3, 2, 1, 0],
-    monthlyAmount: 99,
+    monthlyAmount: 24900,
     discountedOne: true,
   });
   const { klass: activeClass, students: activeStudents } = await seedClassAndStudents(
@@ -386,7 +392,7 @@ async function main() {
   await seedInvoices(String(pastDue._id), String(pastDueSub._id), String(plans.growth._id), "Growth", String(pastDueAdmin._id), {
     paidMonthsBack: [3, 2],
     overdueCount: 3,
-    monthlyAmount: 99,
+    monthlyAmount: 24900,
   });
   const { klass: pduClass, students: pduStudents } = await seedClassAndStudents(
     String(pastDue._id),
@@ -421,7 +427,7 @@ async function main() {
   });
   await seedInvoices(String(stale._id), String(staleSub._id), String(plans.starter._id), "Starter", String(staleAdmin._id), {
     paidMonthsBack: [6, 5],
-    monthlyAmount: 49,
+    monthlyAmount: 14900,
   });
   const { klass: staleClass, students: staleStudents } = await seedClassAndStudents(
     String(stale._id),
@@ -489,6 +495,19 @@ async function main() {
       createdAt: new Date(Date.now() - 1 * DAY),
     },
   ]);
+
+  await PlatformFinanceEntryModel.deleteMany({ title: { $in: ["Cloud infrastructure", "Support communications", "Implementation workshop"] } });
+  await PlatformFinanceEntryModel.insertMany([
+    { type: "expense", title: "Cloud infrastructure", category: "Hosting", amount: 38500, occurredAt: new Date(Date.now() - 12 * DAY), paymentMethod: "bank-transfer", bankAccount: "Commercial Bank · 4021", referenceNumber: "CB-903418", createdBy: activeAdmin._id },
+    { type: "expense", title: "Support communications", category: "SMS and email", amount: 12400, occurredAt: new Date(Date.now() - 6 * DAY), paymentMethod: "card-manual", referenceNumber: "MSG-77201", createdBy: activeAdmin._id },
+    { type: "income", title: "Implementation workshop", category: "Professional services", amount: 45000, occurredAt: new Date(Date.now() - 3 * DAY), paymentMethod: "bank-transfer", bankAccount: "Commercial Bank · 4021", referenceNumber: "TRF-882190", createdBy: activeAdmin._id },
+  ]);
+  await PlatformBankAccountModel.deleteMany({ accountNumber: { $in: ["7048921601", "7048921602"] } });
+  await PlatformBankAccountModel.insertMany([
+    { bankName: "Commercial Bank", accountName: "LearningMS Platform", accountNumber: "7048921601", branch: "Colombo City", isDefault: true, isActive: true, createdBy: activeAdmin._id },
+    { bankName: "Sampath Bank", accountName: "LearningMS Collections", accountNumber: "7048921602", branch: "Rajagiriya", isDefault: false, isActive: true, createdBy: activeAdmin._id },
+  ]);
+  await PlatformInvoiceModel.updateOne({ instituteId: active._id, status: "paid" }, { paymentReference: "TRF-2026-0819", bankAccount: "Commercial Bank · 4021", reconciliationStatus: "reconciled", reconciledAt: new Date(), reconciledBy: activeAdmin._id });
 
   console.log("Phase 2 demo seed complete.");
   console.log("");

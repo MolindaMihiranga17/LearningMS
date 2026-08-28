@@ -4,6 +4,7 @@ import { getPlanById, getInstitutesOnPlan } from "@/lib/data/subscription.data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PlanEditDialog } from "./plan-edit-dialog";
+import { formatLkr } from "@/lib/currency";
 
 export default async function PlanDetailPage({
   params,
@@ -43,7 +44,9 @@ export default async function PlanDetailPage({
             <PlanEditDialog plan={planFormData} />
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <p className="text-muted-foreground">{plan.description || "No description."}</p>
+            <p className="text-muted-foreground">
+              {plan.description || "No description."}
+            </p>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={plan.isActive ? "success" : "secondary"}>
                 {plan.isActive ? "Active" : "Inactive"}
@@ -51,9 +54,7 @@ export default async function PlanDetailPage({
               <Badge variant="secondary" className="capitalize">
                 {plan.billingInterval}
               </Badge>
-              <span className="font-medium">
-                {plan.currency} {plan.price.toFixed(2)}
-              </span>
+              <span className="font-medium">{formatLkr(plan.price)}</span>
             </div>
           </CardContent>
         </Card>
@@ -66,7 +67,9 @@ export default async function PlanDetailPage({
           </CardHeader>
           <CardContent>
             {subscriptions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No institutes are on this plan yet.</p>
+              <p className="text-sm text-muted-foreground">
+                No institutes are on this plan yet.
+              </p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {subscriptions.map((sub) => {
@@ -76,8 +79,14 @@ export default async function PlanDetailPage({
                   } | null;
                   if (!institute) return null;
                   return (
-                    <li key={String(sub._id)} className="flex items-center justify-between text-sm">
-                      <Link href={`/institutes/${institute._id}`} className="font-medium hover:underline">
+                    <li
+                      key={String(sub._id)}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <Link
+                        href={`/institutes/${institute._id}`}
+                        className="font-medium hover:underline"
+                      >
                         {institute.name}
                       </Link>
                       <Badge variant="secondary" className="capitalize">

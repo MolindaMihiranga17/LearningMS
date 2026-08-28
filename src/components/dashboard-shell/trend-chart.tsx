@@ -3,6 +3,7 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import { Panel } from "./panel";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { formatLkr } from "@/lib/currency";
 
 export type TrendPoint = {
   label: string;
@@ -11,7 +12,7 @@ export type TrendPoint = {
 
 const VALUE_FORMATTERS = {
   number: (value: number) => value.toLocaleString(),
-  currency: (value: number) => `$${value.toFixed(2)}`,
+  currency: (value: number) => formatLkr(value),
 } as const;
 
 export function TrendChart({

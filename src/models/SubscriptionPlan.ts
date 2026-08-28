@@ -6,7 +6,7 @@ const subscriptionPlanSchema = new Schema(
     slug: { type: String, required: true, trim: true, lowercase: true, unique: true },
     description: { type: String, trim: true },
     price: { type: Number, required: true },
-    currency: { type: String, required: true, trim: true, uppercase: true, default: "USD" },
+    currency: { type: String, required: true, trim: true, uppercase: true, default: "LKR" },
     billingInterval: { type: String, enum: ["monthly", "yearly"], required: true },
     limits: {
       maxStudents: { type: Number, default: null },

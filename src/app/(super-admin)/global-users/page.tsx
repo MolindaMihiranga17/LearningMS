@@ -1,10 +1,148 @@
 import { getGlobalUserDirectory } from "@/lib/data/global-user.data";
 import { Badge } from "@/components/ui/badge";
-import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import {
+  DataTableCard,
+  type DataTableRow,
+} from "@/components/data-table/data-table-card";
+import { DonutChart } from "@/components/dashboard-shell/donut-chart";
 
 export default async function GlobalUsersPage() {
   const users = await getGlobalUserDirectory();
-  const rows: DataTableRow[] = users.map((user) => ({ key: user.id, searchValue: `${user.name} ${user.email} ${user.instituteName} ${user.role}`, filterValues: { role: user.role, state: user.status, password: String(user.mustChangePassword) }, cells: [<div key="user"><p className="font-medium">{user.name}</p><p className="text-xs text-muted-foreground">{user.email}</p>{user.duplicateEmail ? <p className="mt-1 text-xs font-medium text-destructive">Duplicate email detected</p> : null}</div>, <Badge key="role" variant="secondary" className="capitalize">{user.role.replace("-", " ")}</Badge>, <div key="institute"><p>{user.instituteName}</p>{user.instituteCode ? <p className="text-xs text-muted-foreground">{user.instituteCode}</p> : null}</div>, <Badge key="status" variant={user.status === "active" ? "success" : "destructive"} className="capitalize">{user.status}</Badge>, <div key="access"><p>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : "Never logged in"}</p><p className="text-xs text-muted-foreground">{user.mustChangePassword ? "Password reset pending" : "Password current"}</p></div>] }));
-  return <div className="flex flex-col gap-6"><section><p className="text-eyebrow text-primary">Platform identity</p><h1 className="text-heading mt-2 text-3xl">Global user directory</h1><p className="mt-2 text-sm text-muted-foreground">Search every account, review institute membership, and surface access issues.</p></section><div className="grid grid-cols-2 gap-4 sm:grid-cols-4"><Summary label="All users" value={users.length} /><Summary label="Active" value={users.filter((u) => u.status === "active").length} /><Summary label="Suspended" value={users.filter((u) => u.status === "suspended").length} /><Summary label="Resets pending" value={users.filter((u) => u.mustChangePassword).length} /></div><DataTableCard title="Accounts" sub="Duplicate email detection is included even though new accounts are protected by a unique-email constraint." columns={[{ key: "user", header: "User" }, { key: "role", header: "Role" }, { key: "institute", header: "Institute" }, { key: "status", header: "Status" }, { key: "access", header: "Activity & access" }]} rows={rows} searchPlaceholder="Search people, email, institute, or role..." emptyTitle="No user accounts yet." pageSize={15} filters={[{ key: "role", label: "Role", options: ["super-admin", "institute-admin", "institute-staff", "student"].map((value) => ({ value, label: value.replace("-", " ") })) }, { key: "state", label: "Status", options: [{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }] }, { key: "password", label: "Access", options: [{ value: "true", label: "Reset pending" }, { value: "false", label: "Password current" }] }]} /></div>;
+  const roleMix = ["super-admin", "institute-admin", "institute-staff", "student"].map((role) => ({
+    key: role,
+    label: role.replace("-", " "),
+    value: users.filter((user) => user.role === role).length,
+  }));
+  const rows: DataTableRow[] = users.map((user) => ({
+    key: user.id,
+    searchValue: `${user.name} ${user.email} ${user.instituteName} ${user.role}`,
+    filterValues: {
+      role: user.role,
+      state: user.status,
+      password: String(user.mustChangePassword),
+    },
+    cells: [
+      <div key="user">
+        <p className="font-medium">{user.name}</p>
+        <p className="text-xs text-muted-foreground">{user.email}</p>
+        {user.duplicateEmail ? (
+          <p className="mt-1 text-xs font-medium text-destructive">
+            Duplicate email detected
+          </p>
+        ) : null}
+      </div>,
+      <Badge key="role" variant="secondary" className="capitalize">
+        {user.role.replace("-", " ")}
+      </Badge>,
+      <div key="institute">
+        <p>{user.instituteName}</p>
+        {user.instituteCode ? (
+          <p className="text-xs text-muted-foreground">{user.instituteCode}</p>
+        ) : null}
+      </div>,
+      <Badge
+        key="status"
+        variant={user.status === "active" ? "success" : "destructive"}
+        className="capitalize"
+      >
+        {user.status}
+      </Badge>,
+      <div key="access">
+        <p>
+          {user.lastLoginAt
+            ? new Date(user.lastLoginAt).toLocaleDateString()
+            : "Never logged in"}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {user.mustChangePassword
+            ? "Password reset pending"
+            : "Password current"}
+        </p>
+      </div>,
+    ],
+  }));
+  return (
+    <div className="flex flex-col gap-6">
+      <section>
+        <p className="text-eyebrow text-primary">Platform identity</p>
+        <h1 className="text-heading mt-2 text-3xl">Global user directory</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Search every account, review institute membership, and surface access
+          issues.
+        </p>
+      </section>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Summary label="All users" value={users.length} />
+        <Summary
+          label="Active"
+          value={users.filter((u) => u.status === "active").length}
+        />
+        <Summary
+          label="Suspended"
+          value={users.filter((u) => u.status === "suspended").length}
+        />
+        <Summary
+          label="Resets pending"
+          value={users.filter((u) => u.mustChangePassword).length}
+        />
+      </div>
+      <DonutChart
+        title="Account mix"
+        sub="Platform users grouped by role."
+        data={roleMix}
+        emptyLabel="User roles will appear here as accounts are created."
+      />
+      <DataTableCard
+        title="Accounts"
+        sub="Duplicate email detection is included even though new accounts are protected by a unique-email constraint."
+        columns={[
+          { key: "user", header: "User" },
+          { key: "role", header: "Role" },
+          { key: "institute", header: "Institute" },
+          { key: "status", header: "Status" },
+          { key: "access", header: "Activity & access" },
+        ]}
+        rows={rows}
+        searchPlaceholder="Search people, email, institute, or role..."
+        emptyTitle="No user accounts yet."
+        pageSize={15}
+        filters={[
+          {
+            key: "role",
+            label: "Role",
+            options: [
+              "super-admin",
+              "institute-admin",
+              "institute-staff",
+              "student",
+            ].map((value) => ({ value, label: value.replace("-", " ") })),
+          },
+          {
+            key: "state",
+            label: "Status",
+            options: [
+              { value: "active", label: "Active" },
+              { value: "suspended", label: "Suspended" },
+            ],
+          },
+          {
+            key: "password",
+            label: "Access",
+            options: [
+              { value: "true", label: "Reset pending" },
+              { value: "false", label: "Password current" },
+            ],
+          },
+        ]}
+      />
+    </div>
+  );
 }
-function Summary({ label, value }: { label: string; value: number }) { return <div className="rounded-2xl border border-border bg-card p-4"><p className="text-2xl font-semibold">{value.toLocaleString()}</p><p className="text-sm text-muted-foreground">{label}</p></div>; }
+function Summary({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <p className="text-2xl font-semibold">{value.toLocaleString()}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
+}
