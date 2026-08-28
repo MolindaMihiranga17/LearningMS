@@ -10,7 +10,7 @@ export const createSubscriptionPlanSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Slug may only contain lowercase letters, numbers, and hyphens."),
   description: z.string().trim().optional().or(z.literal("")),
   price: z.coerce.number().min(0, "Price cannot be negative."),
-  currency: z.string().trim().min(3).max(3).default("USD"),
+  currency: z.string().trim().min(3).max(3).default("LKR"),
   billingInterval: z.enum(["monthly", "yearly"]),
   limits: z
     .object({
