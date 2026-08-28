@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import { Panel } from "./panel";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
+import { formatLkr } from "@/lib/currency";
 
 const SLOT_VARS = [
   "var(--color-chart-1)",
@@ -48,7 +49,7 @@ export function MultiSeriesChart({
     return config;
   }, {} as ChartConfig);
 
-  const formatValue = (value: number) => (format === "currency" ? `$${value.toFixed(2)}` : value.toLocaleString());
+  const formatValue = (value: number) => (format === "currency" ? formatLkr(value) : value.toLocaleString());
 
   return (
     <Panel title={title} sub={sub} className={cn("flex-1 p-5", className)} action={action}>
