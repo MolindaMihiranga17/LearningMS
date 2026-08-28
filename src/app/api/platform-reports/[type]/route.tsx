@@ -9,6 +9,9 @@ import { requireSession, requireRole } from "@/lib/tenant/scope";
 import { toCsv } from "@/lib/reports/csv";
 import { PlatformInvoiceDocument, type PlatformInvoicePdfData } from "@/lib/reports/platform-invoice-pdf";
 import { RevenueReportDocument, type RevenueReportRow } from "@/lib/reports/revenue-report-pdf";
+import { TabularReportPdf } from "@/lib/reports/tabular-report-pdf";
+import { toXlsxBuffer } from "@/lib/reports/xlsx";
+import PlatformFinanceEntryModel from "@/models/PlatformFinanceEntry";
 
 function displayStatus(status: string, dueAt: Date): string {
   return status === "pending" && dueAt < new Date() ? "overdue" : status;
@@ -236,6 +239,30 @@ async function handlePlatformBackup() {
   });
 }
 
+async function handleTabular(request: Request, type: string) {
+  const format = new URL(request.url).searchParams.get("format") ?? "csv";
+  let rows: Record<string, unknown>[] = []; const filename = type;
+  if (type === "finance") {
+    const entries = await PlatformFinanceEntryModel.find().sort({ occurredAt: -1 }).lean();
+    rows = entries.map((entry) => ({ date: new Date(entry.occurredAt).toLocaleDateString(), type: entry.type, title: entry.title, category: entry.category, amount: entry.amount, currency: "LKR", method: entry.paymentMethod, bankAccount: entry.bankAccount ?? "", reference: entry.referenceNumber ?? "", notes: entry.notes ?? "" }));
+  } else if (type === "reconciliation") {
+    const invoices = await PlatformInvoiceModel.find({ status: "paid" }).populate("instituteId", "name").sort({ paidAt: -1 }).lean();
+    rows = invoices.map((invoice) => ({ invoice: invoice.invoiceNumber, institute: (invoice.instituteId as unknown as { name?: string } | null)?.name ?? "Unknown", amount: invoice.amount, currency: "LKR", method: invoice.paymentMethod ?? "", paidAt: invoice.paidAt ? new Date(invoice.paidAt).toLocaleDateString() : "", status: invoice.reconciliationStatus ?? "unreconciled", bankAccount: invoice.bankAccount ?? "", reference: invoice.paymentReference ?? invoice.receiptNumber ?? "" }));
+  } else if (type === "institutes") {
+    const institutes = await InstituteModel.find().sort({ createdAt: -1 }).lean(); rows = institutes.map((item) => ({ name: item.name, code: item.code, status: item.status, email: item.contactEmail ?? "", phone: item.phone ?? "", createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "" }));
+  } else if (type === "health") {
+    const [institutes, invoices] = await Promise.all([InstituteModel.find().lean(), PlatformInvoiceModel.find({ status: { $in: ["pending", "overdue"] } }).lean()]);
+    rows = institutes.map((item) => ({ institute: item.name, code: item.code, status: item.status, outstandingBalance: invoices.filter((invoice) => String(invoice.instituteId) === String(item._id) && invoice.dueAt < new Date()).reduce((sum, invoice) => sum + invoice.amount, 0), currency: "LKR", createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "" }));
+  } else if (type === "lifecycle") {
+    const subscriptions = await SubscriptionModel.find().populate("instituteId", "name").populate("planId", "name").lean();
+    rows = subscriptions.map((item) => ({ institute: (item.instituteId as unknown as { name?: string } | null)?.name ?? "Unknown", plan: (item.planId as unknown as { name?: string } | null)?.name ?? "Unknown", status: item.status, trialEndsAt: item.trialEndsAt ? new Date(item.trialEndsAt).toLocaleDateString() : "", periodEndsAt: item.currentPeriodEnd ? new Date(item.currentPeriodEnd).toLocaleDateString() : "", autoRenew: item.autoRenew ? "Yes" : "No", cancelledAt: item.cancelledAt ? new Date(item.cancelledAt).toLocaleDateString() : "" }));
+  } else return NextResponse.json({ error: "Unknown report type." }, { status: 400 });
+  const columns = Object.keys(rows[0] ?? { record: "" }).map((key) => ({ key, header: key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()) }));
+  if (format === "xlsx") { const buffer = await toXlsxBuffer(rows, columns, filename); return new NextResponse(new Uint8Array(buffer), { headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Content-Disposition": `attachment; filename="${filename}.xlsx"` } }); }
+  if (format === "pdf") { const buffer = await renderToBuffer(<TabularReportPdf title={`${filename.replace(/-/g, " ")} report`} columns={columns} rows={rows} />); return new NextResponse(new Uint8Array(buffer), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${filename}.pdf"` } }); }
+  const csv = toCsv(rows, columns); return new NextResponse(csv, { headers: { "Content-Type": "text/csv", "Content-Disposition": `attachment; filename="${filename}.csv"` } });
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ type: string }> }) {
   const session = await requireSession();
   requireRole(session, ["super-admin"]);
@@ -259,6 +286,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
   if (type === "platform-backup") {
     return handlePlatformBackup();
   }
+
+  if (["finance", "reconciliation", "institutes", "health", "lifecycle"].includes(type)) return handleTabular(request, type);
 
   return NextResponse.json({ error: "Unknown report type." }, { status: 400 });
 }
