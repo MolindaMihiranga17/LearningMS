@@ -11,6 +11,8 @@ import StudentFollowUpModel from "@/models/StudentFollowUp";
 import SubmissionModel from "@/models/Submission";
 import UserModel from "@/models/User";
 import { notifyOverdueInvoices, sweepTrialsExpiringSoon } from "@/lib/subscription/lifecycle";
+import { sendSmsToUser } from "@/lib/communications/sms";
+import { sendEmailToUser } from "@/lib/communications/email";
 
 function inWindow(date: Date, now: Date, daysAhead: number) {
   const time = date.getTime();
@@ -199,13 +201,13 @@ export async function generateAutomaticReminders() {
 
   for (const fee of fees) {
     const students = fee.studentId
-      ? await UserModel.find({ _id: fee.studentId, "notificationPreferences.billing": { $ne: false } }).select("_id")
+      ? await UserModel.find({ _id: fee.studentId, "notificationPreferences.billing": { $ne: false } }).select("_id name email phone notificationPreferences")
       : await UserModel.find({
           instituteId: fee.instituteId,
           role: "student",
           ...(fee.classId ? { "studentMeta.classId": fee.classId } : {}),
           "notificationPreferences.billing": { $ne: false },
-        }).select("_id");
+        }).select("_id name email phone notificationPreferences");
 
     for (const student of students) {
       const paid = await PaymentModel.aggregate([
@@ -223,7 +225,28 @@ export async function generateAutomaticReminders() {
         body: `Balance ${balance.toFixed(2)} due on ${fee.dueDate.toLocaleDateString()}.`,
         link: "/fees",
       });
-      if (didCreate) created += 1;
+      if (didCreate) {
+        created += 1;
+        await Promise.all([
+          sendSmsToUser({
+            user: student,
+            preference: "billing",
+            category: "billing",
+            instituteId: fee.instituteId,
+            eventKey: `fee-due:${String(fee._id)}:${String(student._id)}`,
+            message: `LearningMS: Fee due — ${fee.title}. Balance ${balance.toFixed(2)} is due on ${fee.dueDate.toLocaleDateString()}.`,
+          }),
+          sendEmailToUser({
+            user: student,
+            preference: "billing",
+            category: "billing",
+            instituteId: fee.instituteId,
+            eventKey: `fee-due:${String(fee._id)}:${String(student._id)}`,
+            subject: `LearningMS: Fee due — ${fee.title}`,
+            text: `Your outstanding balance is ${balance.toFixed(2)}. It is due on ${fee.dueDate.toLocaleDateString()}.`,
+          }),
+        ]);
+      }
     }
   }
 
