@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { sweepExpiredTrials, sweepTrialsExpiringSoon, notifyOverdueInvoices } from "@/lib/subscription/lifecycle";
+import { sweepExpiredTrials } from "@/lib/subscription/lifecycle";
+import { generateAutomaticReminders } from "@/lib/actions/reminder.actions";
 
 export async function POST(request: NextRequest) {
   const secret = process.env.SWEEP_TRIALS_SECRET;
@@ -14,8 +15,12 @@ export async function POST(request: NextRequest) {
   }
 
   const transitioned = await sweepExpiredTrials();
-  const trialRemindersSent = await sweepTrialsExpiringSoon();
-  const overdueInvoicesNotified = await notifyOverdueInvoices();
+  const reminders = await generateAutomaticReminders();
 
-  return NextResponse.json({ transitioned, trialRemindersSent, overdueInvoicesNotified });
+  return NextResponse.json({
+    transitioned,
+    notificationsCreated: reminders.created,
+    trialRemindersSent: reminders.trialReminders,
+    overdueInvoicesNotified: reminders.overdueInvoices,
+  });
 }
