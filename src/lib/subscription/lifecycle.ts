@@ -6,6 +6,8 @@ import PlatformInvoiceModel from "@/models/PlatformInvoice";
 import UserModel from "@/models/User";
 import NotificationModel from "@/models/Notification";
 import AuditLogModel from "@/models/AuditLog";
+import { sendSmsToUser } from "@/lib/communications/sms";
+import { sendEmailToUser } from "@/lib/communications/email";
 
 type SubscriptionDoc = InstanceType<typeof SubscriptionModel>;
 type InvoiceDoc = InstanceType<typeof PlatformInvoiceModel>;
@@ -79,7 +81,9 @@ async function notifyInstituteAdmins(
   instituteId: unknown,
   notification: { type: "billing" | "trial"; title: string; body: string }
 ): Promise<void> {
-  const admins = await UserModel.find({ instituteId, role: "institute-admin" }).select("_id");
+  const admins = await UserModel.find({ instituteId, role: "institute-admin" }).select(
+    "_id name email phone notificationPreferences"
+  );
   if (admins.length === 0) return;
 
   await NotificationModel.insertMany(
@@ -90,6 +94,30 @@ async function notifyInstituteAdmins(
       title: notification.title,
       body: notification.body,
     }))
+  );
+
+  await Promise.all(
+    admins.map((admin) =>
+      Promise.all([
+        sendSmsToUser({
+          user: admin,
+          preference: notification.type === "billing" ? "billing" : "announcements",
+          category: notification.type,
+          instituteId,
+          eventKey: `${notification.type}:${String(instituteId)}:${notification.title}`,
+          message: `LearningMS: ${notification.title}. ${notification.body}`,
+        }),
+        sendEmailToUser({
+          user: admin,
+          preference: notification.type === "billing" ? "billing" : "announcements",
+          category: notification.type,
+          instituteId,
+          eventKey: `${notification.type}:${String(instituteId)}:${notification.title}`,
+          subject: `LearningMS: ${notification.title}`,
+          text: notification.body,
+        }),
+      ])
+    )
   );
 }
 

@@ -8,6 +8,8 @@ import UserModel from "@/models/User";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { recordPaymentSchema } from "@/lib/validation/payment.schema";
+import { sendSms, sendSmsToUser } from "@/lib/communications/sms";
+import { sendEmail, sendEmailToUser } from "@/lib/communications/email";
 
 async function generateReceiptNumber(instituteId: string): Promise<string> {
   const year = new Date().getFullYear();
@@ -103,6 +105,48 @@ export async function recordPayment(
     summary: `Recorded payment of ${amount} from ${student.name} (receipt ${payment.receiptNumber})`,
     after: { amount: payment.amount, paymentMethod: payment.paymentMethod },
   });
+
+  const paymentMessage = `LearningMS: Payment received. Receipt ${payment.receiptNumber}; amount ${payment.amount.toFixed(2)}.`;
+  await Promise.all([
+    sendSmsToUser({
+      user: student,
+      preference: "billing",
+      category: "billing",
+      instituteId: session.instituteId,
+      eventKey: `payment-receipt:${payment._id}:student`,
+      message: paymentMessage,
+    }),
+    student.studentMeta?.guardianPhone
+      ? sendSms({
+          to: student.studentMeta.guardianPhone,
+          message: `${paymentMessage} Student: ${student.name}.`,
+          category: "billing",
+          instituteId: session.instituteId,
+          recipientName: student.studentMeta.guardianName ?? "Guardian",
+          eventKey: `payment-receipt:${payment._id}:guardian`,
+        })
+      : Promise.resolve(null),
+    sendEmailToUser({
+      user: student,
+      preference: "billing",
+      category: "billing",
+      instituteId: session.instituteId,
+      eventKey: `payment-receipt:${payment._id}:student`,
+      subject: `LearningMS payment receipt ${payment.receiptNumber}`,
+      text: paymentMessage,
+    }),
+    student.studentMeta?.guardianEmail
+      ? sendEmail({
+          to: student.studentMeta.guardianEmail,
+          subject: `LearningMS payment receipt ${payment.receiptNumber}`,
+          text: `${paymentMessage} Student: ${student.name}.`,
+          category: "billing",
+          instituteId: session.instituteId,
+          recipientName: student.studentMeta.guardianName ?? "Guardian",
+          eventKey: `payment-receipt:${payment._id}:guardian`,
+        })
+      : Promise.resolve(null),
+  ]);
 
   revalidatePath(`/fees/students/${studentId}/payments`);
   revalidatePath("/fees");
