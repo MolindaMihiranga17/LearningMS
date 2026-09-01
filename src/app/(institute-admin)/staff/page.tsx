@@ -36,7 +36,6 @@ export default async function StaffPage() {
     const accessCount = Object.values(permissions).filter(Boolean).length;
     const basicSalary = member.staffMeta?.basicSalary ?? 0;
     const availability = member.staffMeta?.availabilityStatus ?? "available";
-    const leaveHistory = (member.staffMeta?.leaveHistory ?? []).slice().reverse().map((entry: { startAt?: Date; endAt?: Date; reason?: string; recordedAt?: Date }) => ({ startAt: new Date(entry.startAt ?? 0).toISOString(), endAt: new Date(entry.endAt ?? 0).toISOString(), reason: entry.reason ?? "", recordedAt: new Date(entry.recordedAt ?? entry.startAt ?? 0).toISOString() }));
 
     return {
       key: String(member._id),
@@ -94,7 +93,6 @@ export default async function StaffPage() {
           }))}
           availabilityStatus={availability}
           availabilityNote={member.staffMeta?.availabilityNote ?? ""}
-          leaveHistory={leaveHistory}
         />,
       ],
     };

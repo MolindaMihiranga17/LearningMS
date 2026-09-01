@@ -63,7 +63,6 @@ export default async function AdminOperationsPage() {
         commissions={row.commissions}
         availabilityStatus={row.availabilityStatus}
         availabilityNote={row.availabilityNote}
-        leaveHistory={row.leaveHistory}
       />,
     ],
   }));

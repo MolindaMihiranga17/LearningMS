@@ -19,7 +19,6 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
   }
 
   const commissions = staff.staffMeta?.monthlyCommissions ?? [];
-  const leaveHistory = (staff.staffMeta?.leaveHistory ?? []).slice().reverse().map((entry: { startAt?: Date; endAt?: Date; reason?: string; recordedAt?: Date }) => ({ startAt: new Date(entry.startAt ?? 0).toISOString(), endAt: new Date(entry.endAt ?? 0).toISOString(), reason: entry.reason ?? "", recordedAt: new Date(entry.recordedAt ?? entry.startAt ?? 0).toISOString() }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,8 +38,8 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Availability & leave</CardTitle></CardHeader>
-        <CardContent><AvailabilityForm staffId={String(staff._id)} availabilityStatus={staff.staffMeta?.availabilityStatus ?? "available"} availabilityNote={staff.staffMeta?.availabilityNote ?? ""} leaveHistory={leaveHistory} /></CardContent>
+        <CardHeader><CardTitle>Availability</CardTitle></CardHeader>
+        <CardContent><AvailabilityForm staffId={String(staff._id)} availabilityStatus={staff.staffMeta?.availabilityStatus ?? "available"} availabilityNote={staff.staffMeta?.availabilityNote ?? ""} /></CardContent>
       </Card>
 
       <Card>

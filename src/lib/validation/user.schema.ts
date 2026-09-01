@@ -50,17 +50,6 @@ export type UpdateStaffSalaryInput = z.infer<typeof updateStaffSalarySchema>;
 export const updateStaffAvailabilitySchema = z.object({
   availabilityStatus: z.enum(["available", "unavailable", "on-leave"]),
   availabilityNote: z.string().trim().max(300).optional().or(z.literal("")),
-  leaveStart: optionalDateString,
-  leaveEnd: optionalDateString,
-  leaveReason: z.string().trim().max(300).optional().or(z.literal("")),
-}).superRefine((value, ctx) => {
-  const hasLeaveValue = Boolean(value.leaveStart || value.leaveEnd || value.leaveReason);
-  if (hasLeaveValue && (!value.leaveStart || !value.leaveEnd || !value.leaveReason)) {
-    ctx.addIssue({ code: "custom", path: ["leaveStart"], message: "Leave start, end, and reason are required together." });
-  }
-  if (value.leaveStart && value.leaveEnd && new Date(value.leaveEnd) < new Date(value.leaveStart)) {
-    ctx.addIssue({ code: "custom", path: ["leaveEnd"], message: "Leave end date cannot be before the start date." });
-  }
 });
 
 export const saveReportPresetSchema = z.object({
