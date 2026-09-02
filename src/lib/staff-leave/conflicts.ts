@@ -7,6 +7,8 @@ import MeetingModel from "@/models/Meeting";
 export type LeaveConflict = {
   id: string;
   type: "class" | "meeting" | "calendar";
+  resourceId?: string;
+  endsAt?: Date;
   title: string;
   detail: string;
   occursAt: Date;
@@ -30,12 +32,26 @@ function timetableConflicts(input: {
         if (slot.day !== day) continue;
         const className = `${klass.name}${klass.section ? ` ${klass.section}` : ""}`;
         const time = [slot.startTime, slot.endTime].filter(Boolean).join("–");
+        const occursAt = new Date(cursor);
+        if (slot.startTime) {
+          const [hours, minutes] = slot.startTime.split(":").map(Number);
+          occursAt.setHours(hours, minutes, 0, 0);
+        }
+        const endsAt = new Date(occursAt);
+        if (slot.endTime) {
+          const [hours, minutes] = slot.endTime.split(":").map(Number);
+          endsAt.setHours(hours, minutes, 0, 0);
+        } else {
+          endsAt.setHours(endsAt.getHours() + 1);
+        }
         conflicts.push({
           id: `class:${String(klass._id)}:${cursor.toISOString().slice(0, 10)}:${slot.startTime ?? ""}`,
           type: "class",
+          resourceId: String(klass._id),
+          endsAt,
           title: `Class: ${className}`,
           detail: `${cursor.toLocaleDateString()}${time ? `, ${time}` : ""}${slot.room ? `, ${slot.room}` : ""}`,
-          occursAt: new Date(cursor),
+          occursAt,
         });
       }
     }
@@ -61,6 +77,8 @@ export async function getStaffLeaveConflicts(input: {
     .map((meeting) => ({
       id: `meeting:${String(meeting._id)}`,
       type: "meeting" as const,
+      resourceId: String(meeting._id),
+      endsAt: new Date(new Date(meeting.scheduledAt).getTime() + meeting.durationMinutes * 60_000),
       title: `Meeting: ${meeting.title}`,
       detail: new Date(meeting.scheduledAt).toLocaleString(),
       occursAt: new Date(meeting.scheduledAt),
