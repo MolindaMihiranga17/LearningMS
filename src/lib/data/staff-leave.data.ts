@@ -2,6 +2,7 @@ import "server-only";
 
 import { connectToDatabase } from "@/lib/db/connect";
 import StaffLeaveRequestModel from "@/models/StaffLeaveRequest";
+import UserModel from "@/models/User";
 import { requireRole, requireSession, withTenantScope } from "@/lib/tenant/scope";
 
 export async function listMyStaffLeaveRequests() {
@@ -25,4 +26,12 @@ export async function listInstituteStaffLeaveRequests() {
     .populate("decidedBy", "name email")
     .sort({ status: 1, startAt: 1, createdAt: -1 })
     .lean();
+}
+
+export async function listSubstituteCandidates() {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+  await connectToDatabase();
+  const staff = await UserModel.find(withTenantScope({ role: "institute-staff", status: "active" }, session)).select("name email").sort({ name: 1 }).lean();
+  return staff.map((member) => ({ id: String(member._id), name: member.name, email: member.email }));
 }
