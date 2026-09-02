@@ -4,6 +4,7 @@ import ClassModel from "@/models/Class";
 import UserModel from "@/models/User";
 import ClassAttemptModel, { type ClassAttemptAttendance } from "@/models/ClassAttempt";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
+import { hasActiveClassCover } from "@/lib/substitute-assignments/access";
 
 export function startOfToday(): Date {
   const now = new Date();
@@ -17,7 +18,7 @@ export async function getActiveSession(classId: string) {
   await connectToDatabase();
 
   const klass = await ClassModel.findOne(withTenantScope({ _id: classId }, session)).lean();
-  if (!klass || klass.classTeacherId?.toString() !== session.userId) return null;
+  if (!klass || (klass.classTeacherId?.toString() !== session.userId && !(await hasActiveClassCover(classId, session)))) return null;
 
   const students = await UserModel.find({
     instituteId: session.instituteId,

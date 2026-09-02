@@ -20,4 +20,11 @@ export const reviewStaffLeaveRequestSchema = leaveRequestIdSchema.extend({
   decision: z.enum(["approved", "rejected"]),
   decisionNote: z.string().trim().max(1000).optional().or(z.literal("")),
   conflictsAcknowledged: z.coerce.boolean().optional(),
+  coveragePlans: z.array(z.object({
+    conflictId: z.string().min(1),
+    resolution: z.enum(["substitute", "cancelled", "rescheduled"]),
+    substituteTeacherId: z.string().optional().or(z.literal("")),
+    handoverNote: z.string().trim().max(1000).optional().or(z.literal("")),
+    rescheduleNote: z.string().trim().max(1000).optional().or(z.literal("")),
+  })).optional().default([]),
 });

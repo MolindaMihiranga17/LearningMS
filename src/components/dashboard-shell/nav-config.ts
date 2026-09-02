@@ -27,6 +27,7 @@ import {
   History,
   RefreshCw,
   Video,
+  MessageSquare,
 } from "lucide-react";
 
 export type NavItem = {
@@ -44,6 +45,7 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Operations", href: "/operations", icon: BriefcaseBusiness, group: "Overview" },
   { label: "Reports", href: "/reports", icon: BarChart3, group: "Overview" },
   { label: "Leave requests", href: "/leave-requests", icon: CalendarDays, group: "Overview" },
+  { label: "Staff messages", href: "/messages", icon: MessageSquare, group: "Overview" },
   { label: "Terms", href: "/terms", icon: CalendarDays, group: "Academics" },
   { label: "Staff", href: "/staff", icon: GraduationCap, group: "Academics" },
   { label: "Students", href: "/students", icon: Users, group: "Academics" },
@@ -71,6 +73,7 @@ export const INSTITUTE_STAFF_NAV: NavItem[] = [
   { label: "Calendar", href: "/calendar", icon: CalendarDays, group: "Overview", staffPermission: "dashboard" },
   { label: "Workspace", href: "/workspace", icon: BriefcaseBusiness, group: "Overview", staffPermission: "classes" },
   { label: "My leave", href: "/leave", icon: CalendarDays, group: "Overview" },
+  { label: "Admin messages", href: "/messages", icon: MessageSquare, group: "Overview" },
   { label: "Follow-ups", href: "/student-followups", icon: History, group: "Overview", staffPermission: "students" },
   { label: "Meetings", href: "/meetings", icon: Video, group: "Teaching" },
   { label: "Courses", href: "/courses", icon: BookOpen, group: "Teaching", staffPermission: "subjects" },
