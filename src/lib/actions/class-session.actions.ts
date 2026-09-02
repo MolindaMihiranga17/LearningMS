@@ -10,6 +10,7 @@ import NotificationModel from "@/models/Notification";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { startOfToday } from "@/lib/data/class-session.data";
+import { hasActiveClassCover } from "@/lib/substitute-assignments/access";
 import {
   classSessionIdSchema,
   markAttemptAttendanceSchema,
@@ -22,7 +23,7 @@ export type ClassSessionState = {
 
 async function loadOwnedClass(classId: string, session: Awaited<ReturnType<typeof requireSession>>) {
   const klass = await ClassModel.findOne(withTenantScope({ _id: classId }, session));
-  if (!klass || klass.classTeacherId?.toString() !== session.userId) return null;
+  if (!klass || (klass.classTeacherId?.toString() !== session.userId && !(await hasActiveClassCover(classId, session)))) return null;
   return klass;
 }
 
