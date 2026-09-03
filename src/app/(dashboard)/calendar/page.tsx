@@ -1,11 +1,13 @@
 import { getSession } from "@/lib/auth/session";
 import { getAcademicCalendarSnapshot, listUpcomingAcademicEvents } from "@/lib/data/academic-event.data";
+import { listLeaveCalendarIndicators } from "@/lib/data/staff-leave-integration.data";
 import { CalendarView } from "./calendar-view";
 export default async function CalendarPage() {
-  const [session, events, snapshot] = await Promise.all([
+  const [session, events, snapshot, leaveIndicators] = await Promise.all([
     getSession(),
     listUpcomingAcademicEvents(),
     getAcademicCalendarSnapshot(),
+    listLeaveCalendarIndicators(),
   ]);
 
   return (
@@ -20,6 +22,7 @@ export default async function CalendarPage() {
         endsAt: event.endsAt?.toISOString() ?? null,
         description: event.description ?? "",
       }))}
+      leaveIndicators={leaveIndicators.map((indicator) => ({ ...indicator, startsAt: indicator.startsAt.toISOString() }))}
     />
   );
 }
