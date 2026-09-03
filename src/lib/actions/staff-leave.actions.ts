@@ -104,8 +104,22 @@ export async function createStaffLeaveRequest(
     summary: `Requested leave from ${startAt.toLocaleDateString()} to ${endAt.toLocaleDateString()}`,
     after: { startAt, endAt, reason: request.reason, status: request.status },
   });
+  const admins = await UserModel.find(withTenantScope({ role: "institute-admin", status: "active" }, session)).select("_id").lean();
+  if (admins.length) {
+    await NotificationModel.insertMany(admins.map((admin) => ({
+      instituteId: session.instituteId,
+      userId: admin._id,
+      type: "academic",
+      title: "New staff leave request",
+      body: `${staff.name} requested leave from ${startAt.toLocaleDateString()} to ${endAt.toLocaleDateString()}.`,
+      link: "/leave-requests",
+      isRead: false,
+    })));
+  }
   revalidatePath("/leave");
   revalidatePath("/leave-requests");
+  revalidatePath("/dashboard");
+  revalidatePath("/calendar");
   return { success: true };
 }
 
@@ -141,6 +155,8 @@ export async function cancelStaffLeaveRequest(
   });
   revalidatePath("/leave");
   revalidatePath("/leave-requests");
+  revalidatePath("/dashboard");
+  revalidatePath("/calendar");
   return { success: true };
 }
 
@@ -246,9 +262,21 @@ export async function reviewStaffLeaveRequest(
     before: { status: "pending" },
     after: { status: request.status, decisionNote: request.decisionNote, conflictCount: conflicts.length, conflictsAcknowledged: Boolean(request.conflictsAcknowledgedAt) },
   });
+  await NotificationModel.create({
+    instituteId: session.instituteId,
+    userId: staff._id,
+    type: "academic",
+    title: `Leave request ${request.status}`,
+    body: `Your leave request from ${request.startAt.toLocaleDateString()} to ${request.endAt.toLocaleDateString()} was ${request.status}.${request.decisionNote ? ` Note: ${request.decisionNote}` : ""}`,
+    link: "/leave",
+    isRead: false,
+  });
   revalidatePath("/leave");
   revalidatePath("/leave-requests");
   revalidatePath("/staff");
   revalidatePath("/operations");
+  revalidatePath("/dashboard");
+  revalidatePath("/calendar");
+  revalidatePath("/notifications");
   return { success: true };
 }
