@@ -21,7 +21,7 @@ const platformInvoiceSchema = new Schema(
     paidAt: { type: Date, default: null },
     paymentMethod: {
       type: String,
-      enum: ["bank-transfer", "cash", "cheque", "card-manual", "other"],
+      enum: ["bank-transfer", "cash", "cheque", "card-manual", "payhere", "other"],
     },
     receiptNumber: { type: String, trim: true },
     paymentReference: { type: String, trim: true },
