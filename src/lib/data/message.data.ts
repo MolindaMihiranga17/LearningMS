@@ -20,6 +20,20 @@ export async function getMessagingInbox(selectedConversationId?: string) {
 }
 
 export async function countUnreadMessages() {
-  const inbox = await getMessagingInbox();
-  return inbox.conversations.filter((conversation) => conversation.unread).length;
+  const session = await requireSession();
+  requireRole(session, ["institute-admin", "institute-staff"]);
+  await connectToDatabase();
+
+  const conversations = await ConversationModel.find(
+    withTenantScope({ participantIds: session.userId, latestMessageAt: { $ne: null } }, session)
+  )
+    .select("latestMessageAt readStates")
+    .lean();
+
+  return conversations.filter((conversation) => {
+    const readState = conversation.readStates?.find(
+      (state: { userId: unknown; lastReadAt: Date | null }) => String(state.userId) === session.userId
+    );
+    return !readState?.lastReadAt || new Date(conversation.latestMessageAt!).getTime() > new Date(readState.lastReadAt).getTime();
+  }).length;
 }
