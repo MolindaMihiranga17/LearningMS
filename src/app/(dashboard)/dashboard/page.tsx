@@ -57,6 +57,8 @@ import { StudentHome } from "@/components/student/student-home";
 import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { StaffWorkspaceHeader } from "@/components/staff/staff-workspace-header";
 import { formatLkr } from "@/lib/currency";
+import { getLeaveDashboardSummary } from "@/lib/data/staff-leave-integration.data";
+import { countUnreadMessages } from "@/lib/data/message.data";
 
 function formatRelativeTime(date: Date) {
   const seconds = Math.round((Date.now() - new Date(date).getTime()) / 1000);
@@ -126,6 +128,8 @@ export default async function DashboardPage() {
       financeSummary,
       featureSnapshot,
       financeTrend,
+      leaveSummary,
+      unreadMessages,
     ] = await Promise.all([
       getInstituteDashboardCounts(),
       getInstituteRecentActivity(),
@@ -136,6 +140,8 @@ export default async function DashboardPage() {
       getInstituteFinanceSummary(),
       getAdminFeatureSnapshot(),
       getFinanceTrend(6),
+      getLeaveDashboardSummary(),
+      countUnreadMessages(),
     ]);
 
     const activityItems: ActivityItem[] = activity.map((entry) => {
@@ -245,6 +251,26 @@ export default async function DashboardPage() {
             badge: formatDate(featureSnapshot.upcomingExams[0].examDate),
             badgeVariant: "secondary" as const,
             href: "/exams",
+          }
+        : null,
+      leaveSummary.pendingRequests > 0
+        ? {
+            id: "pending-leave-requests",
+            title: "Staff leave requests need review",
+            detail: `${leaveSummary.pendingRequests} leave request${leaveSummary.pendingRequests === 1 ? " is" : "s are"} awaiting an admin decision.`,
+            badge: String(leaveSummary.pendingRequests),
+            badgeVariant: "warning" as const,
+            href: "/leave-requests",
+          }
+        : null,
+      unreadMessages > 0
+        ? {
+            id: "unread-staff-messages",
+            title: "Unread staff messages",
+            detail: `${unreadMessages} conversation${unreadMessages === 1 ? " has" : "s have"} a new message.`,
+            badge: String(unreadMessages),
+            badgeVariant: "secondary" as const,
+            href: "/messages",
           }
         : null,
     ].filter((value): value is NonNullable<typeof value> => Boolean(value));
@@ -492,11 +518,13 @@ export default async function DashboardPage() {
   if (session.role === "institute-staff") {
     await requireStaffModuleAccess("dashboard");
 
-    const [data, activity, attendanceSummary, featureSnapshot] = await Promise.all([
+    const [data, activity, attendanceSummary, featureSnapshot, leaveSummary, unreadMessages] = await Promise.all([
       getTeacherDashboardData(),
       getTeacherRecentActivity(),
       getAttendanceSummaryForTeacherClasses(),
       getTeacherFeatureSnapshot(),
+      getLeaveDashboardSummary(),
+      countUnreadMessages(),
     ]);
 
     const rows: DataTableRow[] = data.rows.map((row) => ({
@@ -579,6 +607,36 @@ export default async function DashboardPage() {
             href: "/my-classes",
           }
         : null,
+      leaveSummary.pendingRequests > 0
+        ? {
+            id: "leave-request-pending",
+            title: "Your leave request is awaiting review",
+            detail: `${leaveSummary.pendingRequests} request${leaveSummary.pendingRequests === 1 ? " is" : "s are"} pending an institute admin decision.`,
+            badge: String(leaveSummary.pendingRequests),
+            badgeVariant: "warning" as const,
+            href: "/leave",
+          }
+        : null,
+      leaveSummary.confirmedCover > 0
+        ? {
+            id: "leave-cover-assignment",
+            title: "You have scheduled leave cover",
+            detail: `${leaveSummary.confirmedCover} temporary cover assignment${leaveSummary.confirmedCover === 1 ? "" : "s"} is on your calendar.`,
+            badge: String(leaveSummary.confirmedCover),
+            badgeVariant: "secondary" as const,
+            href: "/calendar",
+          }
+        : null,
+      unreadMessages > 0
+        ? {
+            id: "unread-admin-messages",
+            title: "Unread admin messages",
+            detail: `${unreadMessages} conversation${unreadMessages === 1 ? " has" : "s have"} a new message.`,
+            badge: String(unreadMessages),
+            badgeVariant: "secondary" as const,
+            href: "/messages",
+          }
+        : null,
     ].filter((value): value is NonNullable<typeof value> => Boolean(value));
     const classAttendanceData = attendanceSummary
       .filter((row) => row.percentPresent !== null)
@@ -597,6 +655,7 @@ export default async function DashboardPage() {
             { label: "Classes", value: data.classCount, detail: "Teaching assignments", tone: "primary" },
             { label: "To grade", value: featureSnapshot.gradingQueue.length, detail: "Submissions awaiting feedback", tone: featureSnapshot.gradingQueue.length > 0 ? "warning" : "success" },
             { label: "Follow-ups", value: featureSnapshot.atRiskStudents.length, detail: "Attendance signals to review", tone: featureSnapshot.atRiskStudents.length > 0 ? "warning" : "info" },
+            { label: "Messages", value: unreadMessages, detail: "Unread admin conversations", tone: unreadMessages > 0 ? "warning" : "success" },
           ]}
           actions={<div className="flex flex-wrap gap-2"><Link href="/grading" className="text-sm font-medium text-primary hover:underline">Open grading queue</Link><Link href="/workspace" className="text-sm font-medium text-primary hover:underline">Teaching workspace</Link></div>}
         />

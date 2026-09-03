@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { COOKIE_NAME, verifySession } from "@/lib/auth/session";
 
 /** Paths that must stay reachable without a session cookie. */
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/pricing"];
 
 /** API routes that authenticate themselves (e.g. a shared secret for external cron) instead of a session cookie. */
 const PUBLIC_API_PATHS = ["/api/system/sweep-trials"];

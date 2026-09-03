@@ -38,7 +38,7 @@ Auth and scoping helpers live in `src/lib/tenant/scope.ts`:
 
 ## Getting started
 
-1. Copy `.env.example` to `.env.local` and fill in `MONGODB_URI`, `JWT_SECRET`, AWS S3 credentials, and `SUPERADMIN_EMAIL`/`SUPERADMIN_PASSWORD`.
+1. Copy `.env.example` to `.env.local` and fill in `MONGODB_URI`, `JWT_SECRET`, AWS S3 credentials, and `SUPERADMIN_EMAIL`/`SUPERADMIN_PASSWORD`. PayHere values are only needed when enabling subscription checkout; its notify URL must be publicly reachable over HTTPS.
 2. Install dependencies and bootstrap a super-admin:
    ```bash
    npm install
