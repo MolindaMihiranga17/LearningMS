@@ -6,7 +6,7 @@ import { COOKIE_NAME, verifySession } from "@/lib/auth/session";
 const PUBLIC_PATHS = ["/login", "/pricing"];
 
 /** API routes that authenticate themselves (e.g. a shared secret for external cron) instead of a session cookie. */
-const PUBLIC_API_PATHS = ["/api/system/sweep-trials"];
+const PUBLIC_API_PATHS = ["/api/system/sweep-trials", "/api/payhere/notify"];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
