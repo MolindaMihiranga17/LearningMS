@@ -15,7 +15,7 @@ import UserModel from "@/models/User";
  */
 export async function getSubscriptionCheckoutPreview(planSlug: string) {
   const session = await requireSession();
-  if (session.role !== "institute-admin" || !session.instituteId) redirect("/dashboard");
+  if (session.role !== "institute-admin" || !session.instituteId || session.impersonatedBy) redirect("/dashboard");
   await connectToDatabase();
 
   const [buyer, institute, plan, subscription] = await Promise.all([
