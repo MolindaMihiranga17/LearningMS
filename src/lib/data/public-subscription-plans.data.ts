@@ -9,7 +9,7 @@ export async function listPublicSubscriptionPlans() {
 
   const plans = await SubscriptionPlanModel.find({ isActive: true, isPublic: true })
     .sort({ sortOrder: 1, price: 1, name: 1 })
-    .select("name slug description price currency billingInterval limits features sortOrder")
+    .select("name slug description price currency billingInterval limits features sortOrder isRecommended")
     .lean();
 
   return plans.map((plan) => ({
@@ -28,5 +28,6 @@ export async function listPublicSubscriptionPlans() {
       storageMb: plan.limits?.storageMb ?? null,
     },
     features: Array.isArray(plan.features) ? plan.features.map(String) : [],
+    isRecommended: Boolean(plan.isRecommended),
   }));
 }
