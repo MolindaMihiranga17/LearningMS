@@ -61,6 +61,7 @@ export async function createPlan(
     features: parseFeatures(formData.get("features")),
     isActive: formData.get("isActive") === "on",
     isPublic: formData.get("isPublic") === "on",
+    isRecommended: formData.get("isRecommended") === "on",
     sortOrder: formData.get("sortOrder") || 0,
   });
 
@@ -121,6 +122,7 @@ export async function updatePlan(
     features: parseFeatures(formData.get("features")),
     isActive: formData.get("isActive") === "on",
     isPublic: formData.get("isPublic") === "on",
+    isRecommended: formData.get("isRecommended") === "on",
     sortOrder: formData.get("sortOrder") || 0,
   });
 
