@@ -56,6 +56,7 @@ export const INSTITUTE_ADMIN_NAV: NavItem[] = [
   { label: "Exams", href: "/exams", icon: FileText, group: "Operations" },
   { label: "Fees", href: "/fees", icon: Wallet, group: "Operations" },
   { label: "Payment Desk", href: "/payment-desk", icon: Wallet, group: "Operations" },
+  { label: "Subscription", href: "/subscription", icon: CreditCard, group: "Finance" },
   { label: "Salary", href: "/salary", icon: Wallet, group: "Finance" },
   { label: "Commissions", href: "/commissions", icon: Wallet, group: "Finance" },
   { label: "Concessions", href: "/concessions", icon: BadgePercent, group: "Finance" },
@@ -91,7 +92,7 @@ export const INSTITUTE_STAFF_NAV: NavItem[] = [
 export const SUPER_ADMIN_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
   { label: "Institutes", href: "/institutes", icon: Building2, group: "Platform" },
-  { label: "Plans", href: "/plans", icon: Layers, group: "Platform" },
+  { label: "Plans", href: "/platform/plans", icon: Layers, group: "Platform" },
   { label: "Billing", href: "/billing", icon: CreditCard, group: "Platform" },
   { label: "Bank", href: "/bank", icon: Landmark, group: "Platform" },
   { label: "Revenue analytics", href: "/revenue-analytics", icon: TrendingUp, group: "Platform" },
