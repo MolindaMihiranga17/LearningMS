@@ -18,6 +18,7 @@ const subscriptionPlanSchema = new Schema(
     features: [{ type: String, trim: true }],
     isActive: { type: Boolean, default: true },
     isPublic: { type: Boolean, default: true },
+    isRecommended: { type: Boolean, default: false },
     sortOrder: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
