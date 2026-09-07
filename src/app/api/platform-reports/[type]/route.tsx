@@ -17,7 +17,7 @@ function displayStatus(status: string, dueAt: Date): string {
   return status === "pending" && dueAt < new Date() ? "overdue" : status;
 }
 
-async function handleInvoice(request: Request) {
+async function handleInvoice(request: Request, instituteId?: string | null) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing invoice id." }, { status: 400 });
@@ -27,7 +27,10 @@ async function handleInvoice(request: Request) {
     .populate("instituteId", "name code")
     .populate("planId", "name")
     .lean();
-  if (!invoice) {
+  const invoiceInstituteId = invoice
+    ? String((invoice.instituteId as unknown as { _id?: unknown } | null)?._id ?? invoice.instituteId)
+    : null;
+  if (!invoice || (instituteId && invoiceInstituteId !== instituteId)) {
     return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
   }
 
@@ -265,15 +268,19 @@ async function handleTabular(request: Request, type: string) {
 
 export async function GET(request: Request, { params }: { params: Promise<{ type: string }> }) {
   const session = await requireSession();
-  requireRole(session, ["super-admin"]);
-
-  await connectToDatabase();
-
   const { type } = await params;
 
   if (type === "invoice") {
-    return handleInvoice(request);
+    requireRole(session, ["super-admin", "institute-admin"]);
+    if (session.role === "institute-admin" && (!session.instituteId || session.impersonatedBy)) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+    await connectToDatabase();
+    return handleInvoice(request, session.role === "institute-admin" ? session.instituteId : undefined);
   }
+
+  requireRole(session, ["super-admin"]);
+  await connectToDatabase();
 
   if (type === "invoices") {
     return handleInvoices(request);
