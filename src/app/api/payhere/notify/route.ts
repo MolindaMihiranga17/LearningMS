@@ -6,6 +6,7 @@ import { formatPayhereAmount, verifyPayhereNotificationHash } from "@/lib/payher
 import { activateVerifiedPayherePayment } from "@/lib/payhere/activation";
 import PayherePaymentModel from "@/models/PayherePayment";
 import PlatformInvoiceModel from "@/models/PlatformInvoice";
+import { publishPayherePaymentEvent } from "@/lib/payhere/notifications";
 
 const notificationSchema = z.object({
   merchant_id: z.string().trim().min(1).max(100),
@@ -118,6 +119,9 @@ export async function POST(request: NextRequest) {
       { paymentReference: callback.order_id, status: "paid", paymentMethod: "payhere" },
       { $set: { status: "void", notes: `PayHere chargeback: ${callback.status_message || "No provider message."}` } }
     );
+  }
+  if (status === "failed" || status === "cancelled" || status === "chargeback") {
+    try { await publishPayherePaymentEvent(callback.order_id, status); } catch (error) { console.error("Unable to publish PayHere status", error); }
   }
 
   // A 2xx response acknowledges this persisted callback. A transient database
