@@ -9,6 +9,9 @@ const notificationSchema = new Schema(
     instituteId: { type: Schema.Types.ObjectId, ref: "Institute", default: null },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     platformAnnouncementId: { type: Schema.Types.ObjectId, ref: "PlatformAnnouncement", default: null },
+    // Stable event keys let payment and renewal jobs be safely retried without
+    // repeatedly notifying the same recipient.
+    eventKey: { type: String, trim: true, sparse: true },
     type: { type: String, enum: NOTIFICATION_TYPES, required: true },
     title: { type: String, required: true, trim: true },
     body: { type: String, required: true, trim: true },
@@ -21,6 +24,7 @@ const notificationSchema = new Schema(
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, isRead: 1 });
 notificationSchema.index({ platformAnnouncementId: 1, isRead: 1 });
+notificationSchema.index({ userId: 1, eventKey: 1 }, { unique: true, sparse: true });
 
 export type Notification = InferSchemaType<typeof notificationSchema>;
 
