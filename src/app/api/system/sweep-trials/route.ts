@@ -22,5 +22,7 @@ export async function POST(request: NextRequest) {
     notificationsCreated: reminders.created,
     trialRemindersSent: reminders.trialReminders,
     overdueInvoicesNotified: reminders.overdueInvoices,
+    pendingPaymentReminders: reminders.paymentPendingReminders,
+    subscriptionRenewalReminders: reminders.subscriptionRenewalReminders,
   });
 }

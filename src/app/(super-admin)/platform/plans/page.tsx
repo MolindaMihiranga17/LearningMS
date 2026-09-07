@@ -62,6 +62,7 @@ export default async function PlansPage() {
           features: plan.features ?? [],
           isActive: plan.isActive,
           isPublic: plan.isPublic,
+          isRecommended: Boolean(plan.isRecommended),
           sortOrder: plan.sortOrder,
           subscribers: subscribersByPlan.get(String(plan._id)) ?? 0,
         }}
@@ -105,6 +106,7 @@ export default async function PlansPage() {
         <Badge variant="secondary">
           {plan.isPublic ? "Public" : "Private"}
         </Badge>
+        {plan.isRecommended ? <Badge>Recommended</Badge> : null}
       </div>,
     ],
   }));

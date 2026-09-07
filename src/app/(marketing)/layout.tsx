@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 const navigation = [
   { label: "Home", href: "/" },
   { label: "Features", href: "/#features" },
-  { label: "Plans", href: "/pricing" },
+  { label: "Plans", href: "/plans" },
   { label: "Contact", href: "/#contact" },
 ];
 
@@ -31,7 +31,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </nav>
           <div className="hidden items-center gap-3 sm:flex">
             <Link href="/login" className="px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:text-blue-700">Sign in</Link>
-            <Link href="/pricing" className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-colors hover:bg-blue-700">Get started</Link>
+            <Link href="/plans" className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition-colors hover:bg-blue-700">Get started</Link>
           </div>
           <details className="relative sm:hidden">
             <summary className="cursor-pointer list-none rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold">Menu</summary>
@@ -46,7 +46,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <footer id="contact" className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-9 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <div><p className="font-semibold text-slate-900">LearningMS</p><p className="mt-1">A calmer way to run a modern learning institute.</p></div>
-          <div className="flex gap-5"><Link href="/pricing" className="hover:text-blue-700">Plans</Link><Link href="/login" className="hover:text-blue-700">Sign in</Link></div>
+          <div className="flex gap-5"><Link href="/plans" className="hover:text-blue-700">Plans</Link><Link href="/login" className="hover:text-blue-700">Sign in</Link></div>
         </div>
       </footer>
     </div>

@@ -6,6 +6,8 @@ import InstituteModel from "@/models/Institute";
 import PayherePaymentModel from "@/models/PayherePayment";
 import PlatformInvoiceModel from "@/models/PlatformInvoice";
 import SubscriptionModel from "@/models/Subscription";
+import AuditLogModel from "@/models/AuditLog";
+import { publishPayherePaymentEvent } from "@/lib/payhere/notifications";
 
 const CLAIM_STALE_AFTER_MS = 10 * 60 * 1000;
 
@@ -35,6 +37,7 @@ async function activateClaimedPayment(paymentId: string, claimedAt: Date, transa
 
   const paidAt = new Date();
   let subscription = await SubscriptionModel.findOne({ instituteId: payment.instituteId }).session(transaction);
+  const previousPlanId = subscription?.planId ? String(subscription.planId) : null;
   const isExtendingActiveSubscription = Boolean(
     subscription?.status === "active" &&
     subscription.currentPeriodEnd &&
@@ -107,6 +110,37 @@ async function activateClaimedPayment(paymentId: string, claimedAt: Date, transa
 
   if (!invoice) throw new Error("Could not create the PayHere invoice.");
 
+  const lifecycleAction = isExtendingActiveSubscription ? "subscription.renewed" : "subscription.activated";
+  await AuditLogModel.create([{
+    instituteId: payment.instituteId,
+    actorUserId: payment.checkoutSnapshot.buyerUserId,
+    actorName: "PayHere",
+    actorRole: "system",
+    action: lifecycleAction,
+    targetType: "Subscription",
+    targetId: subscription._id,
+    targetName: payment.checkoutSnapshot.planName,
+    summary: `${isExtendingActiveSubscription ? "Renewed" : "Activated"} ${payment.checkoutSnapshot.planName} subscription from verified PayHere payment.`,
+    after: { planId: String(payment.planId), periodStart, periodEnd, orderId: payment.orderId },
+    metadata: { orderId: payment.orderId, payherePaymentId: payment.payherePaymentId ?? null },
+  }], { session: transaction });
+  if (previousPlanId && previousPlanId !== String(payment.planId)) {
+    await AuditLogModel.create([{
+      instituteId: payment.instituteId,
+      actorUserId: payment.checkoutSnapshot.buyerUserId,
+      actorName: "PayHere",
+      actorRole: "system",
+      action: "subscription.planChanged",
+      targetType: "Subscription",
+      targetId: subscription._id,
+      targetName: payment.checkoutSnapshot.planName,
+      summary: `Changed subscription plan through verified PayHere payment.`,
+      before: { planId: previousPlanId },
+      after: { planId: String(payment.planId), orderId: payment.orderId },
+      metadata: { orderId: payment.orderId },
+    }], { session: transaction });
+  }
+
   const finalized = await PayherePaymentModel.updateOne(
     { _id: payment._id, status: "processing", processedAt: null, processingAt: claimedAt },
     { $set: { status: "success", subscriptionId: subscription._id, processedAt: paidAt, processingAt: null } },
@@ -144,6 +178,11 @@ export async function activateVerifiedPayherePayment(orderId: string): Promise<b
     await transaction.withTransaction(async () => {
       activated = await activateClaimedPayment(String(payment._id), claimedAt, transaction);
     });
+    if (activated) {
+      // Delivery failures must not turn a completed payment activation into a
+      // webhook retry. The in-app event itself is idempotent by event key.
+      try { await publishPayherePaymentEvent(orderId, "confirmed"); } catch (error) { console.error("Unable to publish PayHere confirmation", error); }
+    }
     return activated;
   } catch (error) {
     // The claim is released only when the transaction failed. A committed

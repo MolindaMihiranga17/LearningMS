@@ -32,6 +32,7 @@ export default async function PlanDetailPage({
     features: plan.features ?? [],
     isActive: plan.isActive,
     isPublic: plan.isPublic,
+    isRecommended: Boolean(plan.isRecommended),
     sortOrder: plan.sortOrder,
   };
 

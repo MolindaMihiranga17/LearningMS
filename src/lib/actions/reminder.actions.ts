@@ -13,6 +13,7 @@ import UserModel from "@/models/User";
 import { notifyOverdueInvoices, sweepTrialsExpiringSoon } from "@/lib/subscription/lifecycle";
 import { sendSmsToUser } from "@/lib/communications/sms";
 import { sendEmailToUser } from "@/lib/communications/email";
+import { notifyDelayedPayherePayments, notifyUpcomingSubscriptionRenewals } from "@/lib/payhere/notifications";
 
 function inWindow(date: Date, now: Date, daysAhead: number) {
   const time = date.getTime();
@@ -284,5 +285,10 @@ export async function generateAutomaticReminders() {
     notifyOverdueInvoices(),
   ]);
 
-  return { created, trialReminders, overdueInvoices };
+  const [paymentPendingReminders, subscriptionRenewalReminders] = await Promise.all([
+    notifyDelayedPayherePayments(),
+    notifyUpcomingSubscriptionRenewals(),
+  ]);
+
+  return { created, trialReminders, overdueInvoices, paymentPendingReminders, subscriptionRenewalReminders };
 }

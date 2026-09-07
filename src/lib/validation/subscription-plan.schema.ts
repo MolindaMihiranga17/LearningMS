@@ -24,6 +24,7 @@ export const createSubscriptionPlanSchema = z.object({
   features: z.array(z.string().trim()).default([]),
   isActive: z.boolean().default(true),
   isPublic: z.boolean().default(true),
+  isRecommended: z.boolean().default(false),
   sortOrder: z.coerce.number().int().default(0),
 });
 

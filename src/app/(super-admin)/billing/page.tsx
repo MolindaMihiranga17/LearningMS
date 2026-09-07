@@ -38,7 +38,7 @@ export default async function BillingPage() {
               Track recurring revenue, upcoming renewals, and invoices that need
               attention.
             </p>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-primary"><a href="/billing/finance">Platform finance →</a><a href="/billing/reconciliation">Reconciliation queue →</a><a href="/billing/invoices">Invoice register →</a></div>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-primary"><a href="/billing/finance">Platform finance →</a><a href="/billing/reconciliation">Reconciliation queue →</a><a href="/billing/invoices">Invoice register →</a><a href="/billing/payhere">PayHere payments →</a></div>
           </div>
           <InvoiceDeskDialog>
             <div className="divide-y divide-border/70">

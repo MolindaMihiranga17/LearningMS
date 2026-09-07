@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import SubscriptionPlanModel from "@/models/SubscriptionPlan";
 import SubscriptionModel from "@/models/Subscription";
 import PlatformInvoiceModel from "@/models/PlatformInvoice";
+import PayherePaymentModel from "@/models/PayherePayment";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
 
 export async function listPlans() {
@@ -168,4 +169,64 @@ export async function listInvoices(status?: "pending" | "paid" | "overdue" | "vo
 export async function getInvoiceById(id: string) {
   await requireSuperAdmin();
   return PlatformInvoiceModel.findById(id).populate("instituteId", "name code").populate("planId", "name").lean();
+}
+
+/** Billing data visible only to an institute's own active administrator. */
+export async function getInstituteBillingOverview() {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+  if (!session.instituteId || session.impersonatedBy) {
+    throw new Error("Institute billing is unavailable for this session.");
+  }
+
+  await connectToDatabase();
+  const [subscription, payments, invoices] = await Promise.all([
+    SubscriptionModel.findOne({ instituteId: session.instituteId }).populate("planId", "name slug billingInterval").lean(),
+    PayherePaymentModel.find({ instituteId: session.instituteId })
+      .select("orderId amount currency status payherePaymentId checkoutSnapshot.planName checkoutSnapshot.billingInterval createdAt processedAt failureReason")
+      .sort({ createdAt: -1 })
+      .lean(),
+    PlatformInvoiceModel.find({ instituteId: session.instituteId, paymentMethod: "payhere" })
+      .select("invoiceNumber amount currency status paidAt paymentReference receiptNumber issuedAt")
+      .sort({ issuedAt: -1 })
+      .lean(),
+  ]);
+
+  return { subscription, payments, invoices };
+}
+
+/** Live, tenant-scoped subscription signals for the institute-admin dashboard. */
+export async function getInstituteBillingDashboardAlerts() {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+  if (!session.instituteId || session.impersonatedBy) return { renewalDate: null, pendingPayment: null };
+
+  await connectToDatabase();
+  const now = new Date();
+  const inThirtyDays = new Date(now.getTime() + 30 * 86_400_000);
+  const [subscription, pendingPayment] = await Promise.all([
+    SubscriptionModel.findOne({ instituteId: session.instituteId, status: "active", currentPeriodEnd: { $gte: now, $lte: inThirtyDays } })
+      .populate("planId", "name")
+      .select("currentPeriodEnd planId")
+      .lean(),
+    PayherePaymentModel.findOne({ instituteId: session.instituteId, status: { $in: ["pending", "processing"] } })
+      .select("orderId status createdAt checkoutSnapshot.planName")
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+  return {
+    renewalDate: subscription?.currentPeriodEnd ?? null,
+    renewalPlanName: (subscription?.planId as unknown as { name?: string } | null)?.name ?? null,
+    pendingPayment: pendingPayment ? { orderId: pendingPayment.orderId, status: pendingPayment.status, createdAt: pendingPayment.createdAt, planName: pendingPayment.checkoutSnapshot.planName } : null,
+  };
+}
+
+/** PayHere operational records for platform billing staff. */
+export async function listPayherePayments() {
+  await requireSuperAdmin();
+  return PayherePaymentModel.find()
+    .populate("instituteId", "name code")
+    .populate("planId", "name")
+    .sort({ createdAt: -1 })
+    .lean();
 }

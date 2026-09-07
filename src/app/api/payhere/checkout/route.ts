@@ -14,12 +14,15 @@ import PayherePaymentModel from "@/models/PayherePayment";
 import SubscriptionModel from "@/models/Subscription";
 import SubscriptionPlanModel from "@/models/SubscriptionPlan";
 import UserModel from "@/models/User";
+import { recordAuditEntry } from "@/lib/audit/log";
+import { getCheckoutRateLimit } from "@/lib/payhere/checkout-rate-limit";
 
 const checkoutRequestSchema = z.object({
   planSlug: z.string().trim().min(1).max(120).regex(/^[a-z0-9-]+$/),
 }).strict();
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -37,6 +40,14 @@ export async function POST(request: NextRequest) {
   }
 
   await connectToDatabase();
+
+  const rateLimit = await getCheckoutRateLimit(session.userId, session.instituteId);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many checkout attempts. Please wait a few minutes before trying again." },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds), "Cache-Control": "no-store" } }
+    );
+  }
 
   // Re-read every authorization and commercial value from trusted data. The
   // browser supplies only the plan slug and can never select an institute.
@@ -82,10 +93,11 @@ export async function POST(request: NextRequest) {
   // MongoDB's unique orderId index is the final collision guard. Retry only
   // an extremely unlikely generated-ID collision before returning an error.
   let orderId = "";
+  let paymentRecordId: string | null = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     orderId = createPayhereOrderId();
     try {
-      await PayherePaymentModel.create({
+      const paymentRecord = await PayherePaymentModel.create({
         orderId,
         instituteId: session.instituteId,
         subscriptionId: subscription?._id ?? null,
@@ -102,6 +114,7 @@ export async function POST(request: NextRequest) {
           buyerUserId: buyer._id,
         },
       });
+      paymentRecordId = String(paymentRecord._id);
       break;
     } catch (error) {
       if (!(error && typeof error === "object" && "code" in error && error.code === 11000) || attempt === 2) {
@@ -116,6 +129,18 @@ export async function POST(request: NextRequest) {
     amount,
     currency,
     merchantSecret: config.merchantSecret,
+  });
+
+  await recordAuditEntry({
+    session,
+    actorName: buyer.name,
+    action: "payhere.checkoutInitiated",
+    targetType: "PayherePayment",
+    targetId: paymentRecordId ?? undefined,
+    targetName: orderId,
+    instituteId: session.instituteId,
+    summary: `Started PayHere checkout for ${plan.name}.`,
+    after: { orderId, planId: String(plan._id), planName: plan.name, amount: plan.price, currency, billingInterval: plan.billingInterval },
   });
 
   return NextResponse.json({

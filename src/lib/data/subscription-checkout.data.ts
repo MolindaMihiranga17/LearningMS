@@ -29,7 +29,7 @@ export async function getSubscriptionCheckoutPreview(planSlug: string) {
     SubscriptionModel.findOne({ instituteId: session.instituteId }).populate("planId", "name").lean(),
   ]);
 
-  if (!buyer || !institute || !plan) redirect("/pricing");
+  if (!buyer || !institute || !plan) redirect("/plans");
 
   return {
     buyer: { name: buyer.name, email: buyer.email },

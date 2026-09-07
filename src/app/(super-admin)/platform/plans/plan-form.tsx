@@ -39,6 +39,7 @@ const planFormSchema = z.object({
   features: z.string().optional(),
   isActive: z.boolean(),
   isPublic: z.boolean(),
+  isRecommended: z.boolean(),
   sortOrder: z.coerce.number().int(),
 });
 
@@ -63,6 +64,7 @@ type PlanFormProps = {
     features: string[];
     isActive: boolean;
     isPublic: boolean;
+    isRecommended: boolean;
     sortOrder: number;
   };
   onSuccess?: () => void;
@@ -90,12 +92,13 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
       features: plan?.features.join("\n") ?? "",
       isActive: plan?.isActive ?? true,
       isPublic: plan?.isPublic ?? true,
+      isRecommended: plan?.isRecommended ?? false,
       sortOrder: plan?.sortOrder ?? 0,
     },
   });
-  const [isActive, isPublic] = useWatch({
+  const [isActive, isPublic, isRecommended] = useWatch({
     control: form.control,
-    name: ["isActive", "isPublic"],
+    name: ["isActive", "isPublic", "isRecommended"],
   });
 
   useEffect(() => {
@@ -108,7 +111,7 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
         toast.success(`"${plan.name}" updated`);
         onSuccess?.();
       } else {
-        router.push(`/plans/${state.planId}`);
+        router.push(`/platform/plans/${state.planId}`);
       }
     }
   }, [state.success, state.planId, plan, onSuccess, router]);
@@ -130,6 +133,7 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
     formData.append("features", values.features ?? "");
     if (values.isActive) formData.append("isActive", "on");
     if (values.isPublic) formData.append("isPublic", "on");
+    if (values.isRecommended) formData.append("isRecommended", "on");
     formData.append("sortOrder", String(values.sortOrder));
     startTransition(() => {
       formAction(formData);
@@ -336,6 +340,13 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
               onCheckedChange={(next) => form.setValue("isPublic", Boolean(next))}
             />
             Public
+          </Label>
+          <Label className="flex items-center gap-2 font-normal">
+            <Checkbox
+              checked={Boolean(isRecommended)}
+              onCheckedChange={(next) => form.setValue("isRecommended", Boolean(next))}
+            />
+            Recommended
           </Label>
         </div>
         <Button type="submit" disabled={pending}>

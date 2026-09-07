@@ -24,6 +24,7 @@ import {
   getInstituteFinanceSummary,
 } from "@/lib/data/dashboard.data";
 import { getRevenueTrend } from "@/lib/data/subscription.data";
+import { getInstituteBillingDashboardAlerts } from "@/lib/data/subscription.data";
 import { getPlatformDashboardSummary } from "@/lib/data/platform-dashboard.data";
 import { getPlatformAlerts, type PlatformAlertSeverity } from "@/lib/data/platform-alerts.data";
 import { getTeacherDashboardData } from "@/lib/data/teacher-dashboard.data";
@@ -130,6 +131,7 @@ export default async function DashboardPage() {
       financeTrend,
       leaveSummary,
       unreadMessages,
+      billingAlerts,
     ] = await Promise.all([
       getInstituteDashboardCounts(),
       getInstituteRecentActivity(),
@@ -142,6 +144,7 @@ export default async function DashboardPage() {
       getFinanceTrend(6),
       getLeaveDashboardSummary(),
       countUnreadMessages(),
+      getInstituteBillingDashboardAlerts(),
     ]);
 
     const activityItems: ActivityItem[] = activity.map((entry) => {
@@ -197,6 +200,26 @@ export default async function DashboardPage() {
       : [];
 
     const adminAttentionItems = [
+      billingAlerts.pendingPayment
+        ? {
+            id: "pending-subscription-payment",
+            title: "Subscription payment is awaiting PayHere confirmation",
+            detail: `${billingAlerts.pendingPayment.planName} checkout (${billingAlerts.pendingPayment.orderId}) is ${billingAlerts.pendingPayment.status}. Do not pay again while confirmation is pending.`,
+            badge: "Pending",
+            badgeVariant: "warning" as const,
+            href: "/subscription",
+          }
+        : null,
+      billingAlerts.renewalDate
+        ? {
+            id: "subscription-renewal-upcoming",
+            title: "Subscription renewal is coming up",
+            detail: `${billingAlerts.renewalPlanName ?? "Your LearningMS plan"} ends on ${formatDate(billingAlerts.renewalDate)}. Renew to keep access active.`,
+            badge: formatDate(billingAlerts.renewalDate),
+            badgeVariant: "warning" as const,
+            href: "/subscription",
+          }
+        : null,
       featureSnapshot.financeSignals.overdueFees > 0
         ? {
             id: "overdue-fees",
