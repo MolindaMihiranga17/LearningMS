@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/db/connect";
-import { setSessionCookie } from "@/lib/auth/session";
+import { getSession, setSessionCookie } from "@/lib/auth/session";
 import { requireRole, requireSession } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import UserModel from "@/models/User";
@@ -17,7 +17,7 @@ export async function startImpersonation(formData: FormData): Promise<void> {
   if (typeof targetUserId !== "string" || !/^[0-9a-fA-F]{24}$/.test(targetUserId)) return;
   await connectToDatabase();
   const target = await UserModel.findOne({ _id: targetUserId, role: "institute-admin", status: "active" });
-  if (!target?.instituteId) return;
+  if (!target?.instituteId || target.mustChangePassword) return;
   const institute = await InstituteModel.findById(target.instituteId).select("name status");
   if (!institute || institute.status === "cancelled") return;
   const actor = await UserModel.findById(session.userId).select("name email").lean();
@@ -37,7 +37,8 @@ export async function startImpersonation(formData: FormData): Promise<void> {
 }
 
 export async function exitImpersonation(): Promise<void> {
-  const session = await requireSession();
+  const session = await getSession({ allowPasswordChange: true });
+  if (!session) redirect("/login");
   if (!session.impersonatedBy) redirect("/dashboard");
   await connectToDatabase();
   const superAdmin = await UserModel.findOne({ _id: session.impersonatedBy, role: "super-admin", status: "active" }).select("name email mustChangePassword");
