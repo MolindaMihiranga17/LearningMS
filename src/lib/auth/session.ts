@@ -50,9 +50,40 @@ export async function clearSessionCookie() {
   cookieStore.delete(COOKIE_NAME);
 }
 
-export async function getSession(): Promise<SessionPayload | null> {
+export async function getSession(
+  options: { allowPasswordChange?: boolean } = {}
+): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifySession(token);
+  const session = verifySession(token);
+  if (!session || !/^[a-f0-9]{24}$/i.test(session.userId)) return null;
+
+  // Cookie claims are only a snapshot: check current account state on every request.
+  const { connectToDatabase } = await import("@/lib/db/connect");
+  const { default: UserModel } = await import("@/models/User");
+  const { default: InstituteModel } = await import("@/models/Institute");
+  await connectToDatabase();
+  const user = await UserModel.findById(session.userId)
+    .select("status role instituteId mustChangePassword").lean();
+  if (!user || user.status !== "active" || user.role !== session.role ||
+      (user.instituteId?.toString() ?? null) !== session.instituteId) return null;
+
+  if (session.impersonatedBy) {
+    if (!/^[a-f0-9]{24}$/i.test(session.impersonatedBy) || user.role !== "institute-admin") return null;
+    const actor = await UserModel.findById(session.impersonatedBy)
+      .select("status role mustChangePassword").lean();
+    if (!actor || actor.status !== "active" || actor.role !== "super-admin" || actor.mustChangePassword) return null;
+  }
+
+  if (user.role !== "super-admin") {
+    if (!user.instituteId) return null;
+    const institute = await InstituteModel.findById(user.instituteId).select("status").lean();
+    if (!institute || institute.status === "cancelled" ||
+        (institute.status === "suspended" && !session.impersonatedBy)) return null;
+  }
+
+  const currentSession = { ...session, mustChangePassword: Boolean(user.mustChangePassword) };
+  if (currentSession.mustChangePassword && !options.allowPasswordChange) return null;
+  return currentSession;
 }
