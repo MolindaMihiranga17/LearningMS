@@ -7,10 +7,11 @@ export { getSession };
 export type { SessionPayload };
 
 export async function requireSession(): Promise<SessionPayload> {
-  const session = await getSession();
+  const session = await getSession({ allowPasswordChange: true });
   if (!session) {
     redirect("/login");
   }
+  if (session.mustChangePassword) redirect("/change-password");
   return session;
 }
 
