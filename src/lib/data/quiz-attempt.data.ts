@@ -7,6 +7,8 @@ import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/s
 import { toStudentSafeQuestion } from "@/lib/data/quiz.data";
 import { assertOwnsQuiz } from "@/lib/actions/quiz-ownership";
 import { gradeAttemptAnswers, type SubmittedAnswer } from "@/lib/quiz/grade-attempt-answers";
+import { recomputeGradeForSource } from "@/lib/data/grade-rollup";
+import type { SessionPayload } from "@/lib/tenant/scope";
 
 /**
  * If a student never clicks submit, the deadline is still enforced here: any
@@ -14,8 +16,11 @@ import { gradeAttemptAnswers, type SubmittedAnswer } from "@/lib/quiz/grade-atte
  * were autosaved during the attempt, so a missed submit doesn't zero out
  * work that was actually done.
  */
-async function forceSubmitIfExpired(attempt: InstanceType<typeof QuizAttemptModel>) {
-  if (attempt.status !== "in_progress" || new Date() <= attempt.expiresAt) {
+async function forceSubmitIfExpired(
+  attempt: InstanceType<typeof QuizAttemptModel>,
+  session: SessionPayload
+) {
+  if (attempt.status !== "in_progress" || new Date() < attempt.expiresAt) {
     return attempt;
   }
 
@@ -49,6 +54,10 @@ async function forceSubmitIfExpired(attempt: InstanceType<typeof QuizAttemptMode
   attempt.status = hasPendingShort ? "submitted" : "graded";
   await attempt.save();
 
+  if (!hasPendingShort) {
+    await recomputeGradeForSource("quiz", attempt._id.toString(), session);
+  }
+
   return attempt;
 }
 
@@ -62,7 +71,7 @@ export async function getActiveAttemptForStudent(quizId: string) {
   if (!attempt) return null;
   assertSameInstitute(attempt, session);
 
-  await forceSubmitIfExpired(attempt);
+  await forceSubmitIfExpired(attempt, session);
 
   return attempt.toObject();
 }
@@ -78,7 +87,7 @@ export async function getQuizQuestionsForAttempt(attemptId: string) {
   assertSameInstitute(attempt, session);
   if (attempt.studentId.toString() !== session.userId) return null;
 
-  await forceSubmitIfExpired(attempt);
+  await forceSubmitIfExpired(attempt, session);
 
   const quiz = await QuizModel.findById(attempt.quizId).lean();
   if (!quiz) return null;
@@ -104,7 +113,7 @@ export async function getAttemptResultForStudent(quizId: string) {
   if (!attempt) return null;
   assertSameInstitute(attempt, session);
 
-  await forceSubmitIfExpired(attempt);
+  await forceSubmitIfExpired(attempt, session);
 
   const quiz = await QuizModel.findById(quizId).select("title").lean();
 

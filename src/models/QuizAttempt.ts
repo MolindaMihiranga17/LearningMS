@@ -37,7 +37,8 @@ const quizAttemptSchema = new Schema(
   { timestamps: true }
 );
 
-// Not unique — the one-attempt-per-student policy is enforced in startQuizAttempt.
+// Lookup index for legacy IDs. New starts use a deterministic _id per quiz/student,
+// so concurrent inserts are protected by MongoDB's unique _id index.
 quizAttemptSchema.index({ quizId: 1, studentId: 1 });
 
 export type QuizAttemptAnswer = {

@@ -15,7 +15,7 @@ import {
 import { CountdownTimer } from "./countdown-timer";
 import { QuestionRenderer, type AnswerValue, type StudentQuestion } from "./question-renderer";
 
-const AUTOSAVE_DELAY_MS = 2000;
+const AUTOSAVE_DELAY_MS = 250;
 
 export function TakeQuizForm({
   attemptId,
@@ -32,12 +32,15 @@ export function TakeQuizForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>(initialAnswers ?? {});
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [expired, setExpired] = useState(false);
   const [, startSaveTransition] = useTransition();
   const skipNextAutosave = useRef(true);
 
   const handleExpire = useCallback(() => {
+    setExpired(true);
+    setConfirmOpen(false);
     formRef.current?.requestSubmit();
   }, []);
 
@@ -61,10 +64,10 @@ export function TakeQuizForm({
       formData.append("answers", answersPayload);
       startSaveTransition(async () => {
         try {
-          await saveQuizProgress(formData);
-          setSaveStatus("saved");
+          const result = await saveQuizProgress(formData);
+          setSaveStatus(result.error ? "error" : "saved");
         } catch {
-          setSaveStatus("idle");
+          setSaveStatus("error");
         }
       });
     }, AUTOSAVE_DELAY_MS);
@@ -100,7 +103,8 @@ export function TakeQuizForm({
               <p className="text-eyebrow text-primary">Assessment in progress</p>
               <h1 className="text-heading mt-2 text-2xl">{quizTitle}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Answer every question, then submit when you are ready.
+                Answer every question, then submit when you are ready. When time expires,
+                only answers saved before the deadline count.
               </p>
             </div>
             <CountdownTimer expiresAt={expiresAt} onExpire={handleExpire} />
@@ -110,12 +114,12 @@ export function TakeQuizForm({
               {answeredCount} of {questions.length} question{questions.length === 1 ? "" : "s"} answered
             </span>
             <span>
-              {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : null}
+              {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Could not save answers" : null}
             </span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <fieldset disabled={expired} className="flex flex-col gap-4">
           {questions.map((question, index) => (
             <QuestionRenderer
               key={question._id}
@@ -127,7 +131,7 @@ export function TakeQuizForm({
               }
             />
           ))}
-        </div>
+        </fieldset>
 
         <Button type="submit" className="self-start" onClick={handleSubmitClick}>
           Submit quiz

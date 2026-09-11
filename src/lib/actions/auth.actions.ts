@@ -89,9 +89,12 @@ export async function changePassword(
   _prevState: ChangePasswordState,
   formData: FormData
 ): Promise<ChangePasswordState> {
-  const session = await getSession();
+  const session = await getSession({ allowPasswordChange: true });
   if (!session) {
     redirect("/login");
+  }
+  if (session.impersonatedBy) {
+    return { error: "End support impersonation before changing a password." };
   }
 
   const parsed = changePasswordSchema.safeParse({
