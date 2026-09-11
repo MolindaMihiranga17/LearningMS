@@ -13,7 +13,8 @@ import { assertOwnsQuiz } from "@/lib/actions/quiz-ownership";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { recomputeGradeForSource } from "@/lib/data/grade-rollup";
 import { submitQuizAttemptSchema, gradeShortAnswerSchema } from "@/lib/validation/quiz-attempt.schema";
-import { gradeAttemptAnswers } from "@/lib/quiz/grade-attempt-answers";
+import { gradeAttemptAnswers, type SubmittedAnswer } from "@/lib/quiz/grade-attempt-answers";
+import { quizAttemptId } from "@/lib/quiz/attempt-id";
 
 export async function startQuizAttempt(formData: FormData): Promise<void> {
   const session = await requireSession();
@@ -49,22 +50,32 @@ export async function startQuizAttempt(formData: FormData): Promise<void> {
   const startedAt = new Date();
   const expiresAt = new Date(startedAt.getTime() + quiz.timeLimitMinutes * 60_000);
 
-  await QuizAttemptModel.create({
-    instituteId: session.instituteId,
-    quizId: quiz._id,
-    courseId: quiz.courseId,
-    studentId: session.userId,
-    startedAt,
-    expiresAt,
-    status: "in_progress",
-    maxScore,
-    answers: [],
-  });
+  const attemptId = quizAttemptId(quiz._id.toString(), session.userId);
+  try {
+    await QuizAttemptModel.create({
+      _id: attemptId,
+      instituteId: session.instituteId,
+      quizId: quiz._id,
+      courseId: quiz.courseId,
+      studentId: session.userId,
+      startedAt,
+      expiresAt,
+      status: "in_progress",
+      maxScore,
+      answers: [],
+    });
+  } catch (error) {
+    if (!(error instanceof Error) || !("code" in error) || error.code !== 11000) throw error;
+    // Only recover when this student's concurrent request created the attempt.
+    const winner = await QuizAttemptModel.findOne({ _id: attemptId, quizId: quiz._id, studentId: session.userId }).lean();
+    if (!winner) throw error;
+  }
 
   redirect(`/my-courses/${courseId}/quizzes/${quizId}/take`);
 }
 
 export async function submitQuizAttempt(formData: FormData): Promise<void> {
+  const receivedAt = new Date();
   const session = await requireSession();
   requireRole(session, ["student"]);
 
@@ -102,7 +113,18 @@ export async function submitQuizAttempt(formData: FormData): Promise<void> {
     .sort({ order: 1 })
     .lean();
 
-  const answerByQuestionId = new Map(submittedAnswers.map((answer) => [answer.questionId, answer]));
+  // The browser timer is advisory. Late requests can finalize saved work, but
+  // cannot introduce new answers. Use arrival time so DB latency costs no time.
+  const acceptedAnswers: SubmittedAnswer[] = receivedAt >= attempt.expiresAt
+    ? attempt.answers.map((answer: QuizAttemptAnswer) => ({
+        type: answer.type,
+        questionId: answer.questionId.toString(),
+        selectedOptionIndex: answer.selectedOptionIndex,
+        selectedBoolean: answer.selectedBoolean,
+        textAnswer: answer.textAnswer,
+      }))
+    : submittedAnswers;
+  const answerByQuestionId = new Map(acceptedAnswers.map((answer) => [answer.questionId, answer]));
 
   const { answers, autoGradedScore, hasPendingShort } = gradeAttemptAnswers(
     questions,
@@ -161,12 +183,17 @@ export async function saveQuizProgress(formData: FormData): Promise<{ error?: st
     return { error: "Attempt not found." };
   }
 
-  if (attempt.status !== "in_progress" || new Date() > attempt.expiresAt) {
+  if (attempt.status !== "in_progress" || new Date() >= attempt.expiresAt) {
     return { error: "Attempt is no longer in progress." };
   }
 
-  attempt.answers = parsed.data.answers.map((answer) => ({ ...answer }));
-  await attempt.save();
+  // Recheck at write time: an autosave queued before submission must not replace
+  // graded answers or write after the deadline.
+  const saved = await QuizAttemptModel.updateOne(
+    { _id: attempt._id, status: "in_progress", expiresAt: { $gt: new Date() } },
+    { $set: { answers: parsed.data.answers.map((answer) => ({ ...answer })) } }
+  );
+  if (!saved.matchedCount) return { error: "Attempt is no longer in progress." };
 
   return {};
 }
@@ -235,7 +262,6 @@ export async function gradeShortAnswer(
     .reduce((sum: number, entry: QuizAttemptAnswer) => sum + (entry.pointsAwarded ?? 0), 0);
   attempt.totalScore = attempt.autoGradedScore + attempt.manualGradedScore;
 
-  const justCompletedGrading = attempt.status !== "graded" && !stillPending;
   if (!stillPending) {
     attempt.status = "graded";
   }
@@ -254,7 +280,7 @@ export async function gradeShortAnswer(
     summary: `Graded ${student?.name ?? "student"}'s short answer on "${quiz.title}" (${points}/${maxPoints})`,
   });
 
-  if (justCompletedGrading) {
+  if (!stillPending) {
     await recomputeGradeForSource("quiz", attempt._id.toString(), session);
   }
 
