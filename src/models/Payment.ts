@@ -13,6 +13,7 @@ const paymentSchema = new Schema(
     },
     paymentDate: { type: Date, required: true },
     receiptNumber: { type: String, required: true, unique: true, trim: true },
+    requestHash: { type: String },
     recordedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     notes: { type: String, trim: true },
   },
