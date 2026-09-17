@@ -12,6 +12,7 @@ const userSchema = new Schema(
     instituteId: { type: Schema.Types.ObjectId, ref: "Institute", default: null },
     status: { type: String, enum: ["active", "suspended"], default: "active" },
     mustChangePassword: { type: Boolean, default: false },
+    sessionVersion: { type: Number, default: 0 },
     lastLoginAt: { type: Date },
     phone: { type: String, trim: true },
     avatarUrl: { type: String },
