@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test tests/*.test.mjs",
+    "test:layout": "playwright test",
     "seed:superadmin": "tsx scripts/bootstrapSuperAdmin.ts",
     "seed:demo": "tsx scripts/seedDemoData.ts",
     "seed:fill-current": "tsx scripts/fillCurrentUsersDemoData.ts",
@@ -43,6 +44,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@fontsource/poppins": "^5.3.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
