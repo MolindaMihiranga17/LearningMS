@@ -43,7 +43,8 @@ import {
   getStudentFeatureSnapshot,
   getTeacherFeatureSnapshot,
 } from "@/lib/data/feature-plan.data";
-import { StatCard } from "@/components/dashboard-shell/stat-card";
+import { PlatformStatGrid, StatCard } from "@/components/dashboard-shell/stat-card";
+import { DashboardHero } from "@/components/dashboard-shell/dashboard-hero";
 import { Panel } from "@/components/dashboard-shell/panel";
 import { AttendanceChart } from "@/components/dashboard-shell/attendance-chart";
 import { TrendChart } from "@/components/dashboard-shell/trend-chart";
@@ -106,10 +107,6 @@ const ACTIVITY_ICON = {
   payment: Wallet,
   announcement: Megaphone,
 } as const;
-
-function DashboardHero({ eyebrow, title, description, accent, metrics }: { eyebrow: string; title: string; description: string; accent: string; metrics: Array<{ label: string; value: string | number; detail: string }> }) {
-  return <section className="dashboard-hero overflow-hidden rounded-[28px] border border-border/70 px-6 py-6 shadow-panel sm:px-7 sm:py-7" style={{ "--dashboard-hero-accent": accent } as React.CSSProperties}><div className="grid gap-6 xl:grid-cols-[1.35fr_.95fr] xl:items-end"><div><p className="text-eyebrow text-primary">{eyebrow}</p><h1 className="text-heading mt-2 text-3xl sm:text-[2.1rem]">{title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p></div><div className="grid gap-3 sm:grid-cols-3">{metrics.map((metric) => <div key={metric.label} className="rounded-2xl border border-white/65 bg-card/75 p-4 shadow-sm"><p className="text-eyebrow">{metric.label}</p><p className="mt-2 text-2xl font-semibold tabular-nums">{metric.value}</p><p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p></div>)}</div></div></section>;
-}
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -881,7 +878,7 @@ export default async function DashboardPage() {
     return (
       <>
         <DashboardHero eyebrow="Platform overview" title="Everything important, in one view." description="Monitor growth, revenue, account health, and the platform work that needs action." accent="#2a78d6" metrics={[{ label: "Institutes", value: summary.institutes, detail: `${summary.newThisMonth} new this month` }, { label: "MRR", value: formatLkr(summary.mrr), detail: "Active subscriptions" }, { label: "Alerts", value: alerts.length, detail: "Platform signals" }]} />
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        <PlatformStatGrid>
           <StatCard label="Institutes" icon={Building2} value={summary.institutes} tone="primary" />
           <StatCard label="Active users" icon={Users} value={summary.activeUsers} sub={`${summary.students.toLocaleString()} students`} tone="info" />
           <StatCard
@@ -905,7 +902,7 @@ export default async function DashboardPage() {
             sub={`${warningAlertCount} warning${warningAlertCount === 1 ? "" : "s"}`}
             tone={criticalAlertCount > 0 ? "warning" : "success"}
           />
-        </div>
+        </PlatformStatGrid>
 
         <div className="flex flex-col gap-6 lg:flex-row">
           <TrendChart
@@ -916,8 +913,8 @@ export default async function DashboardPage() {
             emptyLabel="No institute signups yet."
           />
 
-          <Panel title="Growth snapshot" sub="This month across the platform" className="flex-1 p-6">
-            <div className="mt-4 grid grid-cols-3 gap-3 text-center"><div><p className="text-xl font-semibold">{summary.newThisMonth}</p><p className="text-xs text-muted-foreground">New</p></div><div><p className="text-xl font-semibold">{summary.suspended}</p><p className="text-xs text-muted-foreground">Suspended</p></div><div><p className="text-xl font-semibold">{summary.churned}</p><p className="text-xs text-muted-foreground">Churned</p></div></div>
+          <Panel title="Institute snapshot" sub="New this month and current account statuses" className="flex-1 p-6">
+            <div className="mt-4 grid grid-cols-3 gap-3 text-center"><div><p className="text-xl font-semibold">{summary.newThisMonth}</p><p className="text-xs text-muted-foreground">New this month</p></div><div><p className="text-xl font-semibold">{summary.suspended}</p><p className="text-xs text-muted-foreground">Currently suspended</p></div><div><p className="text-xl font-semibold">{summary.churned}</p><p className="text-xs text-muted-foreground">Cancelled accounts</p></div></div>
             <Link href="/institutes" className="mt-5 inline-block text-sm font-semibold text-success">Manage institutes &rarr;</Link>
           </Panel>
         </div>
