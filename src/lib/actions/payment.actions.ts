@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "@/lib/db/connect";
 import PaymentModel from "@/models/Payment";
@@ -10,16 +11,6 @@ import { recordAuditEntry } from "@/lib/audit/log";
 import { recordPaymentSchema } from "@/lib/validation/payment.schema";
 import { sendSms, sendSmsToUser } from "@/lib/communications/sms";
 import { sendEmail, sendEmailToUser } from "@/lib/communications/email";
-
-async function generateReceiptNumber(instituteId: string): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `INST-${year}-`;
-  const count = await PaymentModel.countDocuments({
-    instituteId,
-    receiptNumber: { $regex: `^${prefix}` },
-  });
-  return `${prefix}${String(count + 1).padStart(5, "0")}`;
-}
 
 export type RecordPaymentState = {
   error?: string;
@@ -50,8 +41,31 @@ export async function recordPayment(
   }
 
   const { studentId, feeId, amount, paymentMethod, paymentDate, notes } = parsed.data;
+  const submissionKey = formData.get("submissionKey");
+  if (typeof submissionKey !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(submissionKey)) {
+    return { error: "Refresh the payment form and try again." };
+  }
+
+  // MongoDB's existing unique _id index arbitrates concurrent retries, without an index migration.
+  const paymentId = createHash("sha256")
+    .update(JSON.stringify([session.instituteId, session.userId, submissionKey.toLowerCase()]))
+    .digest("hex").slice(0, 24);
+  const requestHash = createHash("sha256")
+    .update(JSON.stringify([studentId, feeId || null, amount, paymentMethod, paymentDate, notes || ""]))
+    .digest("hex");
 
   await connectToDatabase();
+
+  const replayResult = (payment: { _id: { toString(): string }; requestHash?: string; receiptNumber: string }): RecordPaymentState => {
+    if (payment.requestHash !== requestHash) {
+      return { error: "This submission already recorded a different payment. Refresh to start a new payment." };
+    }
+    revalidatePath(`/fees/students/${studentId}/payments`);
+    revalidatePath("/fees");
+    return { success: { paymentId: payment._id.toString(), receiptNumber: payment.receiptNumber } };
+  };
+  const existing = await PaymentModel.findOne(withTenantScope({ _id: paymentId, recordedBy: session.userId }, session));
+  if (existing) return replayResult(existing);
 
   const student = await UserModel.findOne(
     withTenantScope({ _id: studentId, role: "student" }, session)
@@ -68,29 +82,25 @@ export async function recordPayment(
   }
 
   let payment;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const receiptNumber = await generateReceiptNumber(session.instituteId as string);
-    try {
-      payment = await PaymentModel.create({
-        instituteId: session.instituteId,
-        studentId,
-        feeId: feeId || undefined,
-        amount,
-        paymentMethod,
-        paymentDate: new Date(paymentDate),
-        receiptNumber,
-        recordedBy: session.userId,
-        notes: notes || undefined,
-      });
-      break;
-    } catch (err) {
-      const isDuplicateKey = (err as { code?: number })?.code === 11000;
-      if (!isDuplicateKey || attempt === 4) throw err;
-    }
-  }
-
-  if (!payment) {
-    return { error: "Could not generate a receipt number. Please try again." };
+  try {
+    payment = await PaymentModel.create({
+      _id: paymentId,
+      requestHash,
+      instituteId: session.instituteId,
+      studentId,
+      feeId: feeId || undefined,
+      amount,
+      paymentMethod,
+      paymentDate: new Date(paymentDate),
+      receiptNumber: `PAY-${paymentId.toUpperCase()}`,
+      recordedBy: session.userId,
+      notes: notes || undefined,
+    });
+  } catch (err) {
+    if ((err as { code?: number })?.code !== 11000) throw err;
+    const recorded = await PaymentModel.findOne(withTenantScope({ _id: paymentId, recordedBy: session.userId }, session));
+    if (!recorded) throw err;
+    return replayResult(recorded);
   }
 
   const actor = await UserModel.findById(session.userId).select("name");

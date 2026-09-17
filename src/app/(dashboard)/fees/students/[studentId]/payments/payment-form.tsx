@@ -36,6 +36,7 @@ export function PaymentForm({
   fees: { id: string; title: string; balance: number }[];
 }) {
   const [state, formAction, pending] = useActionState(recordPayment, initialState);
+  const submissionKey = React.useRef<string | null>(null);
 
   const form = useForm<RecordPaymentInput>({
     resolver: zodResolver(recordPaymentSchema),
@@ -52,6 +53,7 @@ export function PaymentForm({
   React.useEffect(() => {
     if (state.error) toast.error("Could not record payment", state.error);
     if (state.success) {
+      submissionKey.current = null;
       toast.success("Payment recorded", `Receipt ${state.success.receiptNumber}`);
       form.reset({
         studentId,
@@ -65,15 +67,20 @@ export function PaymentForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const onSubmit = form.handleSubmit((values) => {
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-      formData.append(key, String(value ?? ""));
-    });
-    React.startTransition(() => {
-      formAction(formData);
-    });
-  });
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    void form.handleSubmit((values) => {
+      if (pending) return;
+      submissionKey.current ??= crypto.randomUUID();
+      const formData = new FormData();
+      formData.set("submissionKey", submissionKey.current);
+      Object.entries(values).forEach(([key, value]) => {
+        formData.append(key, String(value ?? ""));
+      });
+      React.startTransition(() => {
+        formAction(formData);
+      });
+    })(event);
+  };
 
   return (
     <Form {...form}>

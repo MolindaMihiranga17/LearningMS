@@ -29,6 +29,29 @@ test("active session is accepted", async () => {
   assert.equal((await auth.getSession()).userId, userId);
 });
 
+test("password changes revoke legacy cookies and old versioned cookies", async () => {
+  const { auth, payload, user } = setup();
+  user.sessionVersion = 1;
+  assert.equal(await auth.getSession(), null);
+  assert.equal(await auth.getSession({ allowPasswordChange: true }), null);
+  payload.sessionVersion = 1;
+  assert.ok(await auth.getSession());
+  user.sessionVersion = 2;
+  assert.equal(await auth.getSession(), null);
+});
+
+test("support sessions are revoked when either account changes its password", async () => {
+  const { auth, payload, user, actor } = setup();
+  user.role = payload.role = "institute-admin";
+  payload.impersonatedBy = actorId;
+  actor.sessionVersion = 1;
+  assert.equal(await auth.getSession(), null);
+  payload.impersonatorSessionVersion = 1;
+  assert.ok(await auth.getSession());
+  user.sessionVersion = 1;
+  assert.equal(await auth.getSession(), null);
+});
+
 for (const change of ["suspended user", "suspended institute", "cancelled institute", "role changed", "tenant changed"]) {
   test(`existing signed session is rejected after ${change}`, async () => {
     const { auth, user, institute } = setup();
