@@ -32,7 +32,7 @@ export async function startImpersonation(formData: FormData): Promise<void> {
     summary: `Started support impersonation as ${target.name} for ${institute.name}.`,
     metadata: { impersonatedUserId: String(target._id), impersonatedBy: session.userId },
   });
-  await setSessionCookie({ userId: String(target._id), role: "institute-admin", instituteId: String(target.instituteId), mustChangePassword: target.mustChangePassword, impersonatedBy: session.userId, impersonatedByEmail: actor?.email }, IMPERSONATION_TTL_SECONDS);
+  await setSessionCookie({ userId: String(target._id), role: "institute-admin", instituteId: String(target.instituteId), mustChangePassword: target.mustChangePassword, sessionVersion: target.sessionVersion ?? 0, impersonatedBy: session.userId, impersonatedByEmail: actor?.email, impersonatorSessionVersion: session.sessionVersion ?? 0 }, IMPERSONATION_TTL_SECONDS);
   redirect("/dashboard");
 }
 
@@ -41,8 +41,8 @@ export async function exitImpersonation(): Promise<void> {
   if (!session) redirect("/login");
   if (!session.impersonatedBy) redirect("/dashboard");
   await connectToDatabase();
-  const superAdmin = await UserModel.findOne({ _id: session.impersonatedBy, role: "super-admin", status: "active" }).select("name email mustChangePassword");
-  if (!superAdmin) redirect("/login");
+  const superAdmin = await UserModel.findOne({ _id: session.impersonatedBy, role: "super-admin", status: "active" }).select("name email mustChangePassword sessionVersion");
+  if (!superAdmin || (superAdmin.sessionVersion ?? 0) !== (session.impersonatorSessionVersion ?? 0)) redirect("/login");
   const target = await UserModel.findById(session.userId).select("name instituteId");
   await recordAuditEntry({
     session: { userId: String(superAdmin._id), role: "super-admin", instituteId: null, mustChangePassword: superAdmin.mustChangePassword },
@@ -55,6 +55,6 @@ export async function exitImpersonation(): Promise<void> {
     summary: `Ended support impersonation${target?.name ? ` as ${target.name}` : ""}.`,
     metadata: { impersonatedBy: String(superAdmin._id) },
   });
-  await setSessionCookie({ userId: String(superAdmin._id), role: "super-admin", instituteId: null, mustChangePassword: superAdmin.mustChangePassword });
+  await setSessionCookie({ userId: String(superAdmin._id), role: "super-admin", instituteId: null, mustChangePassword: superAdmin.mustChangePassword, sessionVersion: superAdmin.sessionVersion ?? 0 });
   redirect("/dashboard");
 }
