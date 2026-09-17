@@ -207,9 +207,10 @@ export async function resetInstituteAdminPassword(
   }
 
   const tempPassword = generateTempPassword();
-  admin.passwordHash = await hashPassword(tempPassword);
-  admin.mustChangePassword = true;
-  await admin.save();
+  await UserModel.updateOne(
+    { _id: admin._id },
+    { $set: { passwordHash: await hashPassword(tempPassword), mustChangePassword: true }, $inc: { sessionVersion: 1 } }
+  );
 
   const actor = await UserModel.findById(session.userId).select("name");
 
