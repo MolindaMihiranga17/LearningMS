@@ -16,6 +16,8 @@ export type SessionPayload = {
   role: Role;
   instituteId: string | null;
   mustChangePassword: boolean;
+  sessionVersion?: number;
+  impersonatorSessionVersion?: number;
   /** Present only while a super-admin is acting as an institute administrator. */
   impersonatedBy?: string;
   impersonatedByEmail?: string;
@@ -65,15 +67,17 @@ export async function getSession(
   const { default: InstituteModel } = await import("@/models/Institute");
   await connectToDatabase();
   const user = await UserModel.findById(session.userId)
-    .select("status role instituteId mustChangePassword").lean();
+    .select("status role instituteId mustChangePassword sessionVersion").lean();
   if (!user || user.status !== "active" || user.role !== session.role ||
       (user.instituteId?.toString() ?? null) !== session.instituteId) return null;
+  if ((session.sessionVersion ?? 0) !== (user.sessionVersion ?? 0)) return null;
 
   if (session.impersonatedBy) {
     if (!/^[a-f0-9]{24}$/i.test(session.impersonatedBy) || user.role !== "institute-admin") return null;
     const actor = await UserModel.findById(session.impersonatedBy)
-      .select("status role mustChangePassword").lean();
+      .select("status role mustChangePassword sessionVersion").lean();
     if (!actor || actor.status !== "active" || actor.role !== "super-admin" || actor.mustChangePassword) return null;
+    if ((session.impersonatorSessionVersion ?? 0) !== (actor.sessionVersion ?? 0)) return null;
   }
 
   if (user.role !== "super-admin") {
