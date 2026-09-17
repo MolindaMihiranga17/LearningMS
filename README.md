@@ -62,7 +62,17 @@ Auth and scoping helpers live in `src/lib/tenant/scope.ts`:
 | `npm run seed:fill-current`, `seed:student-demo` | backfill demo data onto existing users |
 | `npm run backfill:subscriptions` | one-off subscription data backfill |
 
+## Validation
+
+- `npm test` runs payment retry, password change, session, and quiz regression tests with mocked database/framework boundaries.
+- `npm run lint` and `npx tsc --noEmit --incremental false` check the source.
+- Run `npx playwright install chromium` once, then `npm run test:layout` for mobile, tablet, and desktop dashboard layout checks. These render the real dashboard components with the application stylesheet and Poppins font in Chromium; no database, account credentials, or running app server is needed. Screenshots are saved under `test-results/`. These are component layout checks, not full authenticated end-to-end tests.
+
+New manual payments use globally unique `PAY-…` receipt numbers. Existing receipt numbers are unchanged. The payment form retains a submission key until success; retries with that key return the original payment, while a changed payload is rejected. Database `_id` uniqueness enforces concurrent retry protection without adding an index to existing records.
+
+Password changes and institute-admin password resets increment the user's session version. Old cookies become invalid; a successful self-service change renews only the current browser's session. Existing users/cookies without a version are treated as version zero until their password changes. Restart a running development server after pulling these model changes.
+
 ## Known gaps
 
-- No automated tests or CI configured yet.
+- CI is not configured yet.
 - `src/app/(dashboard)` and the role-specific route groups look similar at a glance — see [Architecture](#architecture) for why that's intentional before "cleaning it up."
