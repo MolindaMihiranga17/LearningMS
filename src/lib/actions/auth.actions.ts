@@ -71,6 +71,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     role: user.role as Role,
     instituteId: user.instituteId ? user.instituteId.toString() : null,
     mustChangePassword: user.mustChangePassword,
+    sessionVersion: user.sessionVersion ?? 0,
   });
 
   redirect(user.mustChangePassword ? "/change-password" : ROLE_HOME[user.role as Role]);
@@ -119,15 +120,24 @@ export async function changePassword(
     return { error: "Current password is incorrect." };
   }
 
-  user.passwordHash = await hashPassword(parsed.data.newPassword);
-  user.mustChangePassword = false;
-  await user.save();
+  const updatedUser = await UserModel.findOneAndUpdate(
+    { _id: user._id, passwordHash: user.passwordHash },
+    {
+      $set: { passwordHash: await hashPassword(parsed.data.newPassword), mustChangePassword: false },
+      $inc: { sessionVersion: 1 },
+    },
+    { new: true }
+  );
+  if (!updatedUser) {
+    return { error: "Your password changed in another session. Sign in again." };
+  }
 
   await setSessionCookie({
     userId: session.userId,
     role: session.role,
     instituteId: session.instituteId,
     mustChangePassword: false,
+    sessionVersion: updatedUser.sessionVersion,
   });
 
   redirect(ROLE_HOME[session.role]);
