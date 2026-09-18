@@ -23,6 +23,7 @@ function setup() {
     "@/lib/auth/password": { comparePassword: async (password) => password === "old-password", hashPassword: async () => "new-hash" },
     "@/lib/auth/session": { getSession: async () => session, setSessionCookie: async (cookie) => cookies.push(cookie) },
     "@/lib/subscription/lifecycle": {},
+    "@/lib/audit/log": { recordAuditEntry: async () => {} },
     "@/lib/validation/auth.schema": loadModule("lib/validation/auth.schema.ts", { zod: { z } }),
   };
   const { changePassword } = loadModule("lib/actions/auth.actions.ts", mocks);
