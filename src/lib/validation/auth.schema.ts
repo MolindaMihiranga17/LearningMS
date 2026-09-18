@@ -10,7 +10,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1),
-    newPassword: z.string().min(8, "New password must be at least 8 characters."),
+    newPassword: z.string().min(12, "New password must be at least 12 characters."),
     confirmPassword: z.string().min(1),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
