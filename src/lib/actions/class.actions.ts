@@ -5,6 +5,8 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/connect";
 import ClassModel from "@/models/Class";
 import UserModel from "@/models/User";
+import AttendanceModel from "@/models/Attendance";
+import ExamModel from "@/models/Exam";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { createClassSchema, updateClassSchema } from "@/lib/validation/class.schema";
@@ -16,6 +18,62 @@ export type CreateClassState = {
     name: string;
   };
 };
+
+type TimetableConflict = {
+  name: string;
+  section?: string;
+  reason: "teacher" | "room";
+};
+
+async function findTimetableConflict({
+  instituteId,
+  academicYear,
+  day,
+  startTime,
+  endTime,
+  room,
+  classTeacherId,
+}: {
+  instituteId: string | null;
+  academicYear: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+  room: string;
+  classTeacherId: string;
+}): Promise<TimetableConflict | null> {
+  if (!instituteId || !day || !startTime || !endTime) return null;
+
+  const classes = await ClassModel.find({
+    instituteId,
+    academicYear,
+    status: "active",
+    "timetable.day": day,
+    ...(classTeacherId || room
+      ? { $or: [
+          ...(classTeacherId ? [{ classTeacherId }] : []),
+          ...(room ? [{ "timetable.room": room }] : []),
+        ] }
+      : {}),
+  }).select("name section classTeacherId timetable").lean();
+
+  for (const candidate of classes) {
+    const slots = candidate.timetable as { day?: string; startTime?: string; endTime?: string; room?: string }[];
+    const overlappingSlot = slots.find((slot) => {
+      const slotStart = slot.startTime;
+      const slotEnd = slot.endTime;
+      return slot.day === day && Boolean(slotStart && slotEnd) && startTime < slotEnd! && endTime > slotStart!;
+    });
+    if (!overlappingSlot) continue;
+    if (classTeacherId && candidate.classTeacherId?.toString() === classTeacherId) {
+      return { name: candidate.name, section: candidate.section, reason: "teacher" };
+    }
+    if (room && overlappingSlot.room?.trim().toLowerCase() === room.trim().toLowerCase()) {
+      return { name: candidate.name, section: candidate.section, reason: "room" };
+    }
+  }
+  return null;
+}
 
 export async function createClass(
   _prevState: CreateClassState,
@@ -52,6 +110,20 @@ export async function createClass(
     if (!teacher) {
       return { error: "Selected class teacher was not found in your institute." };
     }
+  }
+
+  const conflict = await findTimetableConflict({
+    instituteId: session.instituteId,
+    academicYear,
+    day: timetableDay ?? "",
+    startTime: timetableStart ?? "",
+    endTime: timetableEnd ?? "",
+    room: timetableRoom ?? "",
+    classTeacherId: classTeacherId ?? "",
+  });
+  if (conflict) {
+    const classLabel = `${conflict.name}${conflict.section ? ` ${conflict.section}` : ""}`;
+    return { error: `Timetable conflict: the ${conflict.reason} is already scheduled for ${classLabel} at that time.` };
   }
 
   const klass = await ClassModel.create({
@@ -96,7 +168,7 @@ export async function updateClass(
   requireRole(session, ["institute-admin"]);
 
   const id = formData.get("id");
-  if (typeof id !== "string" || !id) {
+  if (typeof id !== "string" || !mongoose.isValidObjectId(id)) {
     return { error: "Missing class id." };
   }
 
@@ -178,12 +250,21 @@ export async function deleteClass(formData: FormData): Promise<void> {
   requireRole(session, ["institute-admin"]);
 
   const id = formData.get("id");
-  if (typeof id !== "string" || !id) return;
+  if (typeof id !== "string" || !mongoose.isValidObjectId(id)) return;
 
   await connectToDatabase();
 
   const klass = await ClassModel.findOne(withTenantScope({ _id: id }, session));
   if (!klass) return;
+
+  const [studentCount, attendanceCount, examCount] = await Promise.all([
+    UserModel.countDocuments({ instituteId: session.instituteId, role: "student", "studentMeta.classId": klass._id }),
+    AttendanceModel.countDocuments({ instituteId: session.instituteId, classId: klass._id }),
+    ExamModel.countDocuments({ instituteId: session.instituteId, classId: klass._id }),
+  ]);
+  if (studentCount || attendanceCount || examCount) {
+    throw new Error("This class has linked students, attendance, or exams. Archive it instead to preserve academic records.");
+  }
 
   await ClassModel.deleteOne({ _id: klass._id });
 
@@ -221,7 +302,17 @@ export async function bulkDeleteClasses(formData: FormData): Promise<void> {
   ).select("name section academicYear");
   if (classes.length === 0) return;
 
-  await ClassModel.deleteMany({ _id: { $in: classes.map((klass) => klass._id) } });
+  const classIds = classes.map((klass) => klass._id);
+  const [studentCount, attendanceCount, examCount] = await Promise.all([
+    UserModel.countDocuments({ instituteId: session.instituteId, role: "student", "studentMeta.classId": { $in: classIds } }),
+    AttendanceModel.countDocuments({ instituteId: session.instituteId, classId: { $in: classIds } }),
+    ExamModel.countDocuments({ instituteId: session.instituteId, classId: { $in: classIds } }),
+  ]);
+  if (studentCount || attendanceCount || examCount) {
+    throw new Error("One or more selected classes have linked academic records. Archive them instead of deleting them.");
+  }
+
+  await ClassModel.deleteMany({ _id: { $in: classIds } });
 
   const actor = await UserModel.findById(session.userId).select("name");
   await recordAuditEntry({

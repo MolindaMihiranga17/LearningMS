@@ -59,6 +59,7 @@ export function ChangePasswordForm() {
               <FormControl>
                 <Input {...field} type="password" autoComplete="new-password" />
               </FormControl>
+              <p className="text-xs text-muted-foreground">Use at least 12 characters. A memorable passphrase is a good choice.</p>
               <FormMessage />
             </FormItem>
           )}

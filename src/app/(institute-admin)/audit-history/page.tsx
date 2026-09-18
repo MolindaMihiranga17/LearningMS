@@ -2,6 +2,7 @@ import { listInstituteAuditLogs } from "@/lib/data/deep-operations.data";
 import { Badge } from "@/components/ui/badge";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+import { AuditChangeSummary } from "@/components/audit/audit-change-summary";
 
 export default async function InstituteAuditHistoryPage() {
   const logs = await listInstituteAuditLogs();
@@ -16,7 +17,7 @@ export default async function InstituteAuditHistoryPage() {
       log.createdAt ? new Date(log.createdAt).getTime() : null,
       log.actorName,
       log.action,
-      null,
+      log.changedFields?.join(", ") ?? null,
     ],
     filterValues: {
       role: log.actorRole,
@@ -29,6 +30,12 @@ export default async function InstituteAuditHistoryPage() {
       <Badge key="role" variant="secondary">{log.actorRole}</Badge>,
       log.action,
       log.summary,
+      <AuditChangeSummary
+        key="changes"
+        changedFields={log.changedFields ?? []}
+        before={log.before as Record<string, unknown> | null}
+        after={log.after as Record<string, unknown> | null}
+      />,
     ],
   }));
 
@@ -45,6 +52,7 @@ export default async function InstituteAuditHistoryPage() {
           { key: "role", header: "Role" },
           { key: "action", header: "Action", sortable: true },
           { key: "summary", header: "Summary" },
+          { key: "changes", header: "Change detail" },
         ]}
         rows={rows}
         searchPlaceholder="Search audit history..."
