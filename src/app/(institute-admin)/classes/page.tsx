@@ -13,6 +13,7 @@ const COLUMNS = [
   { key: "section", header: "Section" },
   { key: "year", header: "Academic year", sortable: true },
   { key: "teacher", header: "Class teacher" },
+  { key: "timetable", header: "Timetable" },
   { key: "status", header: "Status", sortable: true },
   { key: "actions", header: "Actions" },
 ];
@@ -25,11 +26,15 @@ export default async function ClassesPage() {
 
   const rows: DataTableRow[] = classes.map((klass) => {
     const teacher = (klass.classTeacherId as unknown as { name?: string } | null)?.name;
+    const timetable = klass.timetable?.[0];
+    const schedule = timetable?.day && timetable.startTime && timetable.endTime
+      ? `${timetable.day.slice(0, 3)} ${timetable.startTime}–${timetable.endTime}${timetable.room ? ` · ${timetable.room}` : ""}`
+      : "Not scheduled";
     return {
       key: String(klass._id),
       bulkValue: String(klass._id),
-      searchValue: `${klass.name} ${klass.section ?? ""} ${teacher ?? ""}`,
-      sortValues: [klass.name, null, klass.academicYear, null, klass.status, null],
+      searchValue: `${klass.name} ${klass.section ?? ""} ${teacher ?? ""} ${schedule}`,
+      sortValues: [klass.name, null, klass.academicYear, null, schedule, klass.status, null],
       filterValues: {
         status: klass.status,
         teacherAssigned: teacher ? "assigned" : "unassigned",
@@ -39,6 +44,7 @@ export default async function ClassesPage() {
         klass.section || "-",
         klass.academicYear,
         teacher || "-",
+        <span key="timetable" className={timetable ? "text-foreground" : "text-muted-foreground"}>{schedule}</span>,
         <Badge key="status" variant={klass.status === "active" ? "success" : "secondary"} className="capitalize">
           {klass.status}
         </Badge>,
@@ -77,7 +83,7 @@ export default async function ClassesPage() {
               label: "Status",
               options: [
                 { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
+                { value: "archived", label: "Archived" },
               ],
             },
             {
