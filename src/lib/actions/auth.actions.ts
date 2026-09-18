@@ -9,6 +9,7 @@ import { comparePassword, hashPassword } from "@/lib/auth/password";
 import { setSessionCookie, clearSessionCookie, getSession } from "@/lib/auth/session";
 import { evaluateAndSyncSubscriptionStatus, checkTrialExpiringSoon, notifyOverdueInvoices } from "@/lib/subscription/lifecycle";
 import { loginSchema, changePasswordSchema } from "@/lib/validation/auth.schema";
+import { recordAuditEntry } from "@/lib/audit/log";
 
 export type LoginState = {
   error?: string;
@@ -131,6 +132,18 @@ export async function changePassword(
   if (!updatedUser) {
     return { error: "Your password changed in another session. Sign in again." };
   }
+
+  await recordAuditEntry({
+    session,
+    actorName: updatedUser.name,
+    action: "account.password_change",
+    targetType: "User",
+    targetId: updatedUser._id.toString(),
+    targetName: updatedUser.name,
+    summary: "Changed their password and revoked older sessions.",
+    changedFields: ["passwordHash", "mustChangePassword", "sessionVersion"],
+    metadata: { sessionVersion: updatedUser.sessionVersion },
+  });
 
   await setSessionCookie({
     userId: session.userId,
