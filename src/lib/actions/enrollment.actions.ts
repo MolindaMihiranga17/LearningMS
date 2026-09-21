@@ -7,6 +7,7 @@ import CourseModel from "@/models/Course";
 import ClassModel from "@/models/Class";
 import LessonModel from "@/models/Lesson";
 import UserModel from "@/models/User";
+import NotificationModel from "@/models/Notification";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { bulkEnrollSchema } from "@/lib/validation/enrollment.schema";
@@ -83,6 +84,30 @@ export async function bulkEnrollStudents(
 
   const enrolledCount = result.upsertedCount ?? 0;
   const alreadyEnrolledCount = students.length - enrolledCount;
+
+  const newlyEnrolledStudentIds = students
+    .map((student, index) => (result.upsertedIds?.[index] ? student._id : null))
+    .filter((id): id is NonNullable<typeof id> => id !== null);
+
+  if (newlyEnrolledStudentIds.length > 0) {
+    const notifiableStudents = await UserModel.find({
+      _id: { $in: newlyEnrolledStudentIds },
+      "notificationPreferences.academic": { $ne: false },
+    }).select("_id");
+
+    if (notifiableStudents.length > 0) {
+      await NotificationModel.insertMany(
+        notifiableStudents.map((student) => ({
+          instituteId: session.instituteId,
+          userId: student._id,
+          type: "academic",
+          title: `Enrolled in ${course.title}`,
+          body: `You have been enrolled in "${course.title}".`,
+          link: `/my-courses/${course._id.toString()}`,
+        }))
+      );
+    }
+  }
 
   const actor = await UserModel.findById(session.userId).select("name");
 
