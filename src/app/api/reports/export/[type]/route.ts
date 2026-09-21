@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { listStudents } from "@/lib/data/user.data";
+import { listStaff, listStudents } from "@/lib/data/user.data";
 import { listFeesForInstitute } from "@/lib/data/fee.data";
+import { listAllPaymentsForInstitute } from "@/lib/data/payment.data";
 import { listAuditLogs } from "@/lib/data/audit.data";
 import { listAcademicTermsForInstitute } from "@/lib/data/deep-operations.data";
 import { listUpcomingAcademicEvents } from "@/lib/data/academic-event.data";
@@ -11,10 +12,12 @@ import { toXlsxBuffer } from "@/lib/reports/xlsx";
 import { TabularReportPdf } from "@/lib/reports/tabular-report-pdf";
 import { getSession } from "@/lib/tenant/scope";
 
-const EXPORTABLE_TYPES = new Set(["students", "fees", "terms", "calendar-events", "audit-log"]);
+const EXPORTABLE_TYPES = new Set(["students", "staff", "fees", "payments", "terms", "calendar-events", "audit-log"]);
 const TYPE_ALLOWED_ROLES: Record<string, ReadonlyArray<string>> = {
   students: ["institute-admin"],
+  staff: ["institute-admin"],
   fees: ["institute-admin"],
+  payments: ["institute-admin"],
   terms: ["institute-admin"],
   "calendar-events": ["institute-admin", "institute-staff", "student", "super-admin"],
   "audit-log": ["super-admin"],
@@ -88,6 +91,66 @@ async function buildFeesExport(): Promise<ExportPayload<Record<string, unknown>>
       { key: "frequency", header: "Frequency" },
     ],
     filename: "fees",
+  };
+}
+
+async function buildStaffExport(): Promise<ExportPayload<Record<string, unknown>>> {
+  const staff = await listStaff();
+  const rows = staff.map((member) => ({
+    name: member.name,
+    email: member.email,
+    phone: member.phone ?? "",
+    employeeCode: member.staffMeta?.employeeCode ?? "",
+    availabilityStatus: member.staffMeta?.availabilityStatus ?? "",
+    basicSalary: member.staffMeta?.basicSalary ?? 0,
+    commission: member.staffMeta?.commission ?? 0,
+    status: member.status,
+    createdAt: member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "",
+  }));
+  return {
+    rows,
+    columns: [
+      { key: "name", header: "Name" },
+      { key: "email", header: "Email" },
+      { key: "phone", header: "Phone" },
+      { key: "employeeCode", header: "Employee code" },
+      { key: "availabilityStatus", header: "Availability" },
+      { key: "basicSalary", header: "Basic salary" },
+      { key: "commission", header: "Commission" },
+      { key: "status", header: "Status" },
+      { key: "createdAt", header: "Created" },
+    ],
+    filename: "staff",
+  };
+}
+
+async function buildPaymentsExport(): Promise<ExportPayload<Record<string, unknown>>> {
+  const payments = await listAllPaymentsForInstitute();
+  const rows = payments.map((payment) => {
+    const student = payment.studentId as unknown as { name?: string } | null;
+    const fee = payment.feeId as unknown as { title?: string } | null;
+    return {
+      receiptNumber: payment.receiptNumber,
+      studentName: student?.name ?? "Unknown",
+      feeTitle: fee?.title ?? "",
+      amount: payment.amount,
+      paymentMethod: payment.paymentMethod,
+      paymentDate: new Date(payment.paymentDate).toLocaleDateString(),
+      notes: payment.notes ?? "",
+    };
+  });
+  return {
+    rows,
+    columns: [
+      { key: "receiptNumber", header: "Receipt #" },
+      { key: "studentName", header: "Student" },
+      { key: "feeTitle", header: "Fee" },
+      { key: "amount", header: "Amount" },
+      { key: "paymentMethod", header: "Method" },
+      { key: "paymentDate", header: "Payment date" },
+      { key: "notes", header: "Notes" },
+    ],
+    filename: "payments",
   };
 }
 
@@ -197,8 +260,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
 
   if (type === "students") {
     payload = await buildStudentsExport();
+  } else if (type === "staff") {
+    payload = await buildStaffExport();
   } else if (type === "fees") {
     payload = await buildFeesExport();
+  } else if (type === "payments") {
+    payload = await buildPaymentsExport();
   } else if (type === "terms") {
     payload = await buildTermsExport();
   } else if (type === "calendar-events") {
