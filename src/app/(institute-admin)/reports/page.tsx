@@ -27,7 +27,9 @@ import { ReportPresets } from "./report-presets";
 
 const EXPORT_ICONS: Record<string, LucideIcon> = {
   students: UsersRound,
+  staff: UsersRound,
   fees: ReceiptText,
+  payments: Wallet,
   terms: GraduationCap,
   calendar: CalendarDays,
 };
