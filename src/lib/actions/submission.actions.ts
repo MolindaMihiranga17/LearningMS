@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import AssignmentModel from "@/models/Assignment";
 import SubmissionModel from "@/models/Submission";
 import UserModel from "@/models/User";
+import NotificationModel from "@/models/Notification";
 import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
 import { assertEnrolledInCourse } from "@/lib/actions/enrollment-ownership";
 import { assertOwnsAssignment } from "@/lib/actions/assignment-ownership";
@@ -155,7 +156,7 @@ export async function gradeSubmission(
   await submission.save();
 
   const actor = await UserModel.findById(session.userId).select("name");
-  const student = await UserModel.findById(submission.studentId).select("name");
+  const student = await UserModel.findById(submission.studentId).select("name notificationPreferences");
 
   await recordAuditEntry({
     session,
@@ -171,6 +172,18 @@ export async function gradeSubmission(
 
   const courseId = assignment.courseId.toString();
   const assignmentId = assignment._id.toString();
+
+  if (student?.notificationPreferences?.academic !== false) {
+    await NotificationModel.create({
+      instituteId: session.instituteId,
+      userId: submission.studentId,
+      type: "academic",
+      title: `Assignment graded: ${assignment.title}`,
+      body: `You scored ${score}/${assignment.maxScore}.${feedback ? ` Feedback: ${feedback}` : ""}`,
+      link: `/my-courses/${courseId}/assignments/${assignmentId}`,
+    });
+  }
+
   revalidatePath(`/courses/${courseId}/assignments/${assignmentId}/submissions`);
   revalidatePath(`/my-courses/${courseId}/assignments/${assignmentId}`);
 

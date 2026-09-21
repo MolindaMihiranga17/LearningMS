@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import ExamModel from "@/models/Exam";
 import ExamRegistrationModel from "@/models/ExamRegistration";
 import UserModel from "@/models/User";
+import NotificationModel from "@/models/Notification";
 import { requireRole, requireSession, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { cancelExamRegistrationSchema, registerForExamSchema } from "@/lib/validation/exam-registration.schema";
@@ -24,7 +25,9 @@ export async function registerForExam(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid registration." };
 
   await connectToDatabase();
-  const student = await UserModel.findById(session.userId).select("name studentMeta.classId");
+  const student = await UserModel.findById(session.userId).select(
+    "name studentMeta.classId notificationPreferences"
+  );
   const exam = await ExamModel.findOne(withTenantScope({ _id: parsed.data.examId }, session));
   if (!student?.studentMeta?.classId || !exam || String(exam.classId) !== String(student.studentMeta.classId)) {
     return { error: "This exam is not available for your class." };
@@ -57,6 +60,18 @@ export async function registerForExam(
     targetName: exam.title,
     summary: `Registered for exam "${exam.title}"`,
   });
+
+  if (student.notificationPreferences?.academic !== false) {
+    await NotificationModel.create({
+      instituteId: session.instituteId,
+      userId: session.userId,
+      type: "academic",
+      title: `Registration confirmed: ${exam.title}`,
+      body: `You are registered for "${exam.title}" on ${exam.examDate.toLocaleString()}.`,
+      link: "/exam-registration",
+    });
+  }
+
   revalidatePath("/exam-registration");
   return { success: "Exam registration submitted." };
 }

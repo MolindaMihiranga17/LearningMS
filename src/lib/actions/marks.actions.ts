@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "@/lib/db/connect";
 import MarksModel from "@/models/Marks";
 import UserModel from "@/models/User";
+import NotificationModel from "@/models/Notification";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
 import { assertOwnsExam } from "@/lib/actions/class-subject-ownership";
 import { recordAuditEntry } from "@/lib/audit/log";
@@ -77,6 +78,25 @@ export async function enterMarks(
   await Promise.all(
     marksDocs.map((doc) => recomputeGradeForSource("exam", doc._id.toString(), session))
   );
+
+  const notifiableStudents = await UserModel.find({
+    _id: { $in: entries.map((entry) => entry.studentId) },
+    "notificationPreferences.academic": { $ne: false },
+  }).select("_id");
+
+  if (notifiableStudents.length > 0) {
+    const marksByStudent = new Map(entries.map((entry) => [entry.studentId, entry.marksObtained]));
+    await NotificationModel.insertMany(
+      notifiableStudents.map((student) => ({
+        instituteId: session.instituteId,
+        userId: student._id,
+        type: "academic",
+        title: `Exam results available: ${exam.title}`,
+        body: `You scored ${marksByStudent.get(student._id.toString())}/${exam.maxMarks}.`,
+        link: "/grades",
+      }))
+    );
+  }
 
   const actor = await UserModel.findById(session.userId).select("name");
 

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
 
-const REPORTS = [{ value: "students", label: "Student records" }, { value: "fees", label: "Fee schedule" }, { value: "terms", label: "Academic terms" }, { value: "calendar", label: "Academic calendar" }] as const;
+const REPORTS = [{ value: "students", label: "Student records" }, { value: "staff", label: "Staff records" }, { value: "fees", label: "Fee schedule" }, { value: "payments", label: "Payment history" }, { value: "terms", label: "Academic terms" }, { value: "calendar", label: "Academic calendar" }] as const;
 const FORMATS = [{ value: "csv", label: "CSV" }, { value: "xlsx", label: "Excel" }, { value: "pdf", label: "PDF" }] as const;
 type Preset = { id: string; name: string; reportTypes: string[]; formats: string[]; createdAt: string };
 function exportType(type: string) { return type === "calendar" ? "calendar-events" : type; }

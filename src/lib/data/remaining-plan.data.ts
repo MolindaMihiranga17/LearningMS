@@ -312,6 +312,16 @@ export async function getInstituteReportsData() {
         ],
       },
       {
+        type: "staff",
+        title: "Staff records",
+        description: "Contact details, employee codes, and salary/commission.",
+        formats: [
+          { label: "CSV", href: "/api/reports/export/staff?format=csv" },
+          { label: "Excel", href: "/api/reports/export/staff?format=xlsx" },
+          { label: "PDF", href: "/api/reports/export/staff?format=pdf" },
+        ],
+      },
+      {
         type: "fees",
         title: "Fee schedule",
         description: "Fee amounts, due dates, and billing scope.",
@@ -319,6 +329,16 @@ export async function getInstituteReportsData() {
           { label: "CSV", href: "/api/reports/export/fees?format=csv" },
           { label: "Excel", href: "/api/reports/export/fees?format=xlsx" },
           { label: "PDF", href: "/api/reports/export/fees?format=pdf" },
+        ],
+      },
+      {
+        type: "payments",
+        title: "Payment history",
+        description: "Receipts, methods, and amounts collected.",
+        formats: [
+          { label: "CSV", href: "/api/reports/export/payments?format=csv" },
+          { label: "Excel", href: "/api/reports/export/payments?format=xlsx" },
+          { label: "PDF", href: "/api/reports/export/payments?format=pdf" },
         ],
       },
       {
