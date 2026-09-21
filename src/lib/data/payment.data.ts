@@ -15,6 +15,18 @@ export async function listRecentPaymentsForInstitute(limit = 10) {
     .lean();
 }
 
+export async function listAllPaymentsForInstitute() {
+  const session = await requireSession();
+  requireRole(session, ["institute-admin"]);
+
+  await connectToDatabase();
+  return PaymentModel.find(withTenantScope({}, session))
+    .populate("studentId", "name")
+    .populate("feeId", "title")
+    .sort({ paymentDate: -1 })
+    .lean();
+}
+
 export async function getRecentFeeCollectionSummary(days = 30) {
   const session = await requireSession();
   requireRole(session, ["institute-admin"]);
