@@ -40,9 +40,25 @@ const FORMAT_STYLES: Record<string, { icon: LucideIcon; className: string }> = {
   PDF: { icon: FileDown, className: "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700" },
 };
 
-export default async function InstituteReportsPage() {
-  const [data, session] = await Promise.all([getInstituteReportsData(), requireSession()]);
+const RANGE_OPTIONS = [
+  { months: 3, label: "Last 3 months" },
+  { months: 6, label: "Last 6 months" },
+  { months: 12, label: "Last 12 months" },
+  { months: 24, label: "Last 24 months" },
+];
+
+export default async function InstituteReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ months?: string }>;
+}) {
+  const query = await searchParams;
+  const requestedMonths = Number(query.months);
+  const months = RANGE_OPTIONS.some((option) => option.months === requestedMonths) ? requestedMonths : 6;
+
+  const [data, session] = await Promise.all([getInstituteReportsData(months), requireSession()]);
   requireRole(session, ["institute-admin"]);
+  const rangeLabel = RANGE_OPTIONS.find((option) => option.months === months)?.label ?? "Last 6 months";
   await connectToDatabase();
   const admin = await UserModel.findOne({ _id: session.userId, instituteId: session.instituteId, role: "institute-admin" }).select("adminPreferences.savedReportPresets").lean();
   const presets = (admin?.adminPreferences?.savedReportPresets ?? []).map((preset: { _id?: unknown; name?: string; reportTypes?: unknown[]; formats?: unknown[]; createdAt?: Date }) => ({ id: String(preset._id), name: preset.name ?? "Untitled preset", reportTypes: (preset.reportTypes ?? []).map(String), formats: (preset.formats ?? []).map(String), createdAt: preset.createdAt ? new Date(preset.createdAt).toISOString() : new Date().toISOString() }));
@@ -55,22 +71,40 @@ export default async function InstituteReportsPage() {
         description="Review attendance, academic performance, enrollment, and finance, then export the data you need."
       />
 
+      <form method="get" className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Range:</span>
+        {RANGE_OPTIONS.map((option) => (
+          <button
+            key={option.months}
+            type="submit"
+            name="months"
+            value={option.months}
+            className={cn(
+              buttonVariants({ variant: option.months === months ? "default" : "outline", size: "sm" })
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </form>
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard label="Attendance" icon={ClipboardCheck} value={`${data.attendancePercent}%`} tone="success" />
+        <StatCard label="Attendance" icon={ClipboardCheck} value={`${data.attendancePercent}%`} sub={rangeLabel} tone="success" />
         <StatCard
           label="Exam average"
           icon={GraduationCap}
           value={data.averageExamPercent !== null ? `${data.averageExamPercent.toFixed(1)}%` : "-"}
+          sub={rangeLabel}
           tone="primary"
         />
-        <StatCard label="Revenue" icon={Wallet} value={data.finance.totalRevenue.toFixed(2)} tone="info" />
-        <StatCard label="Net income" icon={BarChart3} value={data.finance.netIncome.toFixed(2)} tone="success" />
-        <StatCard label="Grading backlog" icon={Layers} value={data.gradingBacklog} tone="warning" />
+        <StatCard label="Revenue" icon={Wallet} value={data.finance.totalRevenue.toFixed(2)} sub={rangeLabel} tone="info" />
+        <StatCard label="Net income" icon={BarChart3} value={data.finance.netIncome.toFixed(2)} sub={rangeLabel} tone="success" />
+        <StatCard label="Grading backlog" icon={Layers} value={data.gradingBacklog} sub={rangeLabel} tone="warning" />
       </div>
 
       <MultiSeriesChart
         title="Finance trend"
-        sub="Revenue vs. expenses over the last 6 months"
+        sub={`Revenue vs. expenses over the ${rangeLabel.toLowerCase()}`}
         data={data.financeTrend.map((point) => ({ label: point.month, revenue: point.revenue, expenses: point.expenses, net: point.net }))}
         series={[
           { key: "revenue", label: "Revenue" },

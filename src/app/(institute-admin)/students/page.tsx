@@ -1,17 +1,22 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { listClasses } from "@/lib/data/class.data";
-import { listStudents } from "@/lib/data/user.data";
+import { listStudentsPaginated, getStudentsOverview } from "@/lib/data/user.data";
 import { listStudentsForStaff } from "@/lib/data/user.data";
 import { getSession } from "@/lib/auth/session";
 import { requireStaffModuleAccess } from "@/lib/auth/staff-permissions";
 import { bulkUpdateStudentStatus } from "@/lib/actions/user.actions";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { StudentFormDialog } from "./new/student-form-dialog";
 import { StudentManageDialog } from "./[id]/student-manage-dialog";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+
+const PAGE_SIZE = 50;
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -23,7 +28,11 @@ const COLUMNS = [
   { key: "actions", header: "Actions" },
 ];
 
-export default async function StudentsPage() {
+export default async function StudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string }>;
+}) {
   const session = await getSession();
   if (session?.role === "institute-staff") {
     await requireStaffModuleAccess("students");
@@ -43,9 +52,15 @@ export default async function StudentsPage() {
     }));
     return <div className="flex flex-col gap-6"><WorkspaceHeader eyebrow="Teaching roster" title="My students" description="Students in your class-teacher assignments and the courses you teach." metrics={[{ label: "My students", value: students.length, detail: "Across your teaching groups", tone: "primary" }, { label: "Active", value: activeStudents, detail: "Currently enabled", tone: "success" }, { label: "Needs review", value: students.length - activeStudents, detail: "Suspended accounts", tone: "warning" }]} /><DataTableCard title="Student roster" sub="Access is limited to students in your assigned classes and courses." columns={[{ key: "name", header: "Student", sortable: true }, { key: "email", header: "Email" }, { key: "rollNumber", header: "Roll number" }, { key: "status", header: "Status" }, { key: "created", header: "Joined" }]} rows={rows} searchPlaceholder="Search my students..." emptyTitle="No students are assigned to your teaching groups yet." filters={[{ key: "status", label: "Status", options: [{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }] }]} /></div>;
   }
-  const [students, classes] = await Promise.all([listStudents(), listClasses()]);
-  const activeStudents = students.filter((student) => student.status === "active").length;
-  const missingRollNumbers = students.filter((student) => !student.studentMeta?.rollNumber).length;
+  const query = await searchParams;
+  const page = Math.max(1, Number(query.page) || 1);
+  const search = query.q?.trim() ?? "";
+
+  const [{ students, total }, overview, classes] = await Promise.all([
+    listStudentsPaginated(page, PAGE_SIZE, search),
+    getStudentsOverview(),
+    listClasses(),
+  ]);
   const classOptions = classes.map((klass) => ({
     id: String(klass._id),
     label: `${klass.name}${klass.section ? ` ${klass.section}` : ""}`,
@@ -60,7 +75,6 @@ export default async function StudentsPage() {
   const rows: DataTableRow[] = students.map((student) => ({
     key: String(student._id),
     bulkValue: String(student._id),
-    searchValue: `${student.name} ${student.email} ${student.studentMeta?.rollNumber ?? ""} ${student.studentMeta?.guardianName ?? ""}`,
     sortValues: [
       student.name,
       null,
@@ -138,7 +152,7 @@ export default async function StudentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <WorkspaceHeader title="Student records" description="Manage enrollment-ready student profiles, guardians, class assignment, and payment follow-up from one directory." metrics={[{ label: "Students", value: students.length, detail: "All registered learners", tone: "primary" }, { label: "Active students", value: activeStudents, detail: "Currently enabled", tone: "success" }, { label: "Roll numbers missing", value: missingRollNumbers, detail: "Needs academic setup", tone: "warning" }]} actions={<>
+      <WorkspaceHeader title="Student records" description="Manage enrollment-ready student profiles, guardians, class assignment, and payment follow-up from one directory." metrics={[{ label: "Students", value: overview.total, detail: "All registered learners", tone: "primary" }, { label: "Active students", value: overview.active, detail: "Currently enabled", tone: "success" }, { label: "Roll numbers missing", value: overview.missingRollNumbers, detail: "Needs academic setup", tone: "warning" }]} actions={<>
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/payment-desk" className={cn(buttonVariants({ variant: "outline" }))}>
             Open payment desk
@@ -161,12 +175,16 @@ export default async function StudentsPage() {
           </a>
           <StudentFormDialog classes={classOptions} />
         </div></>} />
+      <form method="get" className="relative max-w-xs">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input name="q" defaultValue={search} placeholder="Search students by name, email, or roll number..." className="pl-9" />
+      </form>
       <div>
         <DataTableCard
           columns={COLUMNS}
           rows={rows}
-          searchPlaceholder="Search students..."
-          emptyTitle="No students yet."
+          pageSize={PAGE_SIZE}
+          emptyTitle={search ? `No students match "${search}".` : "No students yet."}
           filters={[
             {
               key: "status",
@@ -199,6 +217,11 @@ export default async function StudentsPage() {
             },
           ]}
         />
+        {total > PAGE_SIZE ? (
+          <div className="mt-3">
+            <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total} basePath="/students" />
+          </div>
+        ) : null}
       </div>
     </div>
   );

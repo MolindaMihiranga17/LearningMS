@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AuditLogPagination } from "@/components/data-table/audit-log-pagination";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { StatCard } from "@/components/dashboard-shell/stat-card";
 
 const PAGE_SIZE = 25;
@@ -202,7 +202,7 @@ export default async function AuditLogPage({
         </CardContent>
 
         <div className="border-t border-border/60 p-4">
-          <AuditLogPagination page={page} pageSize={PAGE_SIZE} total={total} />
+          <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total} basePath="/audit-log" />
         </div>
       </Card>
     </div>

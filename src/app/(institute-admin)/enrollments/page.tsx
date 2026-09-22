@@ -1,12 +1,17 @@
 import { Fragment } from "react";
+import { Search } from "lucide-react";
 import { listClasses } from "@/lib/data/class.data";
 import { listPublishedCoursesForInstitute } from "@/lib/data/course.data";
-import { listEnrollmentsForInstitute } from "@/lib/data/enrollment.data";
+import { listEnrollmentsForInstitutePaginated, getEnrollmentsOverview } from "@/lib/data/enrollment.data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { BulkEnrollForm } from "./bulk-enroll-form";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+
+const PAGE_SIZE = 50;
 
 const COLUMNS = [
   { key: "student", header: "Student" },
@@ -16,11 +21,20 @@ const COLUMNS = [
   { key: "enrolled", header: "Enrolled" },
 ];
 
-export default async function EnrollmentsPage() {
-  const [classes, courses, enrollments] = await Promise.all([
+export default async function EnrollmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string }>;
+}) {
+  const query = await searchParams;
+  const page = Math.max(1, Number(query.page) || 1);
+  const search = query.q?.trim() ?? "";
+
+  const [classes, courses, { enrollments, total }, overview] = await Promise.all([
     listClasses(),
     listPublishedCoursesForInstitute(),
-    listEnrollmentsForInstitute(),
+    listEnrollmentsForInstitutePaginated(page, PAGE_SIZE, search),
+    getEnrollmentsOverview(),
   ]);
 
   const classOptions = classes.map((klass) => ({
@@ -35,15 +49,12 @@ export default async function EnrollmentsPage() {
       label: teacher?.name ? `${course.title} (${teacher.name})` : course.title,
     };
   });
-  const activeEnrollments = enrollments.filter((enrollment) => enrollment.status === "active").length;
-  const averageProgress = enrollments.length ? Math.round(enrollments.reduce((total, enrollment) => total + (enrollment.progress?.percentComplete ?? 0), 0) / enrollments.length) : 0;
 
   const rows: DataTableRow[] = enrollments.map((enrollment) => {
-    const student = enrollment.studentId as unknown as { name?: string; email?: string } | null;
-    const course = enrollment.courseId as unknown as { title?: string } | null;
+    const student = enrollment.studentId;
+    const course = enrollment.courseId;
     return {
       key: String(enrollment._id),
-      searchValue: `${student?.name ?? ""} ${student?.email ?? ""} ${course?.title ?? ""}`,
       cells: [
         <Fragment key="student">
           <span className="font-medium">{student?.name ?? "Unknown"}</span>
@@ -63,7 +74,7 @@ export default async function EnrollmentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <WorkspaceHeader title="Course enrollments" description="Place whole classes into published courses and keep an eye on learning participation and progress." metrics={[{ label: "Enrollments", value: enrollments.length, detail: "Across published courses", tone: "primary" }, { label: "Active learners", value: activeEnrollments, detail: "Currently enrolled", tone: "success" }, { label: "Average progress", value: `${averageProgress}%`, detail: "Across all enrollments", tone: "info" }]} />
+      <WorkspaceHeader title="Course enrollments" description="Place whole classes into published courses and keep an eye on learning participation and progress." metrics={[{ label: "Enrollments", value: overview.total, detail: "Across published courses", tone: "primary" }, { label: "Active learners", value: overview.active, detail: "Currently enrolled", tone: "success" }, { label: "Average progress", value: `${overview.averageProgress}%`, detail: "Across all enrollments", tone: "info" }]} />
 
       <Card>
         <CardHeader>
@@ -75,15 +86,25 @@ export default async function EnrollmentsPage() {
         </CardContent>
       </Card>
 
+      <form method="get" className="relative max-w-xs">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input name="q" defaultValue={search} placeholder="Search learners or courses..." className="pl-9" />
+      </form>
+
       <div>
         <DataTableCard
           title="Enrollment activity"
-          sub="Search learners or courses to review the latest learning access records."
+          sub="Review learning access records across the institute."
           columns={COLUMNS}
           rows={rows}
-          searchPlaceholder="Search enrollments..."
-          emptyTitle="No enrollments yet."
+          pageSize={PAGE_SIZE}
+          emptyTitle={search ? `No enrollments match "${search}".` : "No enrollments yet."}
         />
+        {total > PAGE_SIZE ? (
+          <div className="mt-3">
+            <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total} basePath="/enrollments" />
+          </div>
+        ) : null}
       </div>
     </div>
   );
