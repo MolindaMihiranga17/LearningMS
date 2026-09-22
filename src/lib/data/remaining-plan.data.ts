@@ -255,15 +255,19 @@ export async function getAdminOperationsData() {
   };
 }
 
-export async function getInstituteReportsData() {
+export async function getInstituteReportsData(months = 6) {
   const session = await requireSession();
   requireRole(session, ["institute-admin"]);
 
   await connectToDatabase();
 
+  const since = new Date();
+  since.setMonth(since.getMonth() - (months - 1), 1);
+  since.setHours(0, 0, 0, 0);
+
   const [attendance, gradeRows, enrollments, finance, submissions, quizAttempts, financeTrend] = await Promise.all([
     AttendanceModel.aggregate([
-      { $match: { instituteId: new mongoose.Types.ObjectId(session.instituteId as string) } },
+      { $match: { instituteId: new mongoose.Types.ObjectId(session.instituteId as string), date: { $gte: since } } },
       { $unwind: "$records" },
       {
         $group: {
@@ -272,15 +276,15 @@ export async function getInstituteReportsData() {
         },
       },
     ]),
-    MarksModel.find(withTenantScope({}, session)).populate("examId", "maxMarks").lean(),
+    MarksModel.find(withTenantScope({ createdAt: { $gte: since } }, session)).populate("examId", "maxMarks").lean(),
     EnrollmentModel.aggregate([
       { $match: { instituteId: new mongoose.Types.ObjectId(session.instituteId as string) } },
       { $group: { _id: "$status", total: { $sum: 1 } } },
     ]),
-    getIncomeStatistics(),
-    SubmissionModel.countDocuments(withTenantScope({ status: "submitted" }, session)),
-    QuizAttemptModel.countDocuments(withTenantScope({ status: "submitted" }, session)),
-    getFinanceTrend(),
+    getIncomeStatistics(since),
+    SubmissionModel.countDocuments(withTenantScope({ status: "submitted", createdAt: { $gte: since } }, session)),
+    QuizAttemptModel.countDocuments(withTenantScope({ status: "submitted", createdAt: { $gte: since } }, session)),
+    getFinanceTrend(months),
   ]);
 
   const attendanceTotal = attendance.reduce((sum, row) => sum + row.total, 0);
@@ -294,6 +298,7 @@ export async function getInstituteReportsData() {
   }, 0);
 
   return {
+    months,
     attendancePercent: attendanceTotal > 0 ? Math.round((presentTotal / attendanceTotal) * 100) : 0,
     averageExamPercent: gradeRows.length > 0 ? gradeTotal / gradeRows.length : null,
     enrollmentStatus: enrollments.map((row) => ({ status: row._id ?? "unknown", total: row.total })),
