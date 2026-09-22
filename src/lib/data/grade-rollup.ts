@@ -97,3 +97,44 @@ export async function recomputeGradeForSource(
     { upsert: true }
   );
 }
+
+/**
+ * Bulk equivalent of recomputeGradeForSource("exam", ...) for entering marks
+ * for a whole class at once: one bulkWrite instead of N sequential upserts,
+ * reusing the already-loaded exam instead of re-fetching it per student.
+ */
+export async function recomputeGradesForExamMarks(
+  marksDocs: Array<{ _id: unknown; instituteId: unknown; studentId: unknown; marksObtained: number }>,
+  exam: { _id: unknown; subjectId: unknown; maxMarks: number },
+  session: SessionPayload
+): Promise<void> {
+  if (marksDocs.length === 0) return;
+
+  await connectToDatabase();
+
+  const operations = marksDocs.map((marks) => {
+    assertSameInstitute(marks as { instituteId?: unknown }, session);
+    return {
+      updateOne: {
+        filter: { source: "exam" as const, sourceId: marks._id },
+        update: {
+          $set: {
+            instituteId: marks.instituteId,
+            studentId: marks.studentId,
+            courseId: null,
+            subjectId: exam.subjectId,
+            examId: exam._id,
+            source: "exam" as const,
+            sourceId: marks._id,
+            score: marks.marksObtained,
+            maxScore: exam.maxMarks,
+            computedAt: new Date(),
+          },
+        },
+        upsert: true,
+      },
+    };
+  });
+
+  await GradeModel.bulkWrite(operations);
+}
