@@ -27,7 +27,7 @@ export async function markAttendance(
     try {
       recordsInput = JSON.parse(rawRecords);
     } catch {
-      recordsInput = [];
+      return { error: "Could not read the submitted attendance data. Please try again." };
     }
   }
 
