@@ -8,7 +8,7 @@ import NotificationModel from "@/models/Notification";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
 import { assertOwnsExam } from "@/lib/actions/class-subject-ownership";
 import { recordAuditEntry } from "@/lib/audit/log";
-import { recomputeGradeForSource } from "@/lib/data/grade-rollup";
+import { recomputeGradesForExamMarks } from "@/lib/data/grade-rollup";
 import { enterMarksSchema } from "@/lib/validation/marks.schema";
 
 export type EnterMarksState = {
@@ -29,7 +29,7 @@ export async function enterMarks(
     try {
       entriesInput = JSON.parse(rawEntries);
     } catch {
-      entriesInput = [];
+      return { error: "Could not read the submitted marks data. Please try again." };
     }
   }
 
@@ -75,9 +75,7 @@ export async function enterMarks(
     )
   );
 
-  await Promise.all(
-    marksDocs.map((doc) => recomputeGradeForSource("exam", doc._id.toString(), session))
-  );
+  await recomputeGradesForExamMarks(marksDocs, exam, session);
 
   const notifiableStudents = await UserModel.find({
     _id: { $in: entries.map((entry) => entry.studentId) },
