@@ -84,15 +84,17 @@ export async function submitQuizAttempt(formData: FormData): Promise<void> {
 
   const rawAnswers = formData.get("answers");
   let answersInput: unknown = [];
+  let payloadCorrupted = false;
   if (typeof rawAnswers === "string" && rawAnswers.length > 0) {
     try {
       answersInput = JSON.parse(rawAnswers);
     } catch {
-      answersInput = [];
+      payloadCorrupted = true;
     }
   }
 
   const parsed = submitQuizAttemptSchema.safeParse({ answers: answersInput });
+  if (!parsed.success) payloadCorrupted = true;
   const submittedAnswers = parsed.success ? parsed.data.answers : [];
 
   await connectToDatabase();
@@ -115,7 +117,9 @@ export async function submitQuizAttempt(formData: FormData): Promise<void> {
 
   // The browser timer is advisory. Late requests can finalize saved work, but
   // cannot introduce new answers. Use arrival time so DB latency costs no time.
-  const acceptedAnswers: SubmittedAnswer[] = receivedAt >= attempt.expiresAt
+  // A corrupted submit payload falls back to the last autosaved answers rather
+  // than silently grading the attempt as blank.
+  const acceptedAnswers: SubmittedAnswer[] = (receivedAt >= attempt.expiresAt || payloadCorrupted)
     ? attempt.answers.map((answer: QuizAttemptAnswer) => ({
         type: answer.type,
         questionId: answer.questionId.toString(),
@@ -163,7 +167,7 @@ export async function saveQuizProgress(formData: FormData): Promise<{ error?: st
     try {
       answersInput = JSON.parse(rawAnswers);
     } catch {
-      answersInput = [];
+      return { error: "Could not read your answers. Please try again." };
     }
   }
 
