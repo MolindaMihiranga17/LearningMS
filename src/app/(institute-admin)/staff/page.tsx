@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { BadgeCheck, CircleDollarSign, KeyRound } from "lucide-react";
-import { listStaff } from "@/lib/data/user.data";
+import { BadgeCheck, CircleDollarSign, KeyRound, Search } from "lucide-react";
+import { listStaffPaginated, getStaffOverview } from "@/lib/data/user.data";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DataTableCard, type DataTableRow } from "@/components/data-table/data-table-card";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { cn } from "@/lib/utils";
 import { StaffFormDialog } from "./new/staff-form-dialog";
 import { StaffManageDialog } from "./[id]/staff-manage-dialog";
 import { WorkspaceHeader } from "@/components/dashboard-shell/workspace-header";
+
+const PAGE_SIZE = 50;
 
 const COLUMNS = [
   { key: "name", header: "Name", sortable: true },
@@ -20,14 +24,19 @@ const COLUMNS = [
   { key: "actions", header: "Actions" },
 ];
 
-export default async function StaffPage() {
-  const staff = await listStaff();
-  const activeStaff = staff.filter((member) => member.status === "active").length;
-  const monthlyPayroll = staff.reduce((total, member) => total + (member.staffMeta?.basicSalary ?? 0), 0);
-  const staffMissingCode = staff.filter((member) => !member.staffMeta?.employeeCode).length;
-  const staffWithAccess = staff.filter((member) =>
-    Object.values(member.staffMeta?.permissions ?? {}).some(Boolean)
-  ).length;
+export default async function StaffPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string }>;
+}) {
+  const query = await searchParams;
+  const page = Math.max(1, Number(query.page) || 1);
+  const search = query.q?.trim() ?? "";
+
+  const [{ staff, total }, overview] = await Promise.all([
+    listStaffPaginated(page, PAGE_SIZE, search),
+    getStaffOverview(),
+  ]);
 
   const rows: DataTableRow[] = staff.map((member) => {
     const permissions = Object.fromEntries(
@@ -39,7 +48,6 @@ export default async function StaffPage() {
 
     return {
       key: String(member._id),
-      searchValue: `${member.name} ${member.email} ${member.staffMeta?.employeeCode ?? ""}`,
       sortValues: [
         member.name,
         null,
@@ -114,10 +122,10 @@ export default async function StaffPage() {
           </>
         }
         metrics={[
-          { label: "Team members", value: staff.length, detail: "All staff records", tone: "primary" },
-          { label: "Active staff", value: activeStaff, detail: "Available for assignment", tone: "success" },
-          { label: "Access configured", value: staffWithAccess, detail: "Staff with module access", tone: "info" },
-          { label: "Payroll baseline", value: monthlyPayroll.toFixed(2), detail: "Monthly basic salary", tone: "warning" },
+          { label: "Team members", value: overview.total, detail: "All staff records", tone: "primary" },
+          { label: "Active staff", value: overview.activeStaff, detail: "Available for assignment", tone: "success" },
+          { label: "Access configured", value: overview.staffWithAccess, detail: "Staff with module access", tone: "info" },
+          { label: "Payroll baseline", value: overview.monthlyPayroll.toFixed(2), detail: "Monthly basic salary", tone: "warning" },
         ]}
       />
 
@@ -127,7 +135,7 @@ export default async function StaffPage() {
           <div>
             <p className="text-sm font-semibold">Team setup</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {staffMissingCode === 0 ? "Every staff member has an employee code." : `${staffMissingCode} staff member${staffMissingCode === 1 ? "" : "s"} still need an employee code.`}
+              {overview.staffMissingCode === 0 ? "Every staff member has an employee code." : `${overview.staffMissingCode} staff member${overview.staffMissingCode === 1 ? "" : "s"} still need an employee code.`}
             </p>
           </div>
         </div>
@@ -141,14 +149,18 @@ export default async function StaffPage() {
           </div>
         </div>
       </div>
+      <form method="get" className="relative max-w-xs">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input name="q" defaultValue={search} placeholder="Search by name, email, or employee code..." className="pl-9" />
+      </form>
       <div>
         <DataTableCard
           title="Team members"
-          sub="Search, filter, and open a staff record to manage access, salary, and commissions."
+          sub="Open a staff record to manage access, salary, and commissions."
           columns={COLUMNS}
           rows={rows}
-          searchPlaceholder="Search by name, email, or employee code..."
-          emptyTitle="No staff members yet."
+          pageSize={PAGE_SIZE}
+          emptyTitle={search ? `No staff match "${search}".` : "No staff members yet."}
           emptyDescription="Add your first staff member to assign access and payroll details."
           filters={[
             {
@@ -180,6 +192,11 @@ export default async function StaffPage() {
             },
           ]}
         />
+        {total > PAGE_SIZE ? (
+          <div className="mt-3">
+            <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total} basePath="/staff" />
+          </div>
+        ) : null}
       </div>
     </div>
   );
