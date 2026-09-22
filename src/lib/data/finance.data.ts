@@ -53,16 +53,17 @@ export type IncomeStatistics = {
   netIncome: number;
 };
 
-export async function getIncomeStatistics(): Promise<IncomeStatistics> {
+export async function getIncomeStatistics(since?: Date): Promise<IncomeStatistics> {
   const session = await requireSession();
   requireRole(session, ["institute-admin"]);
 
   await connectToDatabase();
 
+  const dateFilter = since ? { createdAt: { $gte: since } } : {};
   const [payments, extraIncome, expenses, staff] = await Promise.all([
-    PaymentModel.find(withTenantScope({}, session)).select("amount").lean(),
-    ExtraIncomeModel.find(withTenantScope({}, session)).select("amount").lean(),
-    ExpenseModel.find(withTenantScope({}, session)).select("price").lean(),
+    PaymentModel.find(withTenantScope(since ? { paymentDate: { $gte: since } } : {}, session)).select("amount").lean(),
+    ExtraIncomeModel.find(withTenantScope(dateFilter, session)).select("amount").lean(),
+    ExpenseModel.find(withTenantScope(dateFilter, session)).select("price").lean(),
     UserModel.find(withTenantScope({ role: "institute-staff" }, session))
       .select("staffMeta.basicSalary staffMeta.monthlyCommissions")
       .lean(),
