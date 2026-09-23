@@ -443,7 +443,7 @@ async function main() {
   });
 
   // Second admin on Ace Academy — exercises admin add/reset/remove UI (there are 2, so removal is allowed).
-  const secondAdmin = await UserModel.create({
+  await UserModel.create({
     name: "Ace Academy Co-Admin",
     email: "coadmin@act.edu",
     passwordHash,

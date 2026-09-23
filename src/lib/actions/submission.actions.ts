@@ -94,6 +94,23 @@ export async function submitAssignment(
     summary: `${existing ? "Updated" : "Submitted"} work for assignment "${assignment.title}"`,
   });
 
+  if (!existing) {
+    const teacher = await UserModel.findOne({
+      _id: assignment.teacherId,
+      "notificationPreferences.academic": { $ne: false },
+    }).select("_id");
+    if (teacher) {
+      await NotificationModel.create({
+        instituteId: session.instituteId,
+        userId: teacher._id,
+        type: "academic",
+        title: `New submission: ${assignment.title}`,
+        body: `${actor?.name ?? "A student"} submitted work for "${assignment.title}".`,
+        link: `/courses/${assignment.courseId.toString()}/assignments/${assignmentId}/submissions`,
+      });
+    }
+  }
+
   const courseId = assignment.courseId.toString();
   revalidatePath(`/my-courses/${courseId}/assignments/${assignmentId}`);
   revalidatePath(`/courses/${courseId}/assignments/${assignmentId}`);

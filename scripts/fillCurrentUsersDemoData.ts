@@ -46,7 +46,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const TODAY = new Date();
 const CURRENT_YEAR = TODAY.getFullYear();
 const CURRENT_MONTH_INDEX = TODAY.getMonth();
-const CURRENT_MONTH = TODAY.toLocaleString("en-US", { month: "long" });
 const ACADEMIC_YEAR = `${CURRENT_YEAR}/${CURRENT_YEAR + 1}`;
 const RECEIPT_PREFIX = `RCPT-${CURRENT_YEAR}`;
 
