@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import AssignmentModel from "@/models/Assignment";
 import SubmissionModel from "@/models/Submission";
 import UserModel from "@/models/User";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
 import { assertEnrolledInCourse } from "@/lib/actions/enrollment-ownership";
 import { assertOwnsAssignment } from "@/lib/actions/assignment-ownership";
@@ -95,14 +95,11 @@ export async function submitAssignment(
   });
 
   if (!existing) {
-    const teacher = await UserModel.findOne({
-      _id: assignment.teacherId,
-      "notificationPreferences.academic": { $ne: false },
-    }).select("_id");
+    const teacher = await UserModel.findById(assignment.teacherId).select("_id notificationPreferences");
     if (teacher) {
-      await NotificationModel.create({
+      await notifyUsers({
+        recipients: teacher,
         instituteId: session.instituteId,
-        userId: teacher._id,
         type: "academic",
         title: `New submission: ${assignment.title}`,
         body: `${actor?.name ?? "A student"} submitted work for "${assignment.title}".`,
@@ -190,16 +187,14 @@ export async function gradeSubmission(
   const courseId = assignment.courseId.toString();
   const assignmentId = assignment._id.toString();
 
-  if (student?.notificationPreferences?.academic !== false) {
-    await NotificationModel.create({
-      instituteId: session.instituteId,
-      userId: submission.studentId,
-      type: "academic",
-      title: `Assignment graded: ${assignment.title}`,
-      body: `You scored ${score}/${assignment.maxScore}.${feedback ? ` Feedback: ${feedback}` : ""}`,
-      link: `/my-courses/${courseId}/assignments/${assignmentId}`,
-    });
-  }
+  await notifyUsers({
+    recipients: { _id: submission.studentId, notificationPreferences: student?.notificationPreferences },
+    instituteId: session.instituteId,
+    type: "academic",
+    title: `Assignment graded: ${assignment.title}`,
+    body: `You scored ${score}/${assignment.maxScore}.${feedback ? ` Feedback: ${feedback}` : ""}`,
+    link: `/my-courses/${courseId}/assignments/${assignmentId}`,
+  });
 
   revalidatePath(`/courses/${courseId}/assignments/${assignmentId}/submissions`);
   revalidatePath(`/my-courses/${courseId}/assignments/${assignmentId}`);
