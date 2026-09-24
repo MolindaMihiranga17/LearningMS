@@ -6,8 +6,8 @@ import { requireRole, requireSession, withTenantScope } from "@/lib/tenant/scope
 import { recordAuditEntry } from "@/lib/audit/log";
 import ConversationModel from "@/models/Conversation";
 import MessageModel from "@/models/Message";
-import NotificationModel from "@/models/Notification";
 import UserModel from "@/models/User";
+import { notifyUsers } from "@/lib/notifications/notify";
 import CourseModel from "@/models/Course";
 import EnrollmentModel from "@/models/Enrollment";
 import { conversationIdSchema, sendMessageSchema, startConversationSchema } from "@/lib/validation/message.schema";
@@ -108,7 +108,7 @@ export async function sendMessage(_prev: MessageActionState, formData: FormData)
   const now = new Date();
   await MessageModel.create({ instituteId: session.instituteId, conversationId: conversation._id, senderId: session.userId, body: parsed.data.body });
   conversation.latestMessageAt = now; conversation.latestMessagePreview = parsed.data.body.slice(0, 160); conversation.readStates = conversation.readStates.map((state: { userId: unknown; lastReadAt: Date | null }) => ({ userId: state.userId, lastReadAt: String(state.userId) === session.userId ? now : state.lastReadAt })); await conversation.save();
-  await NotificationModel.create({ instituteId: session.instituteId, userId: otherId, type: "academic", title: `New message from ${sender.name}`, body: parsed.data.body.slice(0, 160), link: `/messages?conversation=${conversation._id}`, isRead: false });
+  await notifyUsers({ recipients: { _id: otherId }, instituteId: session.instituteId, type: "academic", title: `New message from ${sender.name}`, body: parsed.data.body.slice(0, 160), link: `/messages?conversation=${conversation._id}` });
   revalidatePath("/messages"); revalidatePath("/notifications"); revalidatePath("/dashboard");
   return { success: true, conversationId: String(conversation._id) };
 }
