@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "@/lib/db/connect";
 import MarksModel from "@/models/Marks";
 import UserModel from "@/models/User";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
 import { assertOwnsExam } from "@/lib/actions/class-subject-ownership";
 import { recordAuditEntry } from "@/lib/audit/log";
@@ -77,23 +77,20 @@ export async function enterMarks(
 
   await recomputeGradesForExamMarks(marksDocs, exam, session);
 
-  const notifiableStudents = await UserModel.find({
-    _id: { $in: entries.map((entry) => entry.studentId) },
-    "notificationPreferences.academic": { $ne: false },
-  }).select("_id");
+  const notifiableStudents = await UserModel.find({ _id: { $in: entries.map((entry) => entry.studentId) } }).select(
+    "_id notificationPreferences"
+  );
 
   if (notifiableStudents.length > 0) {
     const marksByStudent = new Map(entries.map((entry) => [entry.studentId, entry.marksObtained]));
-    await NotificationModel.insertMany(
-      notifiableStudents.map((student) => ({
-        instituteId: session.instituteId,
-        userId: student._id,
-        type: "academic",
-        title: `Exam results available: ${exam.title}`,
-        body: `You scored ${marksByStudent.get(student._id.toString())}/${exam.maxMarks}.`,
-        link: "/grades",
-      }))
-    );
+    await notifyUsers({
+      recipients: notifiableStudents,
+      instituteId: session.instituteId,
+      type: "academic",
+      title: `Exam results available: ${exam.title}`,
+      body: (recipient) => `You scored ${marksByStudent.get(String(recipient._id))}/${exam.maxMarks}.`,
+      link: "/grades",
+    });
   }
 
   const actor = await UserModel.findById(session.userId).select("name");
