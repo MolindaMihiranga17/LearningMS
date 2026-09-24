@@ -6,7 +6,7 @@ import ClassModel from "@/models/Class";
 import UserModel from "@/models/User";
 import AttendanceModel, { type AttendanceStatus } from "@/models/Attendance";
 import ClassAttemptModel from "@/models/ClassAttempt";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 import { requireSession, requireRole, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { startOfToday } from "@/lib/data/class-session.data";
@@ -266,20 +266,16 @@ export async function cancelClassSession(formData: FormData): Promise<void> {
     instituteId: session.instituteId,
     role: "student",
     "studentMeta.classId": klass._id,
-    "notificationPreferences.academic": { $ne: false },
-  }).select("_id");
+  }).select("_id notificationPreferences");
 
-  await NotificationModel.insertMany(
-    students.map((student) => ({
-      instituteId: session.instituteId,
-      userId: student._id,
-      type: "academic",
-      title: `Class cancelled: ${klass.name}`,
-      body: "Your class session has been cancelled. Check your calendar for updates.",
-      link: "/calendar",
-    })),
-    { ordered: false }
-  ).catch(() => null);
+  await notifyUsers({
+    recipients: students,
+    instituteId: session.instituteId,
+    type: "academic",
+    title: `Class cancelled: ${klass.name}`,
+    body: "Your class session has been cancelled. Check your calendar for updates.",
+    link: "/calendar",
+  }).catch(() => null);
 
   const actor = await UserModel.findById(session.userId).select("name");
   await recordAuditEntry({

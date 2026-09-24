@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "@/lib/db/connect";
 import AnnouncementModel from "@/models/Announcement";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 import ClassModel from "@/models/Class";
 import CourseModel from "@/models/Course";
 import UserModel from "@/models/User";
@@ -122,17 +122,14 @@ export async function createAnnouncement(
   const recipientIds = await resolveRecipientIds(audience, classId, courseId, session);
 
   if (recipientIds.length > 0) {
-    await NotificationModel.insertMany(
-      recipientIds.map((userId) => ({
-        instituteId: session.instituteId,
-        userId,
-        type: "announcement",
-        title,
-        body,
-        link: "/announcements",
-        isRead: false,
-      }))
-    );
+    await notifyUsers({
+      recipients: recipientIds.map((userId) => ({ _id: userId })),
+      instituteId: session.instituteId,
+      type: "announcement",
+      title,
+      body,
+      link: "/announcements",
+    });
   }
 
   const actor = await UserModel.findById(session.userId).select("name");

@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import ExamModel from "@/models/Exam";
 import ExamRegistrationModel from "@/models/ExamRegistration";
 import UserModel from "@/models/User";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 import { requireRole, requireSession, withTenantScope } from "@/lib/tenant/scope";
 import { recordAuditEntry } from "@/lib/audit/log";
 import { cancelExamRegistrationSchema, registerForExamSchema } from "@/lib/validation/exam-registration.schema";
@@ -61,16 +61,14 @@ export async function registerForExam(
     summary: `Registered for exam "${exam.title}"`,
   });
 
-  if (student.notificationPreferences?.academic !== false) {
-    await NotificationModel.create({
-      instituteId: session.instituteId,
-      userId: session.userId,
-      type: "academic",
-      title: `Registration confirmed: ${exam.title}`,
-      body: `You are registered for "${exam.title}" on ${exam.examDate.toLocaleString()}.`,
-      link: "/exam-registration",
-    });
-  }
+  await notifyUsers({
+    recipients: { _id: session.userId, notificationPreferences: student.notificationPreferences },
+    instituteId: session.instituteId,
+    type: "academic",
+    title: `Registration confirmed: ${exam.title}`,
+    body: `You are registered for "${exam.title}" on ${exam.examDate.toLocaleString()}.`,
+    link: "/exam-registration",
+  });
 
   revalidatePath("/exam-registration");
   return { success: "Exam registration submitted." };

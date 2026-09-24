@@ -6,7 +6,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import QuizModel from "@/models/Quiz";
 import QuizQuestionModel from "@/models/QuizQuestion";
 import QuizAttemptModel, { type QuizAttemptAnswer } from "@/models/QuizAttempt";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 import UserModel from "@/models/User";
 import { requireSession, requireRole, assertSameInstitute } from "@/lib/tenant/scope";
 import { assertEnrolledInCourse } from "@/lib/actions/enrollment-ownership";
@@ -288,16 +288,14 @@ export async function gradeShortAnswer(
   if (!stillPending) {
     await recomputeGradeForSource("quiz", attempt._id.toString(), session);
 
-    if (student?.notificationPreferences?.academic !== false) {
-      await NotificationModel.create({
-        instituteId: session.instituteId,
-        userId: attempt.studentId,
-        type: "academic",
-        title: `Quiz graded: ${quiz.title}`,
-        body: `You scored ${attempt.totalScore}/${attempt.maxScore}.`,
-        link: `/my-courses/${course._id.toString()}/quizzes/${quiz._id.toString()}/result`,
-      });
-    }
+    await notifyUsers({
+      recipients: { _id: attempt.studentId, notificationPreferences: student?.notificationPreferences },
+      instituteId: session.instituteId,
+      type: "academic",
+      title: `Quiz graded: ${quiz.title}`,
+      body: `You scored ${attempt.totalScore}/${attempt.maxScore}.`,
+      link: `/my-courses/${course._id.toString()}/quizzes/${quiz._id.toString()}/result`,
+    });
   }
 
   const courseId = course._id.toString();

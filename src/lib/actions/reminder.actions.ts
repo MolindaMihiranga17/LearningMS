@@ -5,40 +5,17 @@ import AssignmentModel from "@/models/Assignment";
 import EnrollmentModel from "@/models/Enrollment";
 import ExamModel from "@/models/Exam";
 import FeeModel from "@/models/Fee";
-import NotificationModel from "@/models/Notification";
 import PaymentModel from "@/models/Payment";
 import StudentFollowUpModel from "@/models/StudentFollowUp";
 import SubmissionModel from "@/models/Submission";
 import UserModel from "@/models/User";
 import { notifyOverdueInvoices, sweepTrialsExpiringSoon } from "@/lib/subscription/lifecycle";
-import { sendSmsToUser } from "@/lib/communications/sms";
-import { sendEmailToUser } from "@/lib/communications/email";
 import { notifyDelayedPayherePayments, notifyUpcomingSubscriptionRenewals } from "@/lib/payhere/notifications";
+import { notifyUsers } from "@/lib/notifications/notify";
 
 function inWindow(date: Date, now: Date, daysAhead: number) {
   const time = date.getTime();
   return time >= now.getTime() && time <= now.getTime() + daysAhead * 86_400_000;
-}
-
-async function createOnce(input: {
-  instituteId: unknown;
-  userId: unknown;
-  type: "academic" | "billing" | "trial";
-  title: string;
-  body: string;
-  link: string;
-}) {
-  const existing = await NotificationModel.findOne({
-    userId: input.userId,
-    title: input.title,
-    link: input.link,
-    createdAt: { $gte: new Date(Date.now() - 7 * 86_400_000) },
-  }).select("_id");
-
-  if (existing) return false;
-
-  await NotificationModel.create(input);
-  return true;
 }
 
 export async function generateAutomaticReminders() {
@@ -68,15 +45,16 @@ export async function generateAutomaticReminders() {
       }).select("_id");
       if (!student) continue;
 
-      const didCreate = await createOnce({
+      const { createdCount } = await notifyUsers({
+        recipients: student,
         instituteId: assignment.instituteId,
-        userId: student._id,
         type: "academic",
         title: `Assignment due: ${assignment.title}`,
         body: `Due ${assignment.dueAt.toLocaleString()}.`,
         link: `/my-courses/${String(assignment.courseId)}/assignments/${String(assignment._id)}`,
+        eventKey: `assignment-due:${String(assignment._id)}:${String(student._id)}`,
       });
-      if (didCreate) created += 1;
+      created += createdCount;
     }
   }
 
@@ -110,15 +88,16 @@ export async function generateAutomaticReminders() {
       }).select("_id");
       if (!student) continue;
 
-      const didCreate = await createOnce({
+      const { createdCount } = await notifyUsers({
+        recipients: student,
         instituteId: assignment.instituteId,
-        userId: student._id,
         type: "academic",
         title: `Assignment overdue: ${assignment.title}`,
         body: `This work was due on ${assignment.dueAt.toLocaleString()}. Submit it as soon as possible.`,
         link: `/my-courses/${String(assignment.courseId)}/assignments/${String(assignment._id)}`,
+        eventKey: `assignment-overdue:${String(assignment._id)}:${String(student._id)}`,
       });
-      if (didCreate) created += 1;
+      created += createdCount;
     }
   }
 
@@ -135,15 +114,16 @@ export async function generateAutomaticReminders() {
     }).select("_id");
 
     for (const student of students) {
-      const didCreate = await createOnce({
+      const { createdCount } = await notifyUsers({
+        recipients: student,
         instituteId: exam.instituteId,
-        userId: student._id,
         type: "academic",
         title: `Upcoming exam: ${exam.title}`,
         body: `Scheduled for ${exam.examDate.toLocaleString()}.`,
         link: "/exam-registration",
+        eventKey: `exam-upcoming:${String(exam._id)}:${String(student._id)}`,
       });
-      if (didCreate) created += 1;
+      created += createdCount;
     }
   }
 
@@ -185,15 +165,17 @@ export async function generateAutomaticReminders() {
     }).select("_id");
     if (!teacher || !queue.assignmentId || !queue.courseId) continue;
 
-    const didCreate = await createOnce({
+    const weekBucket = Math.floor(now.getTime() / (7 * 86_400_000));
+    const { createdCount } = await notifyUsers({
+      recipients: teacher,
       instituteId: queue.instituteId,
-      userId: teacher._id,
       type: "academic",
       title: `Grading queue: ${queue.count} submission${queue.count === 1 ? "" : "s"} waiting`,
       body: `Oldest waiting item includes "${queue.assignmentTitle}". Review pending work and send feedback.`,
       link: `/courses/${queue.courseId}/assignments/${queue.assignmentId}/submissions`,
+      eventKey: `grading-queue:${teacherId}:${queue.assignmentId}:${weekBucket}`,
     });
-    if (didCreate) created += 1;
+    created += createdCount;
   }
 
   const fees = await FeeModel.find({
@@ -218,36 +200,19 @@ export async function generateAutomaticReminders() {
       const balance = fee.amount - (paid[0]?.total ?? 0);
       if (balance <= 0 || !inWindow(fee.dueDate, new Date(now.getTime() - 3 * 86_400_000), 8)) continue;
 
-      const didCreate = await createOnce({
+      const { createdCount } = await notifyUsers({
+        recipients: student,
         instituteId: fee.instituteId,
-        userId: student._id,
         type: "billing",
         title: `Fee due: ${fee.title}`,
         body: `Balance ${balance.toFixed(2)} due on ${fee.dueDate.toLocaleDateString()}.`,
         link: "/fees",
+        eventKey: `fee-due:${String(fee._id)}:${String(student._id)}`,
+        channels: { email: true, sms: true },
+        email: { subject: `LearningMS: Fee due — ${fee.title}`, text: `Your outstanding balance is ${balance.toFixed(2)}. It is due on ${fee.dueDate.toLocaleDateString()}.` },
+        sms: { message: `LearningMS: Fee due — ${fee.title}. Balance ${balance.toFixed(2)} is due on ${fee.dueDate.toLocaleDateString()}.` },
       });
-      if (didCreate) {
-        created += 1;
-        await Promise.all([
-          sendSmsToUser({
-            user: student,
-            preference: "billing",
-            category: "billing",
-            instituteId: fee.instituteId,
-            eventKey: `fee-due:${String(fee._id)}:${String(student._id)}`,
-            message: `LearningMS: Fee due — ${fee.title}. Balance ${balance.toFixed(2)} is due on ${fee.dueDate.toLocaleDateString()}.`,
-          }),
-          sendEmailToUser({
-            user: student,
-            preference: "billing",
-            category: "billing",
-            instituteId: fee.instituteId,
-            eventKey: `fee-due:${String(fee._id)}:${String(student._id)}`,
-            subject: `LearningMS: Fee due — ${fee.title}`,
-            text: `Your outstanding balance is ${balance.toFixed(2)}. It is due on ${fee.dueDate.toLocaleDateString()}.`,
-          }),
-        ]);
-      }
+      created += createdCount;
     }
   }
 
@@ -269,15 +234,16 @@ export async function generateAutomaticReminders() {
     if (!owner) continue;
 
     const student = followUp.studentId as unknown as { name?: string } | null;
-    const didCreate = await createOnce({
+    const { createdCount } = await notifyUsers({
+      recipients: owner,
       instituteId: followUp.instituteId,
-      userId: owner._id,
       type: "academic",
       title: `Follow-up due: ${student?.name ?? "Student"}`,
       body: `Your ${followUp.type} follow-up is scheduled for ${followUp.nextActionAt?.toLocaleString()}.`,
       link: "/student-followups",
+      eventKey: `followup-due:${String(followUp._id)}:${String(owner._id)}`,
     });
-    if (didCreate) created += 1;
+    created += createdCount;
   }
 
   const [trialReminders, overdueInvoices] = await Promise.all([

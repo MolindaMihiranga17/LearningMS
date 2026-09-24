@@ -4,10 +4,8 @@ import InstituteModel from "@/models/Institute";
 import SubscriptionModel from "@/models/Subscription";
 import PlatformInvoiceModel from "@/models/PlatformInvoice";
 import UserModel from "@/models/User";
-import NotificationModel from "@/models/Notification";
 import AuditLogModel from "@/models/AuditLog";
-import { sendSmsToUser } from "@/lib/communications/sms";
-import { sendEmailToUser } from "@/lib/communications/email";
+import { notifyUsers } from "@/lib/notifications/notify";
 
 type SubscriptionDoc = InstanceType<typeof SubscriptionModel>;
 type InvoiceDoc = InstanceType<typeof PlatformInvoiceModel>;
@@ -86,39 +84,18 @@ async function notifyInstituteAdmins(
   );
   if (admins.length === 0) return;
 
-  await NotificationModel.insertMany(
-    admins.map((admin) => ({
-      instituteId,
-      userId: admin._id,
-      type: notification.type,
-      title: notification.title,
-      body: notification.body,
-    }))
-  );
-
-  await Promise.all(
-    admins.map((admin) =>
-      Promise.all([
-        sendSmsToUser({
-          user: admin,
-          preference: notification.type === "billing" ? "billing" : "announcements",
-          category: notification.type,
-          instituteId,
-          eventKey: `${notification.type}:${String(instituteId)}:${notification.title}`,
-          message: `LearningMS: ${notification.title}. ${notification.body}`,
-        }),
-        sendEmailToUser({
-          user: admin,
-          preference: notification.type === "billing" ? "billing" : "announcements",
-          category: notification.type,
-          instituteId,
-          eventKey: `${notification.type}:${String(instituteId)}:${notification.title}`,
-          subject: `LearningMS: ${notification.title}`,
-          text: notification.body,
-        }),
-      ])
-    )
-  );
+  const eventKey = `${notification.type}:${String(instituteId)}:${notification.title}`;
+  await notifyUsers({
+    recipients: admins,
+    instituteId,
+    type: notification.type,
+    title: notification.title,
+    body: notification.body,
+    eventKey,
+    channels: { email: true, sms: true },
+    email: { subject: `LearningMS: ${notification.title}`, text: notification.body },
+    sms: { message: `LearningMS: ${notification.title}. ${notification.body}` },
+  });
 }
 
 /**

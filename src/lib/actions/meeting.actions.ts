@@ -10,7 +10,7 @@ import { recordAuditEntry } from "@/lib/audit/log";
 import MeetingModel from "@/models/Meeting";
 import UserModel from "@/models/User";
 import EnrollmentModel from "@/models/Enrollment";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 
 export type CreateMeetingState = { error?: string; success?: { recipientCount: number } };
 
@@ -26,7 +26,7 @@ export async function createMeeting(_prev: CreateMeetingState, formData: FormDat
   const recipientIds = meeting.audience === "class"
     ? (await UserModel.find({ instituteId: session.instituteId, role: "student", status: "active", "studentMeta.classId": meeting.audienceId, "notificationPreferences.academic": { $ne: false } }).select("_id").lean()).map((user) => user._id)
     : (await EnrollmentModel.find({ courseId: meeting.audienceId, status: "active" }).select("studentId").lean()).map((enrollment) => enrollment.studentId);
-  if (recipientIds.length) await NotificationModel.insertMany(recipientIds.map((userId) => ({ instituteId: session.instituteId, userId, type: "academic", title: `Meeting: ${meeting.title}`, body: `Scheduled for ${meeting.scheduledAt.toLocaleString()}.`, link: "/meetings", isRead: false })));
+  if (recipientIds.length) await notifyUsers({ recipients: recipientIds.map((userId) => ({ _id: userId })), instituteId: session.instituteId, type: "academic", title: `Meeting: ${meeting.title}`, body: `Scheduled for ${meeting.scheduledAt.toLocaleString()}.`, link: "/meetings" });
   const actor = await UserModel.findById(session.userId).select("name").lean();
   await recordAuditEntry({ session, actorName: actor?.name ?? "Unknown", action: "meeting.create", targetType: "Meeting", targetId: String(created._id), targetName: created.title, summary: `Scheduled ${meeting.audience} meeting for ${recipientIds.length} students`, after: { audience: meeting.audience, audienceId: meeting.audienceId, scheduledAt: meeting.scheduledAt, recipientCount: recipientIds.length } });
   revalidatePath("/meetings");

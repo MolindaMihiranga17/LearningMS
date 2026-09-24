@@ -7,7 +7,7 @@ import { requireRole, requireSession, withTenantScope } from "@/lib/tenant/scope
 import FeeConcessionModel from "@/models/FeeConcession";
 import FeeModel from "@/models/Fee";
 import UserModel from "@/models/User";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 
 export async function createFeeConcession(formData: FormData): Promise<void> {
   const session = await requireSession();
@@ -45,16 +45,14 @@ export async function createFeeConcession(formData: FormData): Promise<void> {
     createdBy: session.userId,
   });
 
-  if (student.notificationPreferences?.billing !== false) {
-    await NotificationModel.create({
-      instituteId: session.instituteId,
-      userId: studentId,
-      type: "billing",
-      title: `Fee concession applied: ${title}`,
-      body: `A concession of ${type === "percent" ? `${value}%` : value} has been applied to your fees.${reason ? ` Reason: ${reason}` : ""}`,
-      link: "/fees",
-    });
-  }
+  await notifyUsers({
+    recipients: { _id: studentId, notificationPreferences: student.notificationPreferences },
+    instituteId: session.instituteId,
+    type: "billing",
+    title: `Fee concession applied: ${title}`,
+    body: `A concession of ${type === "percent" ? `${value}%` : value} has been applied to your fees.${reason ? ` Reason: ${reason}` : ""}`,
+    link: "/fees",
+  });
 
   const actor = await UserModel.findById(session.userId).select("name");
   await recordAuditEntry({
