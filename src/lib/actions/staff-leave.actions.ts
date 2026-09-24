@@ -9,7 +9,7 @@ import StaffLeaveRequestModel from "@/models/StaffLeaveRequest";
 import SubstituteAssignmentModel from "@/models/SubstituteAssignment";
 import MeetingModel from "@/models/Meeting";
 import EnrollmentModel from "@/models/Enrollment";
-import NotificationModel from "@/models/Notification";
+import { notifyUsers } from "@/lib/notifications/notify";
 import { getStaffLeaveConflicts } from "@/lib/staff-leave/conflicts";
 import {
   createStaffLeaveRequestSchema,
@@ -36,7 +36,16 @@ async function notifyCoverage(input: { instituteId: string | null; substituteId?
   }
   const uniqueIds = [...new Set(recipientIds.map(String))];
   const link = input.classId ? `/classes/${String(input.classId)}/session` : "/meetings";
-  if (uniqueIds.length) await NotificationModel.insertMany(uniqueIds.map((userId) => ({ instituteId: input.instituteId, userId, type: "academic", title: "Leave coverage update", body: `${input.title} has coverage arranged for ${input.startsAt.toLocaleString()}.`, link, isRead: false })));
+  if (uniqueIds.length) {
+    await notifyUsers({
+      recipients: uniqueIds.map((userId) => ({ _id: userId })),
+      instituteId: input.instituteId,
+      type: "academic",
+      title: "Leave coverage update",
+      body: `${input.title} has coverage arranged for ${input.startsAt.toLocaleString()}.`,
+      link,
+    });
+  }
 }
 
 function startOfDay(value: string) {
@@ -104,17 +113,16 @@ export async function createStaffLeaveRequest(
     summary: `Requested leave from ${startAt.toLocaleDateString()} to ${endAt.toLocaleDateString()}`,
     after: { startAt, endAt, reason: request.reason, status: request.status },
   });
-  const admins = await UserModel.find(withTenantScope({ role: "institute-admin", status: "active" }, session)).select("_id").lean();
+  const admins = await UserModel.find(withTenantScope({ role: "institute-admin", status: "active" }, session)).select("_id notificationPreferences").lean();
   if (admins.length) {
-    await NotificationModel.insertMany(admins.map((admin) => ({
+    await notifyUsers({
+      recipients: admins,
       instituteId: session.instituteId,
-      userId: admin._id,
       type: "academic",
       title: "New staff leave request",
       body: `${staff.name} requested leave from ${startAt.toLocaleDateString()} to ${endAt.toLocaleDateString()}.`,
       link: "/leave-requests",
-      isRead: false,
-    })));
+    });
   }
   revalidatePath("/leave");
   revalidatePath("/leave-requests");
@@ -262,14 +270,13 @@ export async function reviewStaffLeaveRequest(
     before: { status: "pending" },
     after: { status: request.status, decisionNote: request.decisionNote, conflictCount: conflicts.length, conflictsAcknowledged: Boolean(request.conflictsAcknowledgedAt) },
   });
-  await NotificationModel.create({
+  await notifyUsers({
+    recipients: { _id: staff._id },
     instituteId: session.instituteId,
-    userId: staff._id,
     type: "academic",
     title: `Leave request ${request.status}`,
     body: `Your leave request from ${request.startAt.toLocaleDateString()} to ${request.endAt.toLocaleDateString()} was ${request.status}.${request.decisionNote ? ` Note: ${request.decisionNote}` : ""}`,
     link: "/leave",
-    isRead: false,
   });
   revalidatePath("/leave");
   revalidatePath("/leave-requests");
