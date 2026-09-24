@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "@/lib/db/connect";
 import AttendanceModel from "@/models/Attendance";
-import NotificationModel from "@/models/Notification";
 import UserModel from "@/models/User";
+import { notifyUsers } from "@/lib/notifications/notify";
 import { requireSession, requireRole } from "@/lib/tenant/scope";
 import { assertCanMarkAttendance } from "@/lib/actions/class-subject-ownership";
 import { recordAuditEntry } from "@/lib/audit/log";
@@ -74,22 +74,17 @@ export async function markAttendance(
   const absentStudentIds = records.filter((record) => record.status === "absent").map((record) => record.studentId);
 
   if (absentStudentIds.length > 0) {
-    const notifiableStudents = await UserModel.find({
-      _id: { $in: absentStudentIds },
-      "notificationPreferences.academic": { $ne: false },
-    }).select("_id");
+    const notifiableStudents = await UserModel.find({ _id: { $in: absentStudentIds } }).select("_id notificationPreferences");
 
     if (notifiableStudents.length > 0) {
-      await NotificationModel.insertMany(
-        notifiableStudents.map((student) => ({
-          instituteId: session.instituteId,
-          userId: student._id,
-          type: "academic",
-          title: `Marked absent: ${owned.class.name}`,
-          body: `You were marked absent on ${date}.`,
-          link: `/attendance/${classId}`,
-        }))
-      );
+      await notifyUsers({
+        recipients: notifiableStudents,
+        instituteId: session.instituteId,
+        type: "academic",
+        title: `Marked absent: ${owned.class.name}`,
+        body: `You were marked absent on ${date}.`,
+        link: `/attendance/${classId}`,
+      });
     }
   }
 
