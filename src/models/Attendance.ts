@@ -26,6 +26,8 @@ const attendanceSchema = new Schema(
 // One doc per class+subject+date — re-marking the same day upserts rather than duplicates.
 attendanceSchema.index({ classId: 1, subjectId: 1, date: 1 }, { unique: true });
 attendanceSchema.index({ instituteId: 1, classId: 1 });
+// Supports institute-wide date-range scans across all classes (attendance trend/per-class analytics).
+attendanceSchema.index({ instituteId: 1, classId: 1, date: 1 });
 
 export type AttendanceRecord = {
   studentId: mongoose.Types.ObjectId;
