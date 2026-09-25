@@ -1,4 +1,6 @@
+import Link from "next/link";
 import {
+  ArrowRight,
   BarChart3,
   CalendarDays,
   ClipboardCheck,
@@ -69,6 +71,11 @@ export default async function InstituteReportsPage({
         eyebrow="Insights & reporting"
         title="Reports"
         description="Review attendance, academic performance, enrollment, and finance, then export the data you need."
+        actions={
+          <Link href="/academic-analytics" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            View detailed analytics <ArrowRight className="size-3.5" />
+          </Link>
+        }
       />
 
       <form method="get" className="flex flex-wrap items-center gap-2">
