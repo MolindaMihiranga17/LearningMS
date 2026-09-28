@@ -100,7 +100,7 @@ export function PdfPage({
   instituteName: string;
   docTitle: string;
   docMeta?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <Document>

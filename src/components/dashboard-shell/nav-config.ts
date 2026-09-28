@@ -118,6 +118,7 @@ export const STUDENT_NAV: NavItem[] = [
   { label: "Fees", href: "/fees", icon: Wallet, group: "Progress" },
   { label: "Deadlines", href: "/deadlines", icon: CalendarDays, group: "Progress" },
   { label: "Progress Center", href: "/progress", icon: BarChart3, group: "Progress" },
+  { label: "Academic analytics", href: "/academic-analytics", icon: TrendingUp, group: "Progress" },
   { label: "My Subjects", href: "/my-subjects", icon: ClipboardCheck, group: "Learning" },
   { label: "Course Catalog", href: "/course-catalog", icon: BookOpen, group: "Learning" },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, group: "Progress" },

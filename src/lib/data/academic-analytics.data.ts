@@ -28,6 +28,7 @@ export type AtRiskStudent = {
   attendancePercent: number | null;
   gradeAveragePercent: number | null;
 };
+export type SubjectGradeAverage = { subjectId: string; name: string; averagePercent: number };
 
 type AttendanceScope = {
   instituteId: string;
@@ -40,6 +41,13 @@ type GradeScope = {
   instituteId: string;
   since: Date;
   subjectIds?: mongoose.Types.ObjectId[];
+};
+
+type StudentScope = {
+  instituteId: string;
+  studentId: string;
+  since: Date;
+  months: number;
 };
 
 function toObjectId(id: string) {
@@ -192,6 +200,82 @@ async function getAtRiskStudents(
     .slice(0, 20);
 }
 
+async function getStudentAttendanceTrend({ instituteId, studentId, since, months }: StudentScope): Promise<AttendanceTrendPoint[]> {
+  const rows = await AttendanceModel.aggregate<{ _id: string; total: number; present: number }>([
+    { $match: { instituteId: toObjectId(instituteId), date: { $gte: since } } },
+    { $unwind: "$records" },
+    { $match: { "records.studentId": toObjectId(studentId) } },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m", date: "$date" } },
+        total: { $sum: 1 },
+        present: { $sum: { $cond: [{ $in: ["$records.status", ["present", "late"]] }, 1, 0] } },
+      },
+    },
+  ]);
+  const rowMap = new Map(rows.map((row) => [row._id, row]));
+
+  const trend: AttendanceTrendPoint[] = [];
+  for (let i = 0; i < months; i++) {
+    const bucketDate = new Date(since.getFullYear(), since.getMonth() + i, 1);
+    const key = `${bucketDate.getFullYear()}-${String(bucketDate.getMonth() + 1).padStart(2, "0")}`;
+    const label = bucketDate.toLocaleDateString("en-US", { year: "numeric", month: "short" });
+    const row = rowMap.get(key);
+    trend.push({ month: label, presentPct: row && row.total > 0 ? Math.round((row.present / row.total) * 100) : 0 });
+  }
+  return trend;
+}
+
+async function getStudentOverallAttendance({ instituteId, studentId, since }: Omit<StudentScope, "months">): Promise<number | null> {
+  const [row] = await AttendanceModel.aggregate<{ total: number; present: number }>([
+    { $match: { instituteId: toObjectId(instituteId), date: { $gte: since } } },
+    { $unwind: "$records" },
+    { $match: { "records.studentId": toObjectId(studentId) } },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+        present: { $sum: { $cond: [{ $in: ["$records.status", ["present", "late"]] }, 1, 0] } },
+      },
+    },
+  ]);
+  if (!row || row.total === 0) return null;
+  return Math.round((row.present / row.total) * 100);
+}
+
+async function getStudentSubjectAverages({ instituteId, studentId, since }: Omit<StudentScope, "months">): Promise<SubjectGradeAverage[]> {
+  const rows = await GradeModel.aggregate<{ _id: mongoose.Types.ObjectId | null; avgPct: number }>([
+    { $match: { instituteId: toObjectId(instituteId), studentId: toObjectId(studentId), createdAt: { $gte: since }, subjectId: { $ne: null } } },
+    { $group: { _id: "$subjectId", avgPct: { $avg: { $multiply: [{ $divide: ["$score", "$maxScore"] }, 100] } } } },
+  ]);
+  if (rows.length === 0) return [];
+
+  const subjects = await SubjectModel.find({ _id: { $in: rows.map((row) => row._id) } }).select("name").lean();
+  const subjectNames = new Map(subjects.map((subject) => [String(subject._id), subject.name]));
+
+  return rows
+    .map((row) => ({
+      subjectId: String(row._id),
+      name: subjectNames.get(String(row._id)) ?? "Subject",
+      averagePercent: Math.round(row.avgPct),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function getStudentGradeDistribution({ instituteId, studentId, since }: Omit<StudentScope, "months">): Promise<GradeDistributionBucket[]> {
+  const rows = await GradeModel.aggregate<{ _id: number | string; count: number }>([
+    { $match: { instituteId: toObjectId(instituteId), studentId: toObjectId(studentId), createdAt: { $gte: since } } },
+    { $project: { pct: { $multiply: [{ $divide: ["$score", "$maxScore"] }, 100] } } },
+    { $bucket: { groupBy: "$pct", boundaries: GRADE_BUCKET_BOUNDARIES, default: "other", output: { count: { $sum: 1 } } } },
+  ]);
+
+  return GRADE_BUCKET_BOUNDARIES.slice(0, -1).map((boundary) => ({
+    key: String(boundary),
+    label: GRADE_BUCKET_LABELS[boundary] ?? String(boundary),
+    value: rows.find((row) => row._id === boundary)?.count ?? 0,
+  }));
+}
+
 function overallPercent(byStudentOrRows: Map<string, number>) {
   if (byStudentOrRows.size === 0) return null;
   const total = [...byStudentOrRows.values()].reduce((sum, value) => sum + value, 0);
@@ -292,5 +376,45 @@ export async function getTeacherAcademicAnalytics(opts?: { months?: number }) {
     overallGradeAveragePercent: overallPercent(gradeAverageByStudent),
     totalClasses: classIds.length,
     atRiskCount: atRiskStudents.length,
+  };
+}
+
+/** Student-scoped academic analytics: attendance/grade trends for the signed-in student only. */
+export async function getStudentAcademicAnalytics(opts?: { months?: number }) {
+  const session = await requireSession();
+  requireRole(session, ["student"]);
+  if (!session.instituteId) throw new Error("Academic analytics requires an institute context.");
+
+  await connectToDatabase();
+
+  const months = opts?.months ?? 6;
+  const since = monthsSince(months);
+  const instituteId = session.instituteId;
+  const studentId = session.userId;
+
+  const [attendanceTrend, overallAttendancePercent, subjectGradeAverages, gradeDistribution] = await Promise.all([
+    getStudentAttendanceTrend({ instituteId, studentId, since, months }),
+    getStudentOverallAttendance({ instituteId, studentId, since }),
+    getStudentSubjectAverages({ instituteId, studentId, since }),
+    getStudentGradeDistribution({ instituteId, studentId, since }),
+  ]);
+
+  const overallGradeAveragePercent = subjectGradeAverages.length > 0
+    ? Math.round(subjectGradeAverages.reduce((sum, subject) => sum + subject.averagePercent, 0) / subjectGradeAverages.length)
+    : null;
+
+  const atRisk =
+    (overallAttendancePercent !== null && overallAttendancePercent < ATTENDANCE_PASS_THRESHOLD) ||
+    (overallGradeAveragePercent !== null && overallGradeAveragePercent < GRADE_PASS_THRESHOLD);
+
+  return {
+    months,
+    attendanceTrend,
+    subjectGradeAverages,
+    gradeDistribution,
+    overallAttendancePercent,
+    overallGradeAveragePercent,
+    subjectCount: subjectGradeAverages.length,
+    atRisk,
   };
 }
