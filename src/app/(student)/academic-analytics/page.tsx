@@ -33,20 +33,38 @@ export default async function StudentAcademicAnalyticsPage({
         description="Your attendance and grade trends over time."
       />
 
-      <form method="get" className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground">Range:</span>
-        {RANGE_OPTIONS.map((option) => (
-          <button
-            key={option.months}
-            type="submit"
-            name="months"
-            value={option.months}
-            className={cn(buttonVariants({ variant: option.months === months ? "default" : "outline", size: "sm" }))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <form method="get" className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Range:</span>
+          {RANGE_OPTIONS.map((option) => (
+            <button
+              key={option.months}
+              type="submit"
+              name="months"
+              value={option.months}
+              className={cn(buttonVariants({ variant: option.months === months ? "default" : "outline", size: "sm" }))}
+            >
+              {option.label}
+            </button>
+          ))}
+        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/api/reports/academic-analytics?months=${months}&format=xlsx`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
-            {option.label}
-          </button>
-        ))}
-      </form>
+            Export XLSX
+          </a>
+          <a
+            href={`/api/reports/academic-analytics?months=${months}&format=pdf`}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            Export PDF
+          </a>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
