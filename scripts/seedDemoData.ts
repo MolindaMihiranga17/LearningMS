@@ -80,7 +80,10 @@ async function main() {
         instituteId: nps._id,
         status: t.status ?? "active",
         mustChangePassword: t.name === "Nadeesha Silva",
-        staffMeta: { employeeCode: t.employeeCode },
+        staffMeta: {
+          employeeCode: t.employeeCode,
+          permissions: { dashboard: true, classes: true, subjects: true, students: true },
+        },
         createdBy: admin._id,
       })
     )
