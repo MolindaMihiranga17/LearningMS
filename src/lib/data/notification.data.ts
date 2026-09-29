@@ -1,6 +1,6 @@
 import "server-only";
 import { connectToDatabase } from "@/lib/db/connect";
-import NotificationModel from "@/models/Notification";
+import NotificationModel, { type NotificationType } from "@/models/Notification";
 import { requireSession } from "@/lib/tenant/scope";
 
 export async function listNotificationsForUser(limit = 10) {
@@ -32,12 +32,13 @@ export async function countUnreadForUser(): Promise<number> {
   return NotificationModel.countDocuments({ userId: session.userId, isRead: false });
 }
 
-export async function listAllNotificationsForUser(page = 1, pageSize = 20) {
+export async function listAllNotificationsForUser(page = 1, pageSize = 20, type?: NotificationType) {
   const session = await requireSession();
 
   await connectToDatabase();
 
-  const filter = { userId: session.userId };
+  const filter: Record<string, unknown> = { userId: session.userId };
+  if (type) filter.type = type;
   const [notifications, total] = await Promise.all([
     NotificationModel.find(filter)
       .sort({ createdAt: -1 })

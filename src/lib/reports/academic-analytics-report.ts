@@ -7,6 +7,7 @@ import type {
   AttendanceTrendPoint,
   ClassAttendanceRow,
   GradeDistributionBucket,
+  SubjectGradeAverage,
 } from "@/lib/data/academic-analytics.data";
 
 export type AcademicAnalyticsReportData = {
@@ -14,6 +15,12 @@ export type AcademicAnalyticsReportData = {
   perClassAttendance: ClassAttendanceRow[];
   gradeDistribution: GradeDistributionBucket[];
   atRiskStudents: AtRiskStudent[];
+};
+
+export type StudentAcademicAnalyticsReportData = {
+  attendanceTrend: AttendanceTrendPoint[];
+  subjectGradeAverages: SubjectGradeAverage[];
+  gradeDistribution: GradeDistributionBucket[];
 };
 
 const TITLE_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1D4ED8" } } as const;
@@ -98,6 +105,37 @@ export async function toAcademicAnalyticsXlsxBuffer(title: string, data: Academi
       attendancePercent: student.attendancePercent ?? "-",
       gradeAveragePercent: student.gradeAveragePercent ?? "-",
     }))
+  );
+
+  const arrayBuffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+export async function toStudentAcademicAnalyticsXlsxBuffer(
+  title: string,
+  data: StudentAcademicAnalyticsReportData
+): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "LearningMS";
+  workbook.created = new Date();
+
+  addSheet(
+    workbook,
+    "Attendance trend",
+    [{ key: "month", header: "Month" }, { key: "presentPct", header: "Present %" }],
+    data.attendanceTrend
+  );
+  addSheet(
+    workbook,
+    "Grade average by subject",
+    [{ key: "name", header: "Subject" }, { key: "averagePercent", header: "Average %" }],
+    data.subjectGradeAverages
+  );
+  addSheet(
+    workbook,
+    "Grade distribution",
+    [{ key: "label", header: "Score band" }, { key: "value", header: "Count" }],
+    data.gradeDistribution
   );
 
   const arrayBuffer = await workbook.xlsx.writeBuffer();
@@ -196,6 +234,49 @@ export function AcademicAnalyticsPdfDocument({
         attendancePercent: student.attendancePercent ?? "-",
         gradeAveragePercent: student.gradeAveragePercent ?? "-",
       })),
+    })
+  );
+}
+
+export function StudentAcademicAnalyticsPdfDocument({
+  instituteName,
+  studentName,
+  title,
+  generatedDate,
+  data,
+}: {
+  instituteName: string;
+  studentName: string;
+  title: string;
+  generatedDate: string;
+  data: StudentAcademicAnalyticsReportData;
+}) {
+  return createElement(
+    PdfPage,
+    { instituteName, docTitle: title, docMeta: `${studentName} · ${generatedDate}` },
+    createElement(PdfMiniTable, {
+      title: "Attendance trend",
+      columns: [
+        { key: "month", header: "Month" },
+        { key: "presentPct", header: "Present %", right: true },
+      ],
+      rows: data.attendanceTrend,
+    }),
+    createElement(PdfMiniTable, {
+      title: "Grade average by subject",
+      columns: [
+        { key: "name", header: "Subject" },
+        { key: "averagePercent", header: "Average %", right: true },
+      ],
+      rows: data.subjectGradeAverages,
+    }),
+    createElement(PdfMiniTable, {
+      title: "Grade distribution",
+      columns: [
+        { key: "label", header: "Score band" },
+        { key: "value", header: "Count", right: true },
+      ],
+      rows: data.gradeDistribution,
     })
   );
 }

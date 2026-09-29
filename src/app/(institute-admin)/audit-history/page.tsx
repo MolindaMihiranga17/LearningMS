@@ -45,6 +45,11 @@ export default async function InstituteAuditHistoryPage({
 
   const latestEvent = logs[0]?.createdAt ? new Date(logs[0].createdAt).toLocaleString() : "No activity yet";
 
+  const exportQuery = new URLSearchParams(
+    Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1]))
+  ).toString();
+  const exportSuffix = exportQuery ? `&${exportQuery}` : "";
+
   return (
     <div className="flex flex-col gap-6">
       <WorkspaceHeader
@@ -56,6 +61,26 @@ export default async function InstituteAuditHistoryPage({
           { label: "Actors", value: overview.uniqueActors, detail: "People or systems represented", tone: "info" },
           { label: "System events", value: overview.systemEvents, detail: latestEvent, tone: "success" },
         ]}
+        actions={
+          <>
+            <a
+              href={`/api/reports/export/institute-audit-log?format=csv${exportSuffix}`}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Export CSV
+            </a>
+            <a
+              href={`/api/reports/export/institute-audit-log?format=xlsx${exportSuffix}`}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Export Excel
+            </a>
+          </>
+        }
       />
 
       <div className="rounded-[20px] border border-border/60 bg-card">
