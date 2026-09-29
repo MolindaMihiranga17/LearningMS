@@ -5,14 +5,23 @@ import { listStaff, listStudents } from "@/lib/data/user.data";
 import { listFeesForInstitute } from "@/lib/data/fee.data";
 import { listAllPaymentsForInstitute } from "@/lib/data/payment.data";
 import { listAuditLogs } from "@/lib/data/audit.data";
-import { listAcademicTermsForInstitute } from "@/lib/data/deep-operations.data";
+import { listAcademicTermsForInstitute, listInstituteAuditLogs } from "@/lib/data/deep-operations.data";
 import { listUpcomingAcademicEvents } from "@/lib/data/academic-event.data";
 import { toCsv, type CsvColumn } from "@/lib/reports/csv";
 import { toXlsxBuffer } from "@/lib/reports/xlsx";
 import { TabularReportPdf } from "@/lib/reports/tabular-report-pdf";
 import { getSession } from "@/lib/tenant/scope";
 
-const EXPORTABLE_TYPES = new Set(["students", "staff", "fees", "payments", "terms", "calendar-events", "audit-log"]);
+const EXPORTABLE_TYPES = new Set([
+  "students",
+  "staff",
+  "fees",
+  "payments",
+  "terms",
+  "calendar-events",
+  "audit-log",
+  "institute-audit-log",
+]);
 const TYPE_ALLOWED_ROLES: Record<string, ReadonlyArray<string>> = {
   students: ["institute-admin"],
   staff: ["institute-admin"],
@@ -21,6 +30,7 @@ const TYPE_ALLOWED_ROLES: Record<string, ReadonlyArray<string>> = {
   terms: ["institute-admin"],
   "calendar-events": ["institute-admin", "institute-staff", "student", "super-admin"],
   "audit-log": ["super-admin"],
+  "institute-audit-log": ["institute-admin"],
 };
 
 type ExportPayload<T extends Record<string, unknown>> = {
@@ -189,6 +199,35 @@ async function buildAuditLogExport(searchParams: URLSearchParams): Promise<Expor
   };
 }
 
+async function buildInstituteAuditLogExport(searchParams: URLSearchParams): Promise<ExportPayload<Record<string, unknown>>> {
+  const filters = {
+    actorRole: searchParams.get("actorRole") || undefined,
+    action: searchParams.get("action") || undefined,
+    dateFrom: searchParams.get("dateFrom") || undefined,
+    dateTo: searchParams.get("dateTo") || undefined,
+  };
+
+  const { logs } = await listInstituteAuditLogs(filters, 1, 10000);
+  const rows = logs.map((log) => ({
+    when: log.createdAt ? new Date(log.createdAt as unknown as string).toLocaleString() : "",
+    actorName: log.actorName,
+    actorRole: log.actorRole,
+    action: log.action,
+    summary: log.summary,
+  }));
+  return {
+    rows,
+    columns: [
+      { key: "when", header: "When" },
+      { key: "actorName", header: "Actor" },
+      { key: "actorRole", header: "Actor role" },
+      { key: "action", header: "Action" },
+      { key: "summary", header: "Summary" },
+    ],
+    filename: "audit-history",
+  };
+}
+
 async function buildTermsExport(): Promise<ExportPayload<Record<string, unknown>>> {
   const terms = await listAcademicTermsForInstitute();
   const rows = terms.map((term) => ({
@@ -272,6 +311,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
     payload = await buildCalendarEventsExport();
   } else if (type === "audit-log") {
     payload = await buildAuditLogExport(url.searchParams);
+  } else if (type === "institute-audit-log") {
+    payload = await buildInstituteAuditLogExport(url.searchParams);
   } else {
     return NextResponse.json({ error: "Unknown export type." }, { status: 400 });
   }
